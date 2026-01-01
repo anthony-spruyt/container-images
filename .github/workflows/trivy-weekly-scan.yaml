@@ -94,6 +94,8 @@ jobs:
           severity: CRITICAL,HIGH,MEDIUM
           ignore-unfixed: false
           trivyignores: .trivyignore.yaml
+          # Don't fail on vulnerabilities - we process results in next step
+          exit-code: 0
 
       - name: Process results and manage issues
         if: steps.check-image.outputs.exists == 'true'
