@@ -22,7 +22,7 @@ on:
       - "**/metadata.yaml"
 
 permissions:
-  contents: read
+  contents: write
   packages: write
   id-token: write
   attestations: write
@@ -227,3 +227,49 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
+      - name: Create GitHub Release
+        if: steps.version.outputs.tag != 'latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_NAME: ${{ matrix.image }}
+          VERSION: ${{ steps.version.outputs.tag }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+          UPSTREAM: ${{ steps.metadata.outputs.upstream }}
+        run: |
+          TAG="${IMAGE_NAME}-v${VERSION}"
+
+          # Check if release already exists
+          if gh release view "$TAG" &>/dev/null; then
+            echo "Release $TAG already exists, skipping"
+            exit 0
+          fi
+
+          # Create release notes
+          cat <<EOF > release-notes.md
+          ## Container Image
+
+          **Image:** \`${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${VERSION}\`
+          **Digest:** \`${DIGEST}\`
+
+          ### Pull Commands
+          \`\`\`bash
+          docker pull ${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${VERSION}
+          docker pull ${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}@${DIGEST}
+          \`\`\`
+
+          ### Build Info
+          - **Upstream:** [${UPSTREAM}](https://github.com/${UPSTREAM})
+          - **Upstream Version:** ${VERSION}
+          - **Build Commit:** ${{ github.sha }}
+          - **Workflow Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+          ### Security
+          - Trivy vulnerability scan: Passed (CRITICAL/HIGH)
+          - SBOM: Included in image
+          - Provenance: Attested
+          EOF
+
+          gh release create "$TAG" \
+            --title "${IMAGE_NAME} v${VERSION}" \
+            --notes-file release-notes.md
