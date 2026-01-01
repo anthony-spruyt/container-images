@@ -1,0 +1,184 @@
+---
+name: Weekly Trivy Vulnerability Scan
+
+on:
+  schedule:
+    # Every Monday at 6:00 AM UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}
+
+# Minimal global permissions - jobs declare their own as needed
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: ${{ github.repository_owner }}
+
+jobs:
+  discover-images:
+    name: Discover Images
+    runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.discover.outputs.images }}
+    steps:
+      # SHA pin: actions/checkout@v4.3.1
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+      - name: Find image directories
+        id: discover
+        run: |
+          # Find all directories containing metadata.yaml
+          IMAGES=$(find . -maxdepth 2 -name 'metadata.yaml' -type f | \
+            sed 's|^\./||' | \
+            sed 's|/metadata.yaml$||' | \
+            grep -E '^[a-zA-Z0-9_-]+$' | \
+            jq -R -s -c 'split("\n") | map(select(length > 0))')
+
+          if [ "$IMAGES" = "[]" ] || [ -z "$IMAGES" ]; then
+            echo "No images found"
+            echo "images=[]" >> "$GITHUB_OUTPUT"
+          else
+            echo "Found images: $IMAGES"
+            echo "images=$IMAGES" >> "$GITHUB_OUTPUT"
+          fi
+
+  scan-images:
+    name: Scan ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    needs: discover-images
+    if: needs.discover-images.outputs.images != '[]'
+    permissions:
+      contents: read
+      packages: read
+      issues: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJson(needs.discover-images.outputs.images) }}
+    steps:
+      # SHA pin: actions/checkout@v4.3.1
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+      - name: Log in to GHCR
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if image exists
+        id: check-image
+        env:
+          IMAGE: ${{ matrix.image }}
+        run: |
+          IMAGE_REF="${REGISTRY}/${OWNER}/${IMAGE}:latest"
+          if docker manifest inspect "$IMAGE_REF" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Image exists: $IMAGE_REF"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Image does not exist: $IMAGE_REF"
+          fi
+
+      # SHA pin: aquasecurity/trivy-action@0.29.0
+      - name: Scan image for vulnerabilities
+        if: steps.check-image.outputs.exists == 'true'
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}:latest
+          format: json
+          output: trivy-results.json
+          severity: CRITICAL,HIGH,MEDIUM
+          ignore-unfixed: false
+          trivyignores: .trivyignore.yaml
+
+      - name: Process results and manage issues
+        if: steps.check-image.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE: ${{ matrix.image }}
+        run: |
+          # Parse Trivy results
+          if [ ! -f trivy-results.json ]; then
+            echo "No Trivy results file found"
+            exit 0
+          fi
+
+          # Extract vulnerabilities from results
+          VULNS=$(jq -r '
+            [.Results[]? | .Vulnerabilities[]? | {
+              id: .VulnerabilityID,
+              severity: .Severity,
+              package: .PkgName,
+              installed: .InstalledVersion,
+              fixed: (.FixedVersion // "unfixed")
+            }] | unique_by(.id)
+          ' trivy-results.json)
+
+          VULN_COUNT=$(echo "$VULNS" | jq 'length')
+          echo "Found $VULN_COUNT vulnerabilities"
+
+          # Count by severity
+          CRITICAL=$(echo "$VULNS" | jq '[.[] | select(.severity == "CRITICAL")] | length')
+          HIGH=$(echo "$VULNS" | jq '[.[] | select(.severity == "HIGH")] | length')
+          MEDIUM=$(echo "$VULNS" | jq '[.[] | select(.severity == "MEDIUM")] | length')
+
+          # Search for existing open issue by title prefix
+          # Use jq --arg to safely pass the image name
+          EXISTING=$(gh issue list --state open --json number,title | \
+            jq --arg prefix "[Trivy] $IMAGE:" -r '.[] | select(.title | startswith($prefix)) | .number' | \
+            head -1)
+
+          SCAN_DATE=$(date -u +"%Y-%m-%d %H:%M UTC")
+          IMAGE_REF="${REGISTRY}/${OWNER}/${IMAGE}:latest"
+
+          if [ "$VULN_COUNT" -eq 0 ]; then
+            echo "No vulnerabilities found"
+
+            # Close existing issue if present
+            if [ -n "$EXISTING" ]; then
+              gh issue close "$EXISTING" \
+                --comment "All vulnerabilities resolved as of $SCAN_DATE."
+              echo "Closed issue #$EXISTING"
+            fi
+            exit 0
+          fi
+
+          # Build vulnerability table
+          VULN_TABLE=$(echo "$VULNS" | jq -r '
+            .[] | "| \(.id) | \(.severity) | \(.package) | \(.installed) | \(.fixed) |"
+          ')
+
+          # Create issue body using heredoc
+          BODY=$(cat <<EOF
+          ## Vulnerability Scan Results
+
+          **Image:** \`$IMAGE_REF\`
+          **Scan Date:** $SCAN_DATE
+          **Total:** $VULN_COUNT vulnerabilities ($CRITICAL CRITICAL, $HIGH HIGH, $MEDIUM MEDIUM)
+
+          ### Vulnerabilities
+
+          | CVE | Severity | Package | Installed | Fixed |
+          |-----|----------|---------|-----------|-------|
+          $VULN_TABLE
+
+          ---
+          *This issue is auto-generated by the weekly Trivy scan workflow.*
+          EOF
+          )
+
+          TITLE="[Trivy] $IMAGE: $VULN_COUNT vulnerabilities found"
+
+          if [ -n "$EXISTING" ]; then
+            # Update existing issue
+            gh issue edit "$EXISTING" --title "$TITLE" --body "$BODY"
+            echo "Updated issue #$EXISTING"
+          else
+            # Create new issue
+            gh issue create --title "$TITLE" --body "$BODY"
+            echo "Created new issue"
+          fi
