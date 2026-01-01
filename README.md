@@ -25,6 +25,10 @@ docker pull ghcr.io/anthony-spruyt/firemerge:latest
 
 ## Adding a New Image
 
+### Option 1: Build from Upstream Source
+
+Use this when building from an external repository (e.g., a GitHub project):
+
 1. Create a directory with the image name
 2. Add `metadata.yaml`:
 
@@ -37,7 +41,32 @@ docker pull ghcr.io/anthony-spruyt/firemerge:latest
 4. Update `.github/workflows/build-and-push.yaml`:
    - Add upstream to `ALLOWED_UPSTREAMS` env var
    - Add image name to `inputs.image.options` list
-5. Update `.github/dependabot.yml` to track Docker base images:
+5. Add to `.github/dependabot.yml` to track base image updates:
+
+   ```yaml
+   - package-ecosystem: "docker"
+     directory: "/<image-name>"
+     schedule:
+       interval: weekly
+   ```
+
+6. Push to main - the image will be built and published automatically
+
+### Option 2: Build from Local Dockerfile
+
+Use this for custom images with no upstream source:
+
+1. Create a directory with the image name
+2. Add your `Dockerfile` and any required files
+3. Add `metadata.yaml` (upstream can be omitted):
+
+   ```yaml
+   version: "1.0.0"
+   ```
+
+4. Update `.github/workflows/build-and-push.yaml`:
+   - Add image name to `inputs.image.options` list
+5. Add to `.github/dependabot.yml` to track base image updates:
 
    ```yaml
    - package-ecosystem: "docker"
