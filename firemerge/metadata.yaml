@@ -2,5 +2,5 @@
 # Firemerge - Semi-automated transaction entry for Firefly III
 # https://github.com/lvu/firemerge
 
-upstream: lvu/firemerge
-version: "0.5.2"
+upstream: anthony-spruyt/firemerge
+version: security/fix-cve-2025-64512-cve-2024-47874

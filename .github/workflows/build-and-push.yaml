@@ -36,7 +36,7 @@ env:
   REGISTRY: ghcr.io
   OWNER: ${{ github.repository_owner }}
   # Allowed upstream repositories (security: prevent arbitrary repo checkout)
-  ALLOWED_UPSTREAMS: "lvu/firemerge"
+  ALLOWED_UPSTREAMS: "lvu/firemerge anthony-spruyt/firemerge"
 
 jobs:
   detect-changes:
@@ -114,9 +114,9 @@ jobs:
             exit 1
           fi
 
-          # Validate version format (semver-like or 'latest')
-          if ! echo "$VERSION" | grep -qE '^([0-9]+\.[0-9]+\.[0-9]+|latest)$'; then
-            echo "::error::Invalid version format: $VERSION"
+          # Validate version format (alphanumeric with common separators, no shell chars)
+          if ! echo "$VERSION" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9._/-]*$'; then
+            echo "::error::Invalid version format: $VERSION (must be alphanumeric with .-/_)"
             exit 1
           fi
 
@@ -130,9 +130,9 @@ jobs:
           METADATA_VERSION: ${{ steps.metadata.outputs.version }}
         run: |
           if [ -n "$INPUT_VERSION" ]; then
-            # Validate input version format (semver-like, no special chars)
-            if ! echo "$INPUT_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-              echo "::error::Invalid version format. Must be semver (e.g., 1.2.3)"
+            # Validate input version format (alphanumeric with common separators, no shell chars)
+            if ! echo "$INPUT_VERSION" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9._/-]*$'; then
+              echo "::error::Invalid version format (must be alphanumeric with .-/_)"
               exit 1
             fi
             echo "tag=$INPUT_VERSION" >> "$GITHUB_OUTPUT"
