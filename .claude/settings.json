@@ -1,9 +1,6 @@
 {
   "permissions": {
     "deny": [
-      "Read(./.gitattributes)",
-      "Read(./.gitleaksignore)",
-      "Read(./LICENSE)",
       "Read(./**/*.pem)",
       "Read(./**/*.key)",
       "Read(./**/*id_rsa*)",

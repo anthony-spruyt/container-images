@@ -149,17 +149,26 @@ Pushing changes to `metadata.yaml` or `Dockerfile` on main triggers a build usin
 Trigger via GitHub API (workflow_dispatch):
 
 ```bash
+# Dry run (default) - builds and scans but doesn't push or release
 curl -X POST \
   -H "Authorization: token $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github.v3+json" \
   https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml/dispatches \
   -d '{"ref":"main","inputs":{"image":"firemerge","version":"0.5.3"}}'
+
+# Production build - pushes to GHCR and creates release
+curl -X POST \
+  -H "Authorization: token $GITHUB_TOKEN" \
+  -H "Accept: application/vnd.github.v3+json" \
+  https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml/dispatches \
+  -d '{"ref":"main","inputs":{"image":"firemerge","version":"0.5.3","dry_run":"false"}}'
 ```
 
 Parameters:
 
 - **image** (required): Image name from allowed list (e.g., `firemerge`)
 - **version** (optional): Semver tag to build (e.g., `0.5.3`) - checks out this tag from upstream
+- **dry_run** (optional, default: `true`): When `true`, builds and scans the image but skips push to GHCR and release creation. Set to `false` for production builds.
 
 ## n8n Workflow
 
@@ -212,10 +221,13 @@ Create an n8n workflow to automatically trigger builds when upstream repos relea
        "ref": "main",
        "inputs": {
          "image": "firemerge",
-         "version": "{{ $json.name }}"
+         "version": "{{ $json.name }}",
+         "dry_run": "false"
        }
      }
    ```
+
+   Note: Set `dry_run` to `"false"` for production builds. Default is `"true"` (dry run mode).
 
 ### Required Secrets
 

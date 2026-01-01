@@ -14,6 +14,11 @@ on:
         description: "Version tag (optional, uses metadata.yaml version if not specified)"
         required: false
         type: string
+      dry_run:
+        description: "Dry run mode - build and scan but skip push and release"
+        required: false
+        type: boolean
+        default: true
   push:
     branches:
       - main
@@ -208,6 +213,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Push image
+        if: inputs.dry_run != true
         id: push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
@@ -222,6 +228,7 @@ jobs:
 
       # SHA pin: actions/attest-build-provenance@v2.4.0
       - name: Generate provenance attestation
+        if: inputs.dry_run != true
         uses: actions/attest-build-provenance@00014ed6ed5efc5b1ab7f7f34a39eb55d41aa4f8
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}
@@ -229,7 +236,7 @@ jobs:
           push-to-registry: true
 
       - name: Create GitHub Release
-        if: steps.version.outputs.tag != 'latest'
+        if: steps.version.outputs.tag != 'latest' && inputs.dry_run != true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_NAME: ${{ matrix.image }}
@@ -273,3 +280,33 @@ jobs:
           gh release create "$TAG" \
             --title "${IMAGE_NAME} v${VERSION}" \
             --notes-file release-notes.md
+
+      - name: Dry run summary
+        if: inputs.dry_run == true
+        env:
+          IMAGE_NAME: ${{ matrix.image }}
+          VERSION: ${{ steps.version.outputs.tag }}
+          UPSTREAM: ${{ steps.metadata.outputs.upstream }}
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Dry Run Summary
+
+          **Mode:** Dry run (no push or release)
+
+          ### What would have been done:
+          - **Image:** \`${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${VERSION}\`
+          - **Tags:** \`latest\`, \`${VERSION}\`, \`${{ github.sha }}\`
+          - **Upstream:** [${UPSTREAM}](https://github.com/${UPSTREAM})
+          - **Release tag:** \`${IMAGE_NAME}-v${VERSION}\`
+
+          ### Completed steps:
+          - ✅ Metadata validation
+          - ✅ Upstream checkout
+          - ✅ Image build
+          - ✅ Trivy vulnerability scan
+
+          ### Skipped steps:
+          - ⏭️ Push to GHCR
+          - ⏭️ Provenance attestation
+          - ⏭️ GitHub release creation
+          EOF
