@@ -14,6 +14,7 @@ This repository uses a VS Code devcontainer for a consistent development experie
 - [VS Code](https://code.visualstudio.com/) with the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) or Docker Engine
 - SSH agent running with your keys loaded (for git operations)
+- GitHub token in `~/.secrets/.env` (for GitHub CLI operations)
 
 ### SSH Agent Setup
 
@@ -60,6 +61,19 @@ ssh-add ~/.ssh/id_ed25519
 ```
 
 Or enable the OpenSSH Authentication Agent service in Windows Services.
+
+### GitHub CLI Setup
+
+The devcontainer loads environment variables from `~/.secrets/.env` on your host. Create this file with a GitHub token for CLI operations:
+
+```bash
+mkdir -p ~/.secrets
+chmod 700 ~/.secrets
+echo "GH_TOKEN=ghp_your_token_here" > ~/.secrets/.env
+chmod 600 ~/.secrets/.env
+```
+
+Create a token at [GitHub Settings > Developer settings > Personal access tokens](https://github.com/settings/tokens) with `repo` and `workflow` scopes.
 
 ### Opening the Devcontainer
 
