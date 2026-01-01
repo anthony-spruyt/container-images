@@ -42,7 +42,7 @@ jobs:
     steps:
       # SHA pin: actions/checkout@v4.3.1
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
         with:
           fetch-depth: 2
 
@@ -86,7 +86,7 @@ jobs:
     steps:
       # SHA pin: actions/checkout@v4.3.1
       - name: Checkout container-images
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
       - name: Read and validate metadata
         id: metadata
@@ -140,7 +140,7 @@ jobs:
       # SHA pin: actions/checkout@v4.3.1
       - name: Checkout upstream source
         if: steps.metadata.outputs.upstream != ''
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
         with:
           repository: ${{ steps.metadata.outputs.upstream }}
           ref: ${{ steps.version.outputs.tag }}
@@ -199,7 +199,7 @@ jobs:
 
       # SHA pin: aquasecurity/trivy-action@0.29.0
       - name: Scan image for vulnerabilities
-        uses: aquasecurity/trivy-action@76071ef0d7ec797419534a183b498b4d6366cf37
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}:${{ steps.version.outputs.tag }}
           format: table
@@ -222,7 +222,7 @@ jobs:
 
       # SHA pin: actions/attest-build-provenance@v2.4.0
       - name: Generate provenance attestation
-        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be
+        uses: actions/attest-build-provenance@00014ed6ed5efc5b1ab7f7f34a39eb55d41aa4f8
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}
           subject-digest: ${{ steps.push.outputs.digest }}
