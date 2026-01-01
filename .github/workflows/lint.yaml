@@ -38,4 +38,6 @@ jobs:
       - name: Run mega linter
         uses: oxsecurity/megalinter/flavors/documentation@55a59b24a441e0e1943080d4a512d827710d4a9d
         env:
+          # Token required for: PR comments, status checks, and fetching .github configs
+          # Scoped to read:contents + write:pull-requests + write:statuses via job permissions
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
