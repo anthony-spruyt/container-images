@@ -131,7 +131,6 @@ jobs:
       - name: Validate configuration
         id: validate
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_NAME: ${{ matrix.image }}
           ALLOWED_UPSTREAMS: ${{ env.ALLOWED_UPSTREAMS }}
           VERSION: ${{ steps.metadata.outputs.version }}
@@ -169,12 +168,6 @@ jobs:
           RELEASE_TAG="${IMAGE_NAME}-v${TAG}"
           if ! echo "$RELEASE_TAG" | grep -qE '^[a-zA-Z0-9_-]+-v[a-zA-Z0-9._-]+$'; then
             echo "::error::Release tag '$RELEASE_TAG' has invalid format"
-            ERRORS=$((ERRORS + 1))
-          fi
-
-          # Verify gh CLI authentication (read-only)
-          if ! gh api user --jq '.login' &>/dev/null; then
-            echo "::error::GitHub CLI authentication failed"
             ERRORS=$((ERRORS + 1))
           fi
 
