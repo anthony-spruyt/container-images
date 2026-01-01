@@ -2,4 +2,19 @@
 # Path-specific trivy ignores
 # https://trivy.dev/latest/docs/configuration/filtering
 
+vulnerabilities:
+  # CVE-2024-47874: Starlette DoS via multipart parsing
+  # Risk: LOW - Service is behind Authentik forward proxy auth, single-user deployment
+  - id: CVE-2024-47874
+    paths:
+      - firemerge/**
+    statement: "Accepted risk: Single-user deployment behind Authentik auth proxy"
+
+  # CVE-2025-64512: pdfminer.six PDF parsing vulnerability
+  # Risk: LOW - Single-user deployment, no untrusted PDF uploads
+  - id: CVE-2025-64512
+    paths:
+      - firemerge/**
+    statement: "Accepted risk: Single-user deployment, no untrusted PDF uploads"
+
 misconfigurations:

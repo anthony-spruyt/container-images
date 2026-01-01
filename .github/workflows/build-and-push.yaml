@@ -211,6 +211,7 @@ jobs:
           exit-code: 1
           severity: CRITICAL,HIGH
           ignore-unfixed: true
+          trivyignores: .trivyignore.yaml
 
       - name: Push image
         if: inputs.dry_run != true
