@@ -1,2 +1,2 @@
-# Ignore badge URLs until repo is created on GitHub
-https://github.com/anthony-spruyt/container-images/actions/workflows/
+# Ignore GitHub Actions template variables in workflow files
+https://github.com/\$%7BUPSTREAM%7D
