@@ -9,7 +9,7 @@ Monorepo for container images published to `ghcr.io/<owner>/<image>`. Each image
 ## Commands
 
 ```bash
-./lint.sh                    # Run MegaLinter locally
+./lint.sh                    # Run MegaLinter locally (output in .output/)
 pre-commit run --all-files   # Run pre-commit hooks manually
 ./.github/apply-rulesets.sh  # Apply GitHub rulesets (run once after repo creation)
 ```
