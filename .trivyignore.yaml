@@ -1,12 +1,7 @@
 ---
-# Trivy vulnerability ignores
+# Path-specific trivy ignores
 # https://trivy.dev/latest/docs/configuration/filtering
-#
-# Risk accepted: firemerge is behind Authentik forward proxy auth, single user
-# These DoS vulnerabilities have minimal impact in this deployment context.
 
 vulnerabilities:
-  # starlette: DoS via Range header merging (fixed in 0.49.1)
-  - id: CVE-2025-62727
 
 misconfigurations:
