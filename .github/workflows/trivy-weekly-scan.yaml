@@ -175,12 +175,24 @@ jobs:
 
           TITLE="[Trivy] $IMAGE: $VULN_COUNT vulnerabilities found"
 
+          # Build labels based on severity
+          LABELS="security,trivy"
+          if [ "$CRITICAL" -gt 0 ]; then
+            LABELS="$LABELS,critical"
+          fi
+          if [ "$HIGH" -gt 0 ]; then
+            LABELS="$LABELS,high"
+          fi
+          if [ "$MEDIUM" -gt 0 ]; then
+            LABELS="$LABELS,medium"
+          fi
+
           if [ -n "$EXISTING" ]; then
-            # Update existing issue
-            gh issue edit "$EXISTING" --title "$TITLE" --body "$BODY"
+            # Update existing issue (title, body, and labels)
+            gh issue edit "$EXISTING" --title "$TITLE" --body "$BODY" --add-label "$LABELS"
             echo "Updated issue #$EXISTING"
           else
-            # Create new issue
-            gh issue create --title "$TITLE" --body "$BODY"
+            # Create new issue with labels
+            gh issue create --title "$TITLE" --body "$BODY" --label "$LABELS"
             echo "Created new issue"
           fi
