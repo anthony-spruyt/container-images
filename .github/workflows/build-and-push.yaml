@@ -26,11 +26,9 @@ on:
       - "**/Dockerfile"
       - "**/metadata.yaml"
 
+# Minimal global permissions - jobs declare their own as needed
 permissions:
-  contents: write
-  packages: write
-  id-token: write
-  attestations: write
+  contents: read
 
 env:
   REGISTRY: ghcr.io
@@ -83,6 +81,11 @@ jobs:
     name: Build ${{ matrix.image }}
     runs-on: ubuntu-latest
     needs: detect-changes
+    permissions:
+      contents: write # For creating GitHub releases
+      packages: write # For pushing to GHCR
+      id-token: write # For OIDC authentication
+      attestations: write # For build provenance attestation
     if: needs.detect-changes.outputs.images != '[]'
     strategy:
       fail-fast: false
@@ -105,8 +108,9 @@ jobs:
             exit 1
           fi
 
-          VERSION=$(grep -E "^version:" "$METADATA_FILE" | awk '{print $2}' | tr -d '"')
-          UPSTREAM=$(grep -E "^upstream:" "$METADATA_FILE" | awk '{print $2}' | tr -d '"')
+          # Use yq for proper YAML parsing (available on ubuntu-latest)
+          VERSION=$(yq -r '.version // ""' "$METADATA_FILE")
+          UPSTREAM=$(yq -r '.upstream // ""' "$METADATA_FILE")
 
           # Validate upstream is in allowlist
           if ! echo "$ALLOWED_UPSTREAMS" | grep -qw "$UPSTREAM"; then
