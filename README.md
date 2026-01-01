@@ -2,6 +2,7 @@
 
 [![Lint](https://github.com/anthony-spruyt/container-images/actions/workflows/lint.yaml/badge.svg)](https://github.com/anthony-spruyt/container-images/actions/workflows/lint.yaml)
 [![Build and Push](https://github.com/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml/badge.svg)](https://github.com/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml)
+[![Trivy Scan](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-weekly-scan.yaml/badge.svg)](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-weekly-scan.yaml)
 
 Monorepo for custom-built container images published to GitHub Container Registry.
 
