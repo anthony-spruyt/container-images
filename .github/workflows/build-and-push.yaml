@@ -96,11 +96,11 @@ jobs:
       - name: Checkout container-images
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
-      - name: Read and validate metadata
+      - name: Read metadata
         id: metadata
         env:
           IMAGE_NAME: ${{ matrix.image }}
-          ALLOWED_UPSTREAMS: ${{ env.ALLOWED_UPSTREAMS }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           METADATA_FILE="$IMAGE_NAME/metadata.yaml"
           if [ ! -f "$METADATA_FILE" ]; then
@@ -112,46 +112,90 @@ jobs:
           VERSION=$(yq -r '.version // ""' "$METADATA_FILE")
           UPSTREAM=$(yq -r '.upstream // ""' "$METADATA_FILE")
 
-          # Validate upstream is in allowlist
-          if ! echo "$ALLOWED_UPSTREAMS" | grep -qw "$UPSTREAM"; then
-            echo "::error::Upstream '$UPSTREAM' is not in the allowed list"
-            exit 1
-          fi
-
-          # Validate version format (alphanumeric with common separators, no shell chars)
-          if ! echo "$VERSION" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9._/-]*$'; then
-            echo "::error::Invalid version format: $VERSION (must be alphanumeric with .-/_)"
-            exit 1
-          fi
-
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "upstream=$UPSTREAM" >> "$GITHUB_OUTPUT"
 
-      - name: Validate and determine version
-        id: version
-        env:
-          INPUT_VERSION: ${{ inputs.version }}
-          METADATA_VERSION: ${{ steps.metadata.outputs.version }}
-        run: |
+          # Determine final ref: input > metadata > latest
           if [ -n "$INPUT_VERSION" ]; then
-            # Validate input version format (alphanumeric with common separators, no shell chars)
-            if ! echo "$INPUT_VERSION" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9._/-]*$'; then
-              echo "::error::Invalid version format (must be alphanumeric with .-/_)"
-              exit 1
-            fi
             REF="$INPUT_VERSION"
-          elif [ -n "$METADATA_VERSION" ] && [ "$METADATA_VERSION" != "latest" ]; then
-            REF="$METADATA_VERSION"
+          elif [ -n "$VERSION" ] && [ "$VERSION" != "latest" ]; then
+            REF="$VERSION"
           else
             REF="latest"
           fi
 
-          # Output raw ref for git checkout (can contain /)
           echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          # Sanitize tag for Docker (replace / with -)
+          echo "tag=$(echo "$REF" | tr '/' '-')" >> "$GITHUB_OUTPUT"
 
-          # Output sanitized tag for Docker (replace / with -)
-          TAG=$(echo "$REF" | tr '/' '-')
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+      - name: Validate configuration
+        id: validate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_NAME: ${{ matrix.image }}
+          ALLOWED_UPSTREAMS: ${{ env.ALLOWED_UPSTREAMS }}
+          VERSION: ${{ steps.metadata.outputs.version }}
+          UPSTREAM: ${{ steps.metadata.outputs.upstream }}
+          REF: ${{ steps.metadata.outputs.ref }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+        run: |
+          ERRORS=0
+
+          # Validate upstream is in allowlist
+          if ! echo "$ALLOWED_UPSTREAMS" | grep -qw "$UPSTREAM"; then
+            echo "::error::Upstream '$UPSTREAM' is not in the allowed list"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # Validate version format (alphanumeric with common separators, no shell chars)
+          if [ -n "$VERSION" ] && ! echo "$VERSION" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9._/-]*$'; then
+            echo "::error::Invalid version format: $VERSION"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # Validate ref format
+          if [ "$REF" != "latest" ] && ! echo "$REF" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9._/-]*$'; then
+            echo "::error::Invalid ref format: $REF"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # Validate Docker tag is OCI-compliant (lowercase alphanumeric, .-_)
+          if ! echo "$TAG" | grep -qE '^[a-z0-9][a-z0-9._-]{0,127}$'; then
+            echo "::error::Docker tag '$TAG' is not OCI-compliant"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # Validate release tag format
+          RELEASE_TAG="${IMAGE_NAME}-v${TAG}"
+          if ! echo "$RELEASE_TAG" | grep -qE '^[a-zA-Z0-9_-]+-v[a-zA-Z0-9._-]+$'; then
+            echo "::error::Release tag '$RELEASE_TAG' has invalid format"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # Verify gh CLI authentication (read-only)
+          if ! gh api user --jq '.login' &>/dev/null; then
+            echo "::error::GitHub CLI authentication failed"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # Test release notes generation
+          cat <<EOF > /tmp/release-notes-test.md
+          ## Container Image
+          **Image:** \`ghcr.io/test/${IMAGE_NAME}:${TAG}\`
+          **Upstream:** [${UPSTREAM}](https://github.com/${UPSTREAM})
+          EOF
+
+          if [ ! -s /tmp/release-notes-test.md ]; then
+            echo "::error::Release notes generation failed"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          if [ $ERRORS -gt 0 ]; then
+            echo "::error::Validation failed with $ERRORS error(s)"
+            exit 1
+          fi
+
+          echo "✅ All validations passed"
 
       # SHA pin: actions/checkout@v4.3.1
       - name: Checkout upstream source
@@ -159,7 +203,7 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
         with:
           repository: ${{ steps.metadata.outputs.upstream }}
-          ref: ${{ steps.version.outputs.ref }}
+          ref: ${{ steps.metadata.outputs.ref }}
           path: upstream
 
       - name: Prepare build context
@@ -197,7 +241,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}
           tags: |
             type=raw,value=latest
-            type=raw,value=${{ steps.version.outputs.tag }},enable=${{ steps.version.outputs.tag != 'latest' }}
+            type=raw,value=${{ steps.metadata.outputs.tag }},enable=${{ steps.metadata.outputs.tag != 'latest' }}
             type=sha,prefix=
 
       # SHA pin: docker/build-push-action@v6.18.0
@@ -217,7 +261,7 @@ jobs:
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}:${{ steps.version.outputs.tag }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}:${{ steps.metadata.outputs.tag }}
           format: table
           exit-code: 1
           severity: CRITICAL,HIGH
@@ -248,12 +292,12 @@ jobs:
           push-to-registry: true
 
       - name: Create GitHub Release
-        if: steps.version.outputs.tag != 'latest' && inputs.dry_run != true
+        if: steps.metadata.outputs.tag != 'latest' && inputs.dry_run != true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_NAME: ${{ matrix.image }}
-          REF: ${{ steps.version.outputs.ref }}
-          TAG: ${{ steps.version.outputs.tag }}
+          REF: ${{ steps.metadata.outputs.ref }}
+          TAG: ${{ steps.metadata.outputs.tag }}
           DIGEST: ${{ steps.push.outputs.digest }}
           UPSTREAM: ${{ steps.metadata.outputs.upstream }}
         run: |
@@ -298,8 +342,8 @@ jobs:
         if: inputs.dry_run == true
         env:
           IMAGE_NAME: ${{ matrix.image }}
-          REF: ${{ steps.version.outputs.ref }}
-          TAG: ${{ steps.version.outputs.tag }}
+          REF: ${{ steps.metadata.outputs.ref }}
+          TAG: ${{ steps.metadata.outputs.tag }}
           UPSTREAM: ${{ steps.metadata.outputs.upstream }}
         run: |
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
