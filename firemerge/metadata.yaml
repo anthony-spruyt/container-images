@@ -1,0 +1,6 @@
+---
+# Firemerge - Semi-automated transaction entry for Firefly III
+# https://github.com/lvu/firemerge
+
+upstream: lvu/firemerge
+version: "0.5.2"

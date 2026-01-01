@@ -1,0 +1,41 @@
+---
+name: Lint
+
+on: # yamllint disable-line rule:truthy
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  VALIDATE_ALL_CODEBASE: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      statuses: write
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      # SHA pin: actions/checkout@v4.3.1
+      - name: Repo checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+
+      # SHA pin: oxsecurity/megalinter@v9.2.0
+      - name: Run mega linter
+        uses: oxsecurity/megalinter@55a59b24a441e0e1943080d4a512d827710d4a9d
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

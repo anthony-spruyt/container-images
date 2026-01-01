@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # Devcontainer features
+  - package-ecosystem: "devcontainers"
+    directory: "/"
+    schedule:
+      interval: weekly
+
+  # GitHub Actions (SHA-pinned)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # Docker base images
+  - package-ecosystem: "docker"
+    directory: "/firemerge"
+    schedule:
+      interval: weekly
+
+  # npm packages in devcontainer
+  - package-ecosystem: "npm"
+    directory: "/.devcontainer"
+    schedule:
+      interval: weekly
