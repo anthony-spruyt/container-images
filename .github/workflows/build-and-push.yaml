@@ -135,12 +135,19 @@ jobs:
               echo "::error::Invalid version format (must be alphanumeric with .-/_)"
               exit 1
             fi
-            echo "tag=$INPUT_VERSION" >> "$GITHUB_OUTPUT"
+            REF="$INPUT_VERSION"
           elif [ -n "$METADATA_VERSION" ] && [ "$METADATA_VERSION" != "latest" ]; then
-            echo "tag=$METADATA_VERSION" >> "$GITHUB_OUTPUT"
+            REF="$METADATA_VERSION"
           else
-            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            REF="latest"
           fi
+
+          # Output raw ref for git checkout (can contain /)
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+
+          # Output sanitized tag for Docker (replace / with -)
+          TAG=$(echo "$REF" | tr '/' '-')
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       # SHA pin: actions/checkout@v4.3.1
       - name: Checkout upstream source
@@ -148,7 +155,7 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
         with:
           repository: ${{ steps.metadata.outputs.upstream }}
-          ref: ${{ steps.version.outputs.tag }}
+          ref: ${{ steps.version.outputs.ref }}
           path: upstream
 
       - name: Prepare build context
@@ -241,15 +248,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_NAME: ${{ matrix.image }}
-          VERSION: ${{ steps.version.outputs.tag }}
+          REF: ${{ steps.version.outputs.ref }}
+          TAG: ${{ steps.version.outputs.tag }}
           DIGEST: ${{ steps.push.outputs.digest }}
           UPSTREAM: ${{ steps.metadata.outputs.upstream }}
         run: |
-          TAG="${IMAGE_NAME}-v${VERSION}"
+          RELEASE_TAG="${IMAGE_NAME}-v${TAG}"
 
           # Check if release already exists
-          if gh release view "$TAG" &>/dev/null; then
-            echo "Release $TAG already exists, skipping"
+          if gh release view "$RELEASE_TAG" &>/dev/null; then
+            echo "Release $RELEASE_TAG already exists, skipping"
             exit 0
           fi
 
@@ -257,18 +265,18 @@ jobs:
           cat <<EOF > release-notes.md
           ## Container Image
 
-          **Image:** \`${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${VERSION}\`
+          **Image:** \`${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${TAG}\`
           **Digest:** \`${DIGEST}\`
 
           ### Pull Commands
           \`\`\`bash
-          docker pull ${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${VERSION}
+          docker pull ${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${TAG}
           docker pull ${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}@${DIGEST}
           \`\`\`
 
           ### Build Info
           - **Upstream:** [${UPSTREAM}](https://github.com/${UPSTREAM})
-          - **Upstream Version:** ${VERSION}
+          - **Upstream Ref:** ${REF}
           - **Build Commit:** ${{ github.sha }}
           - **Workflow Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
@@ -278,15 +286,16 @@ jobs:
           - Provenance: Attested
           EOF
 
-          gh release create "$TAG" \
-            --title "${IMAGE_NAME} v${VERSION}" \
+          gh release create "$RELEASE_TAG" \
+            --title "${IMAGE_NAME} v${TAG}" \
             --notes-file release-notes.md
 
       - name: Dry run summary
         if: inputs.dry_run == true
         env:
           IMAGE_NAME: ${{ matrix.image }}
-          VERSION: ${{ steps.version.outputs.tag }}
+          REF: ${{ steps.version.outputs.ref }}
+          TAG: ${{ steps.version.outputs.tag }}
           UPSTREAM: ${{ steps.metadata.outputs.upstream }}
         run: |
           cat >> "$GITHUB_STEP_SUMMARY" <<EOF
@@ -295,10 +304,10 @@ jobs:
           **Mode:** Dry run (no push or release)
 
           ### What would have been done:
-          - **Image:** \`${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${VERSION}\`
-          - **Tags:** \`latest\`, \`${VERSION}\`, \`${{ github.sha }}\`
-          - **Upstream:** [${UPSTREAM}](https://github.com/${UPSTREAM})
-          - **Release tag:** \`${IMAGE_NAME}-v${VERSION}\`
+          - **Image:** \`${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${TAG}\`
+          - **Tags:** \`latest\`, \`${TAG}\`, \`${{ github.sha }}\`
+          - **Upstream:** [${UPSTREAM}](https://github.com/${UPSTREAM}) @ \`${REF}\`
+          - **Release tag:** \`${IMAGE_NAME}-v${TAG}\`
 
           ### Completed steps:
           - ✅ Metadata validation
