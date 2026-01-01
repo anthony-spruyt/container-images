@@ -288,23 +288,25 @@ jobs:
           VERSION: ${{ steps.version.outputs.tag }}
           UPSTREAM: ${{ steps.metadata.outputs.upstream }}
         run: |
-          echo "## Dry Run Summary" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Mode:** Dry run (no push or release)" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "### What would have been done:" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Image:** \`${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${VERSION}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Tags:** \`latest\`, \`${VERSION}\`, \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Upstream:** [${UPSTREAM}](https://github.com/${UPSTREAM})" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Release tag:** \`${IMAGE_NAME}-v${VERSION}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "### Completed steps:" >> "$GITHUB_STEP_SUMMARY"
-          echo "- ✅ Metadata validation" >> "$GITHUB_STEP_SUMMARY"
-          echo "- ✅ Upstream checkout" >> "$GITHUB_STEP_SUMMARY"
-          echo "- ✅ Image build" >> "$GITHUB_STEP_SUMMARY"
-          echo "- ✅ Trivy vulnerability scan" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "### Skipped steps:" >> "$GITHUB_STEP_SUMMARY"
-          echo "- ⏭️ Push to GHCR" >> "$GITHUB_STEP_SUMMARY"
-          echo "- ⏭️ Provenance attestation" >> "$GITHUB_STEP_SUMMARY"
-          echo "- ⏭️ GitHub release creation" >> "$GITHUB_STEP_SUMMARY"
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Dry Run Summary
+
+          **Mode:** Dry run (no push or release)
+
+          ### What would have been done:
+          - **Image:** \`${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${VERSION}\`
+          - **Tags:** \`latest\`, \`${VERSION}\`, \`${{ github.sha }}\`
+          - **Upstream:** [${UPSTREAM}](https://github.com/${UPSTREAM})
+          - **Release tag:** \`${IMAGE_NAME}-v${VERSION}\`
+
+          ### Completed steps:
+          - ✅ Metadata validation
+          - ✅ Upstream checkout
+          - ✅ Image build
+          - ✅ Trivy vulnerability scan
+
+          ### Skipped steps:
+          - ⏭️ Push to GHCR
+          - ⏭️ Provenance attestation
+          - ⏭️ GitHub release creation
+          EOF
