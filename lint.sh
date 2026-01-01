@@ -20,7 +20,7 @@ docker run \
   -e REPORT_OUTPUT_FOLDER="/tmp/lint/.output" \
   -v "$REPO_ROOT:/tmp/lint" \
   --rm \
-  oxsecurity/megalinter@sha256:3561f60a38aae102b5b85ebe4b3e10dc53c9e3b2cdaa4a40dbb6238d4d348390
+  ghcr.io/oxsecurity/megalinter-documentation@sha256:c2f426be556c45c8ca6ca4bccb147160711531c698362dd0a05918536fc022bf # v9.2.0
 
 # Capture MegaLinter exit code
 LINT_EXIT_CODE=$?
