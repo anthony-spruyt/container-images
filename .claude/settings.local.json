@@ -3,7 +3,14 @@
     "allow": [
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(pre-commit run:*)",
-      "Bash(/workspaces/container-images/lint.sh:*)"
+      "Bash(/workspaces/container-images/lint.sh:*)",
+      "Skill(hookify:list)",
+      "Skill(hookify:list:*)",
+      "Bash(gh issue edit:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)"
     ]
   }
 }
