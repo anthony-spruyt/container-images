@@ -187,6 +187,19 @@ jobs:
             LABELS="$LABELS,medium"
           fi
 
+          # Ensure labels exist (create if missing)
+          for label in $(echo "$LABELS" | tr ',' ' '); do
+            if ! gh label list --json name -q ".[].name" | grep -qx "$label"; then
+              case "$label" in
+                security) gh label create "$label" --color "d73a4a" --description "Security vulnerability" ;;
+                trivy)    gh label create "$label" --color "0052cc" --description "Trivy scan finding" ;;
+                critical) gh label create "$label" --color "b60205" --description "Critical severity" ;;
+                high)     gh label create "$label" --color "d93f0b" --description "High severity" ;;
+                medium)   gh label create "$label" --color "fbca04" --description "Medium severity" ;;
+              esac
+            fi
+          done
+
           if [ -n "$EXISTING" ]; then
             # Update existing issue (title, body, and labels)
             gh issue edit "$EXISTING" --title "$TITLE" --body "$BODY" --add-label "$LABELS"
