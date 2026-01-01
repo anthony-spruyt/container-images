@@ -1,2 +1,5 @@
 # Ignore GitHub Actions template variables in workflow files
 https://github.com/\$%7BUPSTREAM%7D
+
+# Ignore GitHub API endpoints (require POST with auth, lychee does GET)
+https://api.github.com/repos/.*/actions/workflows/.*/dispatches
