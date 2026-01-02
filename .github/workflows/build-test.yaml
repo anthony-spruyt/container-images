@@ -1,0 +1,185 @@
+---
+name: Build and Test Image
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: "Image name (directory)"
+        required: true
+        type: string
+      push:
+        description: "Push image to registry"
+        required: false
+        type: boolean
+        default: false
+      create-release:
+        description: "Create GitHub release"
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      digest:
+        description: "Image digest"
+        value: ${{ jobs.build.outputs.digest }}
+      tag:
+        description: "Image tag"
+        value: ${{ jobs.build.outputs.tag }}
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: ${{ github.repository_owner }}
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+      tag: ${{ steps.metadata.outputs.tag }}
+    steps:
+      # SHA pin: actions/checkout@v4.3.1
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+      - name: Read metadata
+        id: metadata
+        env:
+          IMAGE_NAME: ${{ inputs.image }}
+        run: |
+          METADATA_FILE="$IMAGE_NAME/metadata.yaml"
+          if [ ! -f "$METADATA_FILE" ]; then
+            echo "::error::metadata.yaml not found for $IMAGE_NAME"
+            exit 1
+          fi
+          VERSION=$(yq -r '.version // "latest"' "$METADATA_FILE")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$(echo "$VERSION" | tr '/' '-')" >> "$GITHUB_OUTPUT"
+
+      - name: Verify Dockerfile exists
+        env:
+          IMAGE_NAME: ${{ inputs.image }}
+        run: |
+          if [ ! -f "$IMAGE_NAME/Dockerfile" ]; then
+            echo "::error::No Dockerfile found at $IMAGE_NAME/Dockerfile"
+            exit 1
+          fi
+
+      # SHA pin: docker/setup-buildx-action@v3.12.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+
+      # SHA pin: docker/login-action@v3.6.0
+      - name: Log in to GitHub Container Registry
+        if: inputs.push
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # SHA pin: docker/metadata-action@v5.10.0
+      - name: Extract Docker metadata
+        id: docker-metadata
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ steps.metadata.outputs.tag }},enable=${{ steps.metadata.outputs.tag != 'latest' }}
+            type=sha,prefix=
+
+      # SHA pin: docker/build-push-action@v6.18.0
+      - name: Build image
+        id: build
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        with:
+          context: ${{ inputs.image }}
+          push: false
+          load: true
+          tags: ${{ steps.docker-metadata.outputs.tags }}
+          labels: ${{ steps.docker-metadata.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run tests
+        env:
+          IMAGE_NAME: ${{ inputs.image }}
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}:${{ steps.metadata.outputs.tag }}
+        run: |
+          TEST_SCRIPT="${IMAGE_NAME}/test.sh"
+          if [ -f "$TEST_SCRIPT" ]; then
+            echo "Running tests for $IMAGE_NAME..."
+            chmod +x "$TEST_SCRIPT"
+            "$TEST_SCRIPT" "$IMAGE_REF"
+          else
+            echo "No test script found at $TEST_SCRIPT, skipping"
+          fi
+
+      # SHA pin: aquasecurity/trivy-action@0.29.0
+      - name: Scan for vulnerabilities
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}:${{ steps.metadata.outputs.tag }}
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          trivyignores: .trivyignore.yaml
+
+      - name: Push image
+        if: inputs.push
+        id: push
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+        with:
+          context: ${{ inputs.image }}
+          push: true
+          tags: ${{ steps.docker-metadata.outputs.tags }}
+          labels: ${{ steps.docker-metadata.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          sbom: true
+          provenance: mode=max
+
+      # SHA pin: actions/attest-build-provenance@v2.4.0
+      - name: Generate provenance attestation
+        if: inputs.push
+        uses: actions/attest-build-provenance@00014ed6ed5efc5b1ab7f7f34a39eb55d41aa4f8
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      - name: Create GitHub Release
+        if: inputs.create-release && steps.metadata.outputs.tag != 'latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_NAME: ${{ inputs.image }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: |
+          RELEASE_TAG="${IMAGE_NAME}-v${TAG}"
+          if gh release view "$RELEASE_TAG" &>/dev/null; then
+            echo "Release $RELEASE_TAG already exists, skipping"
+            exit 0
+          fi
+          cat <<EOF > release-notes.md
+          ## Container Image
+
+          **Image:** \`${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${TAG}\`
+          **Digest:** \`${DIGEST}\`
+
+          ### Pull Commands
+          \`\`\`bash
+          docker pull ${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${TAG}
+          docker pull ${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}@${DIGEST}
+          \`\`\`
+          EOF
+          gh release create "$RELEASE_TAG" \
+            --title "${IMAGE_NAME} v${TAG}" \
+            --notes-file release-notes.md

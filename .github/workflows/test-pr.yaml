@@ -1,0 +1,58 @@
+---
+name: Test PR
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "**/Dockerfile"
+      - "**/test.sh"
+      - "**/assets/**"
+      - "**/metadata.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  detect-changes:
+    name: Detect Changed Images
+    runs-on: ubuntu-latest
+    outputs:
+      images: ${{ steps.detect.outputs.images }}
+    steps:
+      # SHA pin: actions/checkout@v4.3.1
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed images
+        id: detect
+        run: |
+          # Find directories with changed image files
+          CHANGED=$(git diff --name-only origin/main...HEAD | \
+            grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|test\.sh|assets/|metadata\.yaml)' | \
+            cut -d'/' -f1 | sort -u | \
+            jq -R -s -c 'split("\n") | map(select(length > 0))')
+          if [ "$CHANGED" = "[]" ] || [ -z "$CHANGED" ]; then
+            echo "images=[]" >> "$GITHUB_OUTPUT"
+            echo "No image changes detected"
+          else
+            echo "images=$CHANGED" >> "$GITHUB_OUTPUT"
+            echo "Changed images: $CHANGED"
+          fi
+
+  test:
+    name: Test ${{ matrix.image }}
+    needs: detect-changes
+    if: needs.detect-changes.outputs.images != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJson(needs.detect-changes.outputs.images) }}
+    uses: ./.github/workflows/build-test.yaml
+    with:
+      image: ${{ matrix.image }}
+      push: false
+      create-release: false
