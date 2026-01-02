@@ -1,0 +1,5 @@
+---
+# Chrony - Minimal NTP server with zero capabilities
+# Custom image for Kubernetes deployments requiring least privilege
+
+version: "0.1.0"

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Monorepo for container images published to `ghcr.io/<owner>/<image>`. Each image directory contains `metadata.yaml` referencing an upstream repo. The workflow clones upstream, builds, and pushes to GHCR.
+Monorepo for container images published to `ghcr.io/<owner>/<image>`. Images can be built from upstream repos or local Dockerfiles. The workflow builds, tests, scans, and pushes to GHCR.
 
 ## Commands
 
@@ -16,6 +16,8 @@ pre-commit run --all-files   # Run pre-commit hooks manually
 
 ## Adding a New Image
 
+### Option 1: From Upstream Source
+
 1. Create `<image-name>/metadata.yaml`:
    ```yaml
    upstream: owner/repo
@@ -24,6 +26,19 @@ pre-commit run --all-files   # Run pre-commit hooks manually
 2. Update `.github/workflows/build-and-push.yaml`:
    - Add to `ALLOWED_UPSTREAMS` env var
    - Add to `inputs.image.options` list
+
+### Option 2: Local Dockerfile (no upstream)
+
+1. Create `<image-name>/Dockerfile` and `<image-name>/metadata.yaml`:
+   ```yaml
+   version: "1.0.0"
+   ```
+2. Update `.github/workflows/build-and-push.yaml`:
+   - Add to `inputs.image.options` list (no ALLOWED_UPSTREAMS needed)
+
+### Optional: Add CI Tests
+
+Create `<image-name>/test.sh` - runs after build, before Trivy scan. See `chrony/test.sh` for example.
 
 ## Build Triggers
 

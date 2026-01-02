@@ -9,6 +9,7 @@ on:
         required: true
         type: choice
         options:
+          - chrony
           - firemerge
       version:
         description: "Version tag (optional, uses metadata.yaml version if not specified)"
@@ -140,10 +141,18 @@ jobs:
         run: |
           ERRORS=0
 
-          # Validate upstream is in allowlist
-          if ! echo "$ALLOWED_UPSTREAMS" | grep -qw "$UPSTREAM"; then
-            echo "::error::Upstream '$UPSTREAM' is not in the allowed list"
-            ERRORS=$((ERRORS + 1))
+          # Validate upstream is in allowlist, or local Dockerfile exists
+          if [ -n "$UPSTREAM" ]; then
+            if ! echo "$ALLOWED_UPSTREAMS" | grep -qw "$UPSTREAM"; then
+              echo "::error::Upstream '$UPSTREAM' is not in the allowed list"
+              ERRORS=$((ERRORS + 1))
+            fi
+          else
+            # No upstream - verify local Dockerfile exists
+            if [ ! -f "$IMAGE_NAME/Dockerfile" ]; then
+              echo "::error::No upstream specified and no local Dockerfile found at $IMAGE_NAME/Dockerfile"
+              ERRORS=$((ERRORS + 1))
+            fi
           fi
 
           # Validate version format (alphanumeric with common separators, no shell chars)
@@ -249,6 +258,22 @@ jobs:
           labels: ${{ steps.docker-metadata.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Test container
+        env:
+          IMAGE_NAME: ${{ matrix.image }}
+          IMAGE_TAG: ${{ steps.metadata.outputs.tag }}
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}:${{ steps.metadata.outputs.tag }}
+        run: |
+          # Run image-specific tests if test script exists
+          TEST_SCRIPT="${IMAGE_NAME}/test.sh"
+          if [ -f "$TEST_SCRIPT" ]; then
+            echo "Running tests for $IMAGE_NAME..."
+            chmod +x "$TEST_SCRIPT"
+            "$TEST_SCRIPT" "$IMAGE_REF"
+          else
+            echo "No test script found at $TEST_SCRIPT, skipping container tests"
+          fi
 
       # SHA pin: aquasecurity/trivy-action@0.29.0
       - name: Scan image for vulnerabilities
