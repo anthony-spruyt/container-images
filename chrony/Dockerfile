@@ -23,9 +23,10 @@ RUN apk add --no-cache chrony tzdata \
     && adduser -D -u 1000 -G chrony -h /var/lib/chrony chrony
 
 # Create required directories with correct ownership
-RUN mkdir -p /var/lib/chrony /run/chrony \
-    && chown -R chrony:chrony /var/lib/chrony /run/chrony \
-    && chmod 755 /var/lib/chrony /run/chrony
+# Mode 750 required by chronyd for command socket security
+RUN mkdir -p /var/lib/chrony \
+    && chown -R chrony:chrony /var/lib/chrony \
+    && chmod 750 /var/lib/chrony
 
 # Copy startup script
 COPY assets/startup.sh /usr/local/bin/startup.sh
@@ -42,11 +43,11 @@ ENV NTP_SERVERS="time.cloudflare.com" \
 # Expose NTP port (high port - no NET_BIND_SERVICE needed)
 EXPOSE 1123/udp
 
-# Health check
+# Health check (uses socket in /var/lib/chrony to avoid /run permissions)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD chronyc -n tracking || exit 1
+    CMD chronyc -h /var/lib/chrony/chrony.sock -n tracking || exit 1
 
-# Note: Container starts as root but chronyd drops to chrony user via -u flag
-# This is required because chronyd needs root for socket initialization
+# Run as chrony user - use -U flag to bypass superuser check
+USER chrony
 
 ENTRYPOINT ["/usr/local/bin/startup.sh"]

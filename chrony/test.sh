@@ -58,9 +58,9 @@ fi
 
 # Test 3: Verify chronyc can query tracking info (proves chronyd is running)
 echo "Test 3: Verify chronyc tracking..."
-if docker exec "$CONTAINER_NAME" chronyc -n tracking > /dev/null 2>&1; then
+if docker exec "$CONTAINER_NAME" chronyc -h /var/lib/chrony/chrony.sock -n tracking > /dev/null 2>&1; then
     echo "  chronyc tracking successful"
-    docker exec "$CONTAINER_NAME" chronyc -n tracking | head -5
+    docker exec "$CONTAINER_NAME" chronyc -h /var/lib/chrony/chrony.sock -n tracking | head -5
 else
     echo "  ERROR: chronyc tracking failed"
     docker logs "$CONTAINER_NAME"
@@ -69,7 +69,7 @@ fi
 
 # Test 4: Verify chrony is tracking sources
 echo "Test 4: Verify NTP source activity..."
-if docker exec "$CONTAINER_NAME" chronyc -n activity | grep -q "sources"; then
+if docker exec "$CONTAINER_NAME" chronyc -h /var/lib/chrony/chrony.sock -n activity | grep -q "sources"; then
     echo "  chrony is active and tracking sources"
 else
     echo "  WARNING: Could not verify source activity"
