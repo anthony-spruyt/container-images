@@ -26,6 +26,7 @@ pre-commit run --all-files   # Run pre-commit hooks manually
 2. Update workflows:
    - Add upstream to `allowed-upstreams` in `build-and-push.yaml` and `test-pr.yaml`
    - Add to `inputs.image.options` list in `build-and-push.yaml`
+3. Add to `.github/dependabot.yml` for base image updates
 
 ### Option 2: Local Dockerfile (no upstream)
 
@@ -35,6 +36,7 @@ pre-commit run --all-files   # Run pre-commit hooks manually
    ```
 2. Update `.github/workflows/build-and-push.yaml`:
    - Add to `inputs.image.options` list (no upstream allowlist needed)
+3. Add to `.github/dependabot.yml` for base image updates
 
 ### Optional: Add CI Tests
 
