@@ -61,3 +61,23 @@ jobs:
       push: false
       create-release: false
       allowed-upstreams: "lvu/firemerge anthony-spruyt/firemerge"
+
+  # Summary job for branch protection - provides a stable check name
+  test-summary:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: [detect-changes, test]
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.detect-changes.outputs.images }}" = "[]" ]; then
+            echo "No image changes detected - tests skipped"
+            exit 0
+          fi
+          if [ "${{ needs.test.result }}" = "success" ]; then
+            echo "All tests passed"
+            exit 0
+          fi
+          echo "Tests failed: ${{ needs.test.result }}"
+          exit 1
