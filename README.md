@@ -40,9 +40,9 @@ Use this when building from an external repository (e.g., a GitHub project):
    ```
 
 3. Optionally add a custom `Dockerfile` to override the upstream's
-4. Update `.github/workflows/build-and-push.yaml`:
-   - Add upstream to `ALLOWED_UPSTREAMS` env var
-   - Add image name to `inputs.image.options` list
+4. Update workflows:
+   - Add upstream to `allowed-upstreams` in both `.github/workflows/build-and-push.yaml` and `.github/workflows/test-pr.yaml`
+   - Add image name to `inputs.image.options` list in `build-and-push.yaml`
 5. Add to `.github/dependabot.yml` to track base image updates:
 
    ```yaml
@@ -67,7 +67,7 @@ Use this for custom images with no upstream source:
    ```
 
 4. Update `.github/workflows/build-and-push.yaml`:
-   - Add image name to `inputs.image.options` list
+   - Add image name to `inputs.image.options` list (no upstream allowlist needed)
 5. Add to `.github/dependabot.yml` to track base image updates:
 
    ```yaml

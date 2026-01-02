@@ -78,7 +78,7 @@ Create a token at [GitHub Settings > Developer settings > Personal access tokens
 
 - **Docker-in-Docker** - Build and test container images
 - **Pre-commit hooks** - Automatic linting on commit (gitleaks, prettier, yamllint)
-- **MegaLinter** - Run `./lint.sh` for comprehensive linting
+- **MegaLinter** - Run `./lint.sh` for comprehensive linting (returns non-zero on failure, results in `.output/`)
 - **GitHub CLI** - `gh` command for GitHub operations
 - **Safe-chain** - Supply chain attack protection for npm/pip
 

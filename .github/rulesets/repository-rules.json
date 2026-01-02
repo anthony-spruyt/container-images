@@ -26,6 +26,9 @@
         "required_status_checks": [
           {
             "context": "Lint"
+          },
+          {
+            "context": "Tests"
           }
         ]
       }

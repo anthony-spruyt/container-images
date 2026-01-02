@@ -1,6 +1,9 @@
 {
   "permissions": {
     "allow": [
+      "mcp__plugin_context7_context7__get-library-docs",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__plugin_context7_context7__query-docs",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(pre-commit run:*)",
       "Bash(/workspaces/container-images/lint.sh:*)",
@@ -9,7 +12,15 @@
       "Bash(gh:*)",
       "Bash(find:*)",
       "Bash(git:*)",
-      "Bash(./lint.sh:*)"
+      "Bash(./lint.sh:*)",
+      "Bash(docker build:*)",
+      "Bash(docker rm:*)",
+      "Bash(docker run:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker inspect:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)"
     ]
   }
 }

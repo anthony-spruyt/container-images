@@ -9,7 +9,7 @@ Monorepo for container images published to `ghcr.io/<owner>/<image>`. Images can
 ## Commands
 
 ```bash
-./lint.sh                    # Run MegaLinter locally (output in .output/)
+./lint.sh                    # Run MegaLinter locally (exit code 0=pass, non-zero=issues found, results in .output/)
 pre-commit run --all-files   # Run pre-commit hooks manually
 ./.github/apply-rulesets.sh  # Apply GitHub rulesets (run once after repo creation)
 ```
@@ -23,9 +23,9 @@ pre-commit run --all-files   # Run pre-commit hooks manually
    upstream: owner/repo
    version: "1.0.0"
    ```
-2. Update `.github/workflows/build-and-push.yaml`:
-   - Add to `ALLOWED_UPSTREAMS` env var
-   - Add to `inputs.image.options` list
+2. Update workflows:
+   - Add upstream to `allowed-upstreams` in `build-and-push.yaml` and `test-pr.yaml`
+   - Add to `inputs.image.options` list in `build-and-push.yaml`
 
 ### Option 2: Local Dockerfile (no upstream)
 
@@ -34,7 +34,7 @@ pre-commit run --all-files   # Run pre-commit hooks manually
    version: "1.0.0"
    ```
 2. Update `.github/workflows/build-and-push.yaml`:
-   - Add to `inputs.image.options` list (no ALLOWED_UPSTREAMS needed)
+   - Add to `inputs.image.options` list (no upstream allowlist needed)
 
 ### Optional: Add CI Tests
 
@@ -42,6 +42,7 @@ Create `<image-name>/test.sh` - runs after build, before Trivy scan. See `chrony
 
 ## Build Triggers
 
+- **Pull requests**: Tests run on PRs when Dockerfile/test.sh/assets/metadata.yaml change
 - **Push to main**: Auto-builds on Dockerfile/metadata.yaml changes
 - **workflow_dispatch**: Manual trigger with `image` and `version` inputs (used by n8n)
 
