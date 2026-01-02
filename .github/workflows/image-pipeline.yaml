@@ -54,11 +54,7 @@ jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
-      id-token: write
-      attestations: write
+    # Permissions inherited from calling workflow
     outputs:
       digest: ${{ steps.push.outputs.digest }}
       tag: ${{ steps.metadata.outputs.tag }}

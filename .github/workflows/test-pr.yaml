@@ -13,6 +13,8 @@ on:
 
 permissions:
   contents: read
+  packages: read
+  # Read-only: PR tests don't push or create releases
 
 jobs:
   detect-changes:

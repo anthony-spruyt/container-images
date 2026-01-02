@@ -27,9 +27,12 @@ on:
       - "**/Dockerfile"
       - "**/metadata.yaml"
 
-# Minimal global permissions - jobs declare their own as needed
+# Permissions required by reusable workflow (image-pipeline.yaml)
 permissions:
-  contents: read
+  contents: write
+  packages: write
+  id-token: write
+  attestations: write
 
 env:
   REGISTRY: ghcr.io
