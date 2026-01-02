@@ -9,7 +9,13 @@
       "Bash(gh:*)",
       "Bash(find:*)",
       "Bash(git:*)",
-      "Bash(./lint.sh:*)"
+      "Bash(./lint.sh:*)",
+      "Bash(docker build:*)",
+      "Bash(docker rm:*)",
+      "Bash(docker run:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker inspect:*)"
     ]
   }
 }
