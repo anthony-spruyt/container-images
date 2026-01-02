@@ -28,12 +28,16 @@ This repository has branch protection enabled on `main`. Direct pushes are block
 
 ## Branch Naming
 
-Use descriptive branch names:
+Use `<type>/<description>` format matching [conventional commit types](conventional-commits.md):
 
 - `feat/<feature-name>` - New features
 - `fix/<issue>` - Bug fixes
 - `docs/<topic>` - Documentation changes
+- `ci/<change>` - CI/CD changes
+- `refactor/<change>` - Code restructuring
+- `test/<change>` - Test updates
 - `chore/<task>` - Maintenance tasks
+- `build/<change>` - Build system changes
 
 ## Important
 
