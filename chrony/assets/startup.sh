@@ -83,7 +83,8 @@ echo "  LOG_LEVEL: ${LOG_LEVEL}"
 
 # Start chronyd
 # -d: Run in foreground (don't daemonize)
+# -u: Drop to chrony user after initialization
 # -x: Don't control system clock (no SYS_TIME capability needed)
 # -f: Configuration file
 # -L: Log level (0=info, 1=warn, 2=error, 3=fatal)
-exec /usr/sbin/chronyd -d -x -f "${CHRONY_CONF}" -L "${LOG_LEVEL}"
+exec /usr/sbin/chronyd -d -u chrony -x -f "${CHRONY_CONF}" -L "${LOG_LEVEL}"

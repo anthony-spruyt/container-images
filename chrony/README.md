@@ -4,7 +4,7 @@ Minimal chrony NTP server container designed for Kubernetes deployments with zer
 
 ## Features
 
-- Runs as non-root user (uid 1000)
+- Starts as root, drops to non-root user (uid 1000) after initialization
 - Listens on high port 1123 (no NET_BIND_SERVICE capability needed)
 - Zero capabilities required
 - NTS (Network Time Security) support
@@ -30,12 +30,11 @@ containers:
   - name: chrony
     image: ghcr.io/anthony-spruyt/chrony:latest
     securityContext:
-      runAsUser: 1000
-      runAsGroup: 1000
-      runAsNonRoot: true
       allowPrivilegeEscalation: false
       capabilities:
         drop: [ALL]
+      # Note: Container starts as root but chronyd drops to uid 1000
+      # runAsNonRoot: false is implicit
     ports:
       - containerPort: 1123
         protocol: UDP
@@ -71,10 +70,25 @@ spec:
 
 This image is designed for minimal privilege operation:
 
-- **No root required**: Runs as uid/gid 1000
+- **Drops privileges after init**: Starts as root for socket setup, then drops to uid 1000
 - **No capabilities needed**: Uses high port 1123, Kubernetes Service handles 123->1123 mapping
-- **No system clock modification**: Uses `-x` flag, chrony only serves time, doesn't adjust host clock
+- **No system clock modification**: Uses `-x` flag (see below)
 - **Read-only filesystem compatible**: Writes only to `/var/lib/chrony` and `/run/chrony`
+
+### About the `-x` Flag
+
+Chrony operates in two modes:
+
+1. **NTP Client** - Syncs the system clock from upstream servers (requires `SYS_TIME` capability)
+2. **NTP Server** - Serves time to clients
+
+With `-x`, chrony:
+
+- ✅ Still syncs its internal time reference from upstream servers
+- ✅ Serves accurate time to your NTP clients (IoT devices, etc.)
+- ❌ Does NOT modify the host/pod system clock
+
+This is ideal for Kubernetes since nodes have their own time sync. If you need chrony to also adjust the system clock, remove `-x` from `startup.sh` and add `SYS_TIME` capability.
 
 ## Related
 

@@ -1,5 +1,6 @@
 # Minimal Chrony NTP Server
-# Runs as non-root with zero capabilities required
+# Starts as root, drops to chrony user (UID 1000) after initialization
+# No capabilities required when using high port (1123) and -x flag
 #
 # Environment variables:
 #   NTP_SERVERS  - Comma-separated NTP servers (default: time.cloudflare.com)
@@ -45,7 +46,7 @@ EXPOSE 1123/udp
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD chronyc -n tracking || exit 1
 
-# Run as non-root user
-USER chrony
+# Note: Container starts as root but chronyd drops to chrony user via -u flag
+# This is required because chronyd needs root for socket initialization
 
 ENTRYPOINT ["/usr/local/bin/startup.sh"]
