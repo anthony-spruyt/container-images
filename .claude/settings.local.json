@@ -15,7 +15,9 @@
       "Bash(docker run:*)",
       "Bash(docker logs:*)",
       "Bash(docker exec:*)",
-      "Bash(docker inspect:*)"
+      "Bash(docker inspect:*)",
+      "Bash(grep:*)",
+      "Bash(cat:*)"
     ]
   }
 }

@@ -51,8 +51,10 @@ jobs:
       fail-fast: false
       matrix:
         image: ${{ fromJson(needs.detect-changes.outputs.images) }}
-    uses: ./.github/workflows/build-test.yaml
+    uses: ./.github/workflows/image-pipeline.yaml
+    secrets: inherit
     with:
       image: ${{ matrix.image }}
       push: false
       create-release: false
+      allowed-upstreams: "lvu/firemerge anthony-spruyt/firemerge"

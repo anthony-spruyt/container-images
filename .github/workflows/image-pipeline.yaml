@@ -1,5 +1,5 @@
 ---
-name: Build and Test Image
+name: Image Pipeline
 
 on:
   workflow_call:
@@ -18,6 +18,26 @@ on:
         required: false
         type: boolean
         default: false
+      upstream:
+        description: "Upstream repository (owner/repo) to build from"
+        required: false
+        type: string
+        default: ""
+      upstream-ref:
+        description: "Git ref to checkout from upstream (tag, branch, SHA)"
+        required: false
+        type: string
+        default: ""
+      allowed-upstreams:
+        description: "Space-separated list of allowed upstream repos"
+        required: false
+        type: string
+        default: ""
+      version-override:
+        description: "Override version from metadata.yaml"
+        required: false
+        type: string
+        default: ""
     outputs:
       digest:
         description: "Image digest"
@@ -51,22 +71,110 @@ jobs:
         id: metadata
         env:
           IMAGE_NAME: ${{ inputs.image }}
+          VERSION_OVERRIDE: ${{ inputs.version-override }}
         run: |
           METADATA_FILE="$IMAGE_NAME/metadata.yaml"
           if [ ! -f "$METADATA_FILE" ]; then
             echo "::error::metadata.yaml not found for $IMAGE_NAME"
             exit 1
           fi
-          VERSION=$(yq -r '.version // "latest"' "$METADATA_FILE")
+
+          # Read metadata values
+          METADATA_VERSION=$(yq -r '.version // ""' "$METADATA_FILE")
+          UPSTREAM=$(yq -r '.upstream // ""' "$METADATA_FILE")
+
+          echo "upstream=$UPSTREAM" >> "$GITHUB_OUTPUT"
+
+          # Priority: override > metadata > latest
+          if [ -n "$VERSION_OVERRIDE" ]; then
+            VERSION="$VERSION_OVERRIDE"
+          elif [ -n "$METADATA_VERSION" ]; then
+            VERSION="$METADATA_VERSION"
+          else
+            VERSION="latest"
+          fi
+
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$(echo "$VERSION" | tr '/' '-')" >> "$GITHUB_OUTPUT"
 
-      - name: Verify Dockerfile exists
+      - name: Validate configuration
+        env:
+          IMAGE_NAME: ${{ inputs.image }}
+          VERSION: ${{ steps.metadata.outputs.version }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+          UPSTREAM: ${{ inputs.upstream || steps.metadata.outputs.upstream }}
+          ALLOWED_UPSTREAMS: ${{ inputs.allowed-upstreams }}
+        run: |
+          ERRORS=0
+
+          # Validate upstream is in allowlist (if upstream is specified)
+          if [ -n "$UPSTREAM" ]; then
+            if [ -n "$ALLOWED_UPSTREAMS" ]; then
+              if ! echo "$ALLOWED_UPSTREAMS" | grep -qw "$UPSTREAM"; then
+                echo "::error::Upstream '$UPSTREAM' is not in the allowed list"
+                ERRORS=$((ERRORS + 1))
+              fi
+            fi
+          fi
+
+          # Validate version format (alphanumeric with common separators, no shell chars)
+          if [ -n "$VERSION" ] && [ "$VERSION" != "latest" ]; then
+            if ! echo "$VERSION" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9._/-]*$'; then
+              echo "::error::Invalid version format: $VERSION"
+              ERRORS=$((ERRORS + 1))
+            fi
+          fi
+
+          # Validate Docker tag is OCI-compliant (lowercase alphanumeric, .-_)
+          if ! echo "$TAG" | grep -qE '^[a-z0-9][a-z0-9._-]{0,127}$'; then
+            echo "::error::Docker tag '$TAG' is not OCI-compliant"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # Validate release tag format (if release will be created)
+          RELEASE_TAG="${IMAGE_NAME}-v${TAG}"
+          if ! echo "$RELEASE_TAG" | grep -qE '^[a-zA-Z0-9_-]+-v[a-zA-Z0-9._-]+$'; then
+            echo "::error::Release tag '$RELEASE_TAG' has invalid format"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          if [ $ERRORS -gt 0 ]; then
+            echo "::error::Validation failed with $ERRORS error(s)"
+            exit 1
+          fi
+
+          echo "✅ All validations passed"
+
+      # SHA pin: actions/checkout@v4.3.1
+      - name: Checkout upstream source
+        if: inputs.upstream != '' || steps.metadata.outputs.upstream != ''
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+        with:
+          repository: ${{ inputs.upstream || steps.metadata.outputs.upstream }}
+          ref: ${{ inputs.upstream-ref || steps.metadata.outputs.tag }}
+          path: upstream
+
+      - name: Prepare build context
+        id: context
         env:
           IMAGE_NAME: ${{ inputs.image }}
         run: |
-          if [ ! -f "$IMAGE_NAME/Dockerfile" ]; then
-            echo "::error::No Dockerfile found at $IMAGE_NAME/Dockerfile"
+          if [ -d "upstream" ]; then
+            # Use custom Dockerfile if provided, otherwise use upstream's
+            if [ -f "$IMAGE_NAME/Dockerfile" ]; then
+              cp "$IMAGE_NAME/Dockerfile" upstream/Dockerfile
+            fi
+            echo "path=upstream" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify Dockerfile exists
+        env:
+          CONTEXT_PATH: ${{ steps.context.outputs.path }}
+        run: |
+          if [ ! -f "$CONTEXT_PATH/Dockerfile" ]; then
+            echo "::error::No Dockerfile found at $CONTEXT_PATH/Dockerfile"
             exit 1
           fi
 
@@ -99,7 +207,7 @@ jobs:
         id: build
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
-          context: ${{ inputs.image }}
+          context: ${{ steps.context.outputs.path }}
           push: false
           load: true
           tags: ${{ steps.docker-metadata.outputs.tags }}
@@ -137,7 +245,7 @@ jobs:
         id: push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
-          context: ${{ inputs.image }}
+          context: ${{ steps.context.outputs.path }}
           push: true
           tags: ${{ steps.docker-metadata.outputs.tags }}
           labels: ${{ steps.docker-metadata.outputs.labels }}
