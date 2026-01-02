@@ -1,6 +1,6 @@
 # Minimal Chrony NTP Server
-# Starts as root, drops to chrony user (UID 1000) after initialization
-# No capabilities required when using high port (1123) and -x flag
+# Runs entirely as chrony user (UID 1000) - no root or capabilities required
+# Uses high port (1123) and chronyd -x -U flags for zero-privilege operation
 #
 # Environment variables:
 #   NTP_SERVERS  - Comma-separated NTP servers (default: time.cloudflare.com)
