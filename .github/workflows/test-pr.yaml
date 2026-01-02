@@ -12,9 +12,10 @@ on:
       - "**/metadata.yaml"
 
 permissions:
-  contents: read
-  packages: read
-  # Read-only: PR tests don't push or create releases
+  contents: write # Required by reusable workflow (actual writes gated by inputs)
+  packages: write # Required by reusable workflow (push: false)
+  id-token: write # Required by reusable workflow
+  attestations: write # Required by reusable workflow (push: false)
 
 jobs:
   detect-changes:

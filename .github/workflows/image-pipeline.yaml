@@ -54,7 +54,11 @@ jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-latest
-    # Permissions inherited from calling workflow
+    permissions:
+      contents: write # Release creation (gated by create-release input)
+      packages: write # Push to GHCR (gated by push input)
+      id-token: write # OIDC for attestations
+      attestations: write # Build provenance (gated by push input)
     outputs:
       digest: ${{ steps.push.outputs.digest }}
       tag: ${{ steps.metadata.outputs.tag }}
