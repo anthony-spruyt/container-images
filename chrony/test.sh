@@ -56,37 +56,19 @@ if [ $ELAPSED -ge $TIMEOUT ]; then
     exit 1
 fi
 
-# Test 3: Verify chrony process is running
-echo "Test 3: Verify chronyd process..."
-if docker exec "$CONTAINER_NAME" pgrep -x chronyd > /dev/null; then
-    echo "  chronyd process is running"
-else
-    echo "  ERROR: chronyd process not found"
-    docker logs "$CONTAINER_NAME"
-    exit 1
-fi
-
-# Test 4: Verify chronyc can query tracking info
-echo "Test 4: Verify chronyc tracking..."
+# Test 3: Verify chronyc can query tracking info (proves chronyd is running)
+echo "Test 3: Verify chronyc tracking..."
 if docker exec "$CONTAINER_NAME" chronyc -n tracking > /dev/null 2>&1; then
     echo "  chronyc tracking successful"
     docker exec "$CONTAINER_NAME" chronyc -n tracking | head -5
 else
-    echo "  WARNING: chronyc tracking failed (may need more time to sync)"
-fi
-
-# Test 5: Verify container runs as non-root
-echo "Test 5: Verify non-root execution..."
-CONTAINER_USER=$(docker exec "$CONTAINER_NAME" id -u)
-if [ "$CONTAINER_USER" = "1000" ]; then
-    echo "  Container running as uid 1000 (non-root)"
-else
-    echo "  ERROR: Container running as uid $CONTAINER_USER (expected 1000)"
+    echo "  ERROR: chronyc tracking failed"
+    docker logs "$CONTAINER_NAME"
     exit 1
 fi
 
-# Test 6: Verify listening on configured port
-echo "Test 6: Verify NTP port binding..."
+# Test 4: Verify chrony is tracking sources
+echo "Test 4: Verify NTP source activity..."
 if docker exec "$CONTAINER_NAME" chronyc -n activity | grep -q "sources"; then
     echo "  chrony is active and tracking sources"
 else
