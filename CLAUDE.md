@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Monorepo for container images published to `ghcr.io/<owner>/<image>`. Images can be built from upstream repos or local Dockerfiles. The workflow builds, tests, scans, and pushes to GHCR.
+Container images built from upstream sources or custom Dockerfiles, published to `ghcr.io/<owner>/<image>` with automated security scanning and SLSA provenance.
 
 ## Commands
 

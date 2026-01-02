@@ -9,7 +9,7 @@
 [![Contributors](https://img.shields.io/github/contributors/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/graphs/contributors)
 [![Issues](https://img.shields.io/github/issues/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/issues)
 
-Monorepo for custom-built container images published to GitHub Container Registry.
+Container images built from upstream sources or custom Dockerfiles, published to GitHub Container Registry with automated security scanning and SLSA provenance.
 
 ## Development
 
