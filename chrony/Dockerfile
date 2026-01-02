@@ -11,7 +11,7 @@
 #   TZ           - Timezone (default: UTC)
 
 # Pin to specific digest for supply chain security (dependabot will update this)
-FROM alpine:3.21@sha256:5405e8f36ce1878720f71217d664aa3dea32e5e5df11acbf07fc78ef5661465b
+FROM alpine:3.23@sha256:865b95f46d98cf867a156fe4a135ad3fe50d2056aa3f25ed31662dff6da4eb62
 
 # Install chrony and timezone data
 # Note: chrony package creates its own user/group, we'll replace them with UID/GID 1000
