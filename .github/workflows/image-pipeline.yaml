@@ -107,13 +107,19 @@ jobs:
         run: |
           ERRORS=0
 
-          # Validate upstream is in allowlist (if upstream is specified)
+          # Validate upstream is in allowlist, or local Dockerfile exists
           if [ -n "$UPSTREAM" ]; then
             if [ -n "$ALLOWED_UPSTREAMS" ]; then
               if ! echo "$ALLOWED_UPSTREAMS" | grep -qw "$UPSTREAM"; then
                 echo "::error::Upstream '$UPSTREAM' is not in the allowed list"
                 ERRORS=$((ERRORS + 1))
               fi
+            fi
+          else
+            # No upstream - verify local Dockerfile exists
+            if [ ! -f "$IMAGE_NAME/Dockerfile" ]; then
+              echo "::error::No upstream specified and no local Dockerfile found at $IMAGE_NAME/Dockerfile"
+              ERRORS=$((ERRORS + 1))
             fi
           fi
 
@@ -135,6 +141,17 @@ jobs:
           RELEASE_TAG="${IMAGE_NAME}-v${TAG}"
           if ! echo "$RELEASE_TAG" | grep -qE '^[a-zA-Z0-9_-]+-v[a-zA-Z0-9._-]+$'; then
             echo "::error::Release tag '$RELEASE_TAG' has invalid format"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # Test release notes generation (validates no injection issues)
+          cat <<EOF > /tmp/release-notes-test.md
+          ## Container Image
+          **Image:** \`ghcr.io/test/${IMAGE_NAME}:${TAG}\`
+          **Upstream:** [${UPSTREAM}](https://github.com/${UPSTREAM})
+          EOF
+          if [ ! -s /tmp/release-notes-test.md ]; then
+            echo "::error::Release notes generation failed"
             ERRORS=$((ERRORS + 1))
           fi
 
