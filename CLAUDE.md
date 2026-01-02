@@ -18,25 +18,25 @@ pre-commit run --all-files   # Run pre-commit hooks manually
 
 ### Option 1: From Upstream Source
 
-1. Create `<image-name>/metadata.yaml`:
-   ```yaml
-   upstream: owner/repo
-   version: "1.0.0"
-   ```
-2. Update workflows:
-   - Add upstream to `allowed-upstreams` in `build-and-push.yaml` and `test-pr.yaml`
-   - Add to `inputs.image.options` list in `build-and-push.yaml`
-3. Add to `.github/dependabot.yml` for base image updates
+Create `<image-name>/metadata.yaml`:
+
+```yaml
+upstream: owner/repo
+version: "1.0.0"
+```
 
 ### Option 2: Local Dockerfile (no upstream)
 
-1. Create `<image-name>/Dockerfile` and `<image-name>/metadata.yaml`:
-   ```yaml
-   version: "1.0.0"
-   ```
-2. Update `.github/workflows/build-and-push.yaml`:
-   - Add to `inputs.image.options` list (no upstream allowlist needed)
-3. Add to `.github/dependabot.yml` for base image updates
+Create `<image-name>/Dockerfile` and `<image-name>/metadata.yaml`:
+
+```yaml
+version: "1.0.0"
+```
+
+### That's It
+
+- **No workflow updates needed** - upstream validation uses each image's own `metadata.yaml`
+- **Dependabot auto-generated** - pre-commit hook updates `.github/dependabot.yml` automatically
 
 ### Optional: Add CI Tests
 

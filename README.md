@@ -45,19 +45,7 @@ Use this when building from an external repository (e.g., a GitHub project):
    ```
 
 3. Optionally add a custom `Dockerfile` to override the upstream's
-4. Update workflows:
-   - Add upstream to `allowed-upstreams` in both `.github/workflows/build-and-push.yaml` and `.github/workflows/test-pr.yaml`
-   - Add image name to `inputs.image.options` list in `build-and-push.yaml`
-5. Add to `.github/dependabot.yml` to track base image updates:
-
-   ```yaml
-   - package-ecosystem: "docker"
-     directory: "/<image-name>"
-     schedule:
-       interval: weekly
-   ```
-
-6. Push to main - the image will be built and published automatically
+4. Push to main - the image will be built and published automatically
 
 ### Option 2: Build from Local Dockerfile
 
@@ -65,24 +53,18 @@ Use this for custom images with no upstream source:
 
 1. Create a directory with the image name
 2. Add your `Dockerfile` and any required files
-3. Add `metadata.yaml` (upstream can be omitted):
+3. Add `metadata.yaml`:
 
    ```yaml
    version: "1.0.0"
    ```
 
-4. Update `.github/workflows/build-and-push.yaml`:
-   - Add image name to `inputs.image.options` list (no upstream allowlist needed)
-5. Add to `.github/dependabot.yml` to track base image updates:
+4. Push to main - the image will be built and published automatically
 
-   ```yaml
-   - package-ecosystem: "docker"
-     directory: "/<image-name>"
-     schedule:
-       interval: weekly
-   ```
+### Automatic Configuration
 
-6. Push to main - the image will be built and published automatically
+- **Upstream validation** - Uses each image's own `metadata.yaml` as source of truth
+- **Dependabot entries** - Auto-generated via pre-commit hook when `metadata.yaml` changes
 
 ## Build Triggers
 
@@ -112,7 +94,7 @@ curl -X POST \
 
 Parameters:
 
-- **image** (required): Image name from allowed list (e.g., `firemerge`)
+- **image** (required): Image directory name (e.g., `firemerge`, `chrony`)
 - **version** (optional): Semver tag to build (e.g., `0.5.3`) - checks out this tag from upstream
 - **dry_run** (optional, default: `true`): When `true`, builds and scans the image but skips push to GHCR and release creation. Set to `false` for production builds.
 

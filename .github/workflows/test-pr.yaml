@@ -55,7 +55,6 @@ jobs:
       image: ${{ matrix.image }}
       push: false
       create-release: false
-      allowed-upstreams: "lvu/firemerge anthony-spruyt/firemerge"
 
   # Summary job for branch protection - provides a stable check name
   test-summary:

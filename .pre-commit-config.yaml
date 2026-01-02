@@ -1,6 +1,15 @@
 ---
 fail_fast: false
 repos:
+  # Run generators first so linters can validate the output
+  - repo: local
+    hooks:
+      - id: generate-dependabot
+        name: generate dependabot.yml
+        entry: .github/scripts/generate-dependabot.sh
+        language: script
+        files: ^[^/]+/metadata\.yaml$
+        pass_filenames: false
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.37.1
     hooks:

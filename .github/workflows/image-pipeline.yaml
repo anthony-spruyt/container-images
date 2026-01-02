@@ -28,11 +28,6 @@ on:
         required: false
         type: string
         default: ""
-      allowed-upstreams:
-        description: "Space-separated list of allowed upstream repos"
-        required: false
-        type: string
-        default: ""
       version-override:
         description: "Override version from metadata.yaml"
         required: false
@@ -102,21 +97,30 @@ jobs:
           IMAGE_NAME: ${{ inputs.image }}
           VERSION: ${{ steps.metadata.outputs.version }}
           TAG: ${{ steps.metadata.outputs.tag }}
-          UPSTREAM: ${{ inputs.upstream || steps.metadata.outputs.upstream }}
-          ALLOWED_UPSTREAMS: ${{ inputs.allowed-upstreams }}
+          UPSTREAM_INPUT: ${{ inputs.upstream }}
+          UPSTREAM_METADATA: ${{ steps.metadata.outputs.upstream }}
         run: |
           ERRORS=0
 
-          # Validate upstream is in allowlist, or local Dockerfile exists
-          if [ -n "$UPSTREAM" ]; then
-            if [ -n "$ALLOWED_UPSTREAMS" ]; then
-              if ! echo "$ALLOWED_UPSTREAMS" | grep -qw "$UPSTREAM"; then
-                echo "::error::Upstream '$UPSTREAM' is not in the allowed list"
-                ERRORS=$((ERRORS + 1))
-              fi
+          # Determine effective upstream (input takes precedence)
+          UPSTREAM="${UPSTREAM_INPUT:-$UPSTREAM_METADATA}"
+
+          # If upstream input is provided, it must match the image's metadata.yaml
+          if [ -n "$UPSTREAM_INPUT" ] && [ -n "$UPSTREAM_METADATA" ]; then
+            if [ "$UPSTREAM_INPUT" != "$UPSTREAM_METADATA" ]; then
+              echo "::error::Upstream mismatch: input '$UPSTREAM_INPUT' does not match metadata '$UPSTREAM_METADATA'"
+              ERRORS=$((ERRORS + 1))
             fi
-          else
-            # No upstream - verify local Dockerfile exists
+          fi
+
+          # If upstream input is provided but metadata has no upstream, reject
+          if [ -n "$UPSTREAM_INPUT" ] && [ -z "$UPSTREAM_METADATA" ]; then
+            echo "::error::Cannot override upstream for image without upstream in metadata.yaml"
+            ERRORS=$((ERRORS + 1))
+          fi
+
+          # No upstream - verify local Dockerfile exists
+          if [ -z "$UPSTREAM" ]; then
             if [ ! -f "$IMAGE_NAME/Dockerfile" ]; then
               echo "::error::No upstream specified and no local Dockerfile found at $IMAGE_NAME/Dockerfile"
               ERRORS=$((ERRORS + 1))
