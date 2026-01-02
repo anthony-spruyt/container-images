@@ -91,6 +91,77 @@ With `-x`, chrony:
 
 This is ideal for Kubernetes since nodes have their own time sync. If you need chrony to also adjust the system clock, remove `-x` from `startup.sh`, run as root (`USER root` in Dockerfile), and add `SYS_TIME` capability.
 
+## n8n Release Watcher
+
+The `n8n-release-watcher.json` workflow automatically detects new chrony package versions in Alpine Linux and triggers a container build.
+
+### What it does
+
+1. Checks daily (midnight UTC) for chrony package updates in Alpine Linux
+2. Dynamically reads the Alpine version from this repo's Dockerfile
+3. Fetches the corresponding APKBUILD from Alpine's Git repository
+4. Compares the package version with the last processed version (stored in workflow static data)
+5. If a new version is found:
+   - Triggers the container build workflow
+   - Sends an email notification
+   - Updates the stored version
+
+### Import into n8n
+
+1. In n8n, go to **Workflows** > **Add Workflow** > **Import from File**
+2. Select `n8n-release-watcher.json`
+3. Configure the credentials (see below)
+4. Activate the workflow
+
+### Required Credentials
+
+#### 1. GitHub Personal Access Token (Header Auth)
+
+Create a GitHub PAT with `repo` and `workflow` scopes:
+
+1. Go to GitHub > Settings > Developer settings > Personal access tokens > Fine-grained tokens
+2. Create a new token with:
+   - **Repository access:** `anthony-spruyt/container-images`
+   - **Permissions:** Actions (Read and write)
+3. In n8n, go to **Credentials** > **Add Credential** > **Header Auth**
+4. Configure:
+   - **Name:** `GitHub PAT`
+   - **Header Name:** `Authorization`
+   - **Header Value:** `Bearer <your-token>`
+
+#### 2. SMTP Credential
+
+1. In n8n, go to **Credentials** > **Add Credential** > **SMTP**
+2. Configure your SMTP server settings:
+   - **Host:** Your SMTP server hostname
+   - **Port:** 587 (TLS) or 465 (SSL)
+   - **User:** Your SMTP username
+   - **Password:** Your SMTP password
+   - **SSL/TLS:** Enable as required
+
+### Configuration After Import
+
+1. Open the **Trigger Build Workflow** node and select your GitHub PAT credential
+2. Open the **Send Notification** node:
+   - Select your SMTP credential
+   - Update `fromEmail` to your sender address
+   - Update `toEmail` to your notification recipient
+3. Save and activate the workflow
+
+### Testing
+
+1. Open the workflow in n8n
+2. Click **Execute Workflow** to run manually
+3. Check the output of each node:
+   - **Get Dockerfile:** Should return Dockerfile content
+   - **Parse Alpine Version:** Shows extracted Alpine version (e.g., `3.23`)
+   - **Get Alpine APKBUILD:** Should return APKBUILD content
+   - **Check New Version:** Shows `isNew: true` on first run
+   - **Trigger Build Workflow:** Should return HTTP 204 (success)
+   - **Send Notification:** Sends email to configured recipient
+
+On subsequent runs, `isNew` will be `false` until Alpine updates the chrony package.
+
 ## Related
 
 - [spruyt-labs#224](https://github.com/anthony-spruyt/spruyt-labs/issues/224) - Original issue

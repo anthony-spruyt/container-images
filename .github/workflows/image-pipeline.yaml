@@ -257,6 +257,39 @@ jobs:
           ignore-unfixed: true
           trivyignores: .trivyignore.yaml
 
+      - name: Dry run summary
+        if: ${{ !inputs.push }}
+        env:
+          IMAGE_NAME: ${{ inputs.image }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+          UPSTREAM: ${{ inputs.upstream || steps.metadata.outputs.upstream }}
+          REGISTRY: ${{ env.REGISTRY }}
+          OWNER: ${{ env.OWNER }}
+          SHA: ${{ github.sha }}
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Dry Run Summary
+
+          **Mode:** Dry run (no push or release)
+
+          ### What would have been done:
+          - **Image:** \`${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}\`
+          - **Tags:** \`latest\`, \`${TAG}\`, \`${SHA}\`
+          - **Upstream:** ${UPSTREAM:+[${UPSTREAM}](https://github.com/${UPSTREAM})}${UPSTREAM:-N/A (local Dockerfile)}
+          - **Release tag:** \`${IMAGE_NAME}-v${TAG}\`
+
+          ### Completed steps:
+          - ✅ Metadata validation
+          - ✅ ${UPSTREAM:+Upstream checkout}${UPSTREAM:-Build context preparation}
+          - ✅ Image build
+          - ✅ Trivy vulnerability scan
+
+          ### Skipped steps:
+          - ⏭️ Push to GHCR
+          - ⏭️ Provenance attestation
+          - ⏭️ GitHub release creation
+          EOF
+
       - name: Push image
         if: inputs.push
         id: push
@@ -287,6 +320,14 @@ jobs:
           IMAGE_NAME: ${{ inputs.image }}
           TAG: ${{ steps.metadata.outputs.tag }}
           DIGEST: ${{ steps.push.outputs.digest }}
+          UPSTREAM: ${{ inputs.upstream || steps.metadata.outputs.upstream }}
+          REGISTRY: ${{ env.REGISTRY }}
+          OWNER: ${{ env.OWNER }}
+          SHA: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_ID: ${{ github.run_id }}
+          SERVER_URL: ${{ github.server_url }}
+          REPO: ${{ github.repository }}
         run: |
           RELEASE_TAG="${IMAGE_NAME}-v${TAG}"
           if gh release view "$RELEASE_TAG" &>/dev/null; then
@@ -296,14 +337,24 @@ jobs:
           cat <<EOF > release-notes.md
           ## Container Image
 
-          **Image:** \`${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${TAG}\`
+          **Image:** \`${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}\`
           **Digest:** \`${DIGEST}\`
 
           ### Pull Commands
           \`\`\`bash
-          docker pull ${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}:${TAG}
-          docker pull ${{ env.REGISTRY }}/${{ env.OWNER }}/${IMAGE_NAME}@${DIGEST}
+          docker pull ${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}
+          docker pull ${REGISTRY}/${OWNER}/${IMAGE_NAME}@${DIGEST}
           \`\`\`
+
+          ### Build Info
+          - **Upstream:** ${UPSTREAM:+[${UPSTREAM}](https://github.com/${UPSTREAM})}${UPSTREAM:-N/A (local Dockerfile)}
+          - **Build Commit:** ${SHA}
+          - **Workflow Run:** [#${RUN_NUMBER}](${SERVER_URL}/${REPO}/actions/runs/${RUN_ID})
+
+          ### Security
+          - Trivy vulnerability scan: Passed (CRITICAL/HIGH)
+          - SBOM: Included in image
+          - Provenance: Attested
           EOF
           gh release create "$RELEASE_TAG" \
             --title "${IMAGE_NAME} v${TAG}" \

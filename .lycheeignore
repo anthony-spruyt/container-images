@@ -6,3 +6,6 @@ https://api.github.com/repos/.*/actions/workflows/.*/dispatches
 
 # Ignore private repository URLs
 https://github.com/anthony-spruyt/spruyt-labs/.*
+
+# Ignore Alpine Git URLs with dynamic version parameters (n8n templates)
+https://git.alpinelinux.org/aports/plain/.*\?h=.*
