@@ -18,6 +18,11 @@ updates:
 
   # Docker base images
   - package-ecosystem: "docker"
+    directory: "/chrony"
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: "docker"
     directory: "/firemerge"
     schedule:
       interval: weekly
