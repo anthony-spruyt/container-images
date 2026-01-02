@@ -2,8 +2,6 @@
 # Starts as root, drops to chrony user (UID 1000) after initialization
 # No capabilities required when using high port (1123) and -x flag
 #
-# trivy:ignore:AVD-DS-0002 chronyd requires root for socket init, drops to chrony via -u flag
-#
 # Environment variables:
 #   NTP_SERVERS  - Comma-separated NTP servers (default: time.cloudflare.com)
 #   NTP_PORT     - Port to listen on (default: 1123)

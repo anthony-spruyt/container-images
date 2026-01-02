@@ -5,3 +5,7 @@
 vulnerabilities:
 
 misconfigurations:
+  # chrony requires root for socket init, drops to chrony user via -u flag
+  - id: AVD-DS-0002
+    paths:
+      - chrony/Dockerfile
