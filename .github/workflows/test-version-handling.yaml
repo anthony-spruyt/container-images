@@ -76,3 +76,52 @@ jobs:
           test_version "1.2.3-beta.1" "1.2.3-beta.1" "test-image-1.2.3-beta.1"
 
           echo "✅ All version format tests passed"
+
+  test-checkout-integration:
+    name: Test Git Checkout with Slashes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test checkout with branch containing slashes
+        run: |
+          # Simulate the workflow's version handling
+          source .github/scripts/version-handling.sh
+
+          # Test with a version that has slashes (like firemerge)
+          VERSION="security/fix-cve-2025-64512-cve-2024-47874"
+          generate_tags "firemerge" "$VERSION"
+
+          echo "VERSION (for git checkout): $VERSION"
+          echo "TAG (for Docker): $TAG"
+          echo "RELEASE_TAG: $RELEASE_TAG"
+
+          # Verify TAG converted slashes to dashes (for Docker compatibility)
+          if [ "$TAG" != "security-fix-cve-2025-64512-cve-2024-47874" ]; then
+            echo "::error::TAG should have slashes converted to dashes"
+            exit 1
+          fi
+
+          # Verify VERSION still has slashes (for git checkout)
+          if [ "$VERSION" != "security/fix-cve-2025-64512-cve-2024-47874" ]; then
+            echo "::error::VERSION should preserve slashes for git checkout"
+            exit 1
+          fi
+
+          echo "✅ Version/Tag split works correctly"
+
+      - name: Verify actual git checkout works with VERSION
+        uses: actions/checkout@v4
+        with:
+          repository: anthony-spruyt/firemerge
+          ref: security/fix-cve-2025-64512-cve-2024-47874
+          path: test-checkout
+
+      - name: Verify checkout succeeded
+        run: |
+          if [ ! -d "test-checkout" ]; then
+            echo "::error::Checkout failed - directory not created"
+            exit 1
+          fi
+          echo "✅ Git checkout with slash in branch name succeeded"
