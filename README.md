@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/github/license/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/blob/main/LICENSE)
 [![Lint](https://github.com/anthony-spruyt/container-images/actions/workflows/lint.yaml/badge.svg)](https://github.com/anthony-spruyt/container-images/actions/workflows/lint.yaml)
 [![Build and Push](https://github.com/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml/badge.svg)](https://github.com/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml)
-[![Trivy Scan](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-weekly-scan.yaml/badge.svg)](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-weekly-scan.yaml)
+[![Trivy Scan](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml/badge.svg)](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml)
 [![Stars](https://img.shields.io/github/stars/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/stargazers)
 [![Forks](https://img.shields.io/github/forks/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/forks)
 [![Contributors](https://img.shields.io/github/contributors/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/graphs/contributors)
