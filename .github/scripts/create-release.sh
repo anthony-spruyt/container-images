@@ -66,6 +66,13 @@ create_release_with_retry() {
   return 1
 }
 
+# Set upstream display value
+if [ -n "$UPSTREAM" ]; then
+  UPSTREAM_DISPLAY="[${UPSTREAM}](https://github.com/${UPSTREAM})"
+else
+  UPSTREAM_DISPLAY="N/A (local Dockerfile)"
+fi
+
 # Generate release notes
 cat <<EOF > /tmp/release-notes.md
 ## Container Image
@@ -80,7 +87,7 @@ docker pull ${REGISTRY}/${OWNER}/${IMAGE_NAME}@${DIGEST}
 \`\`\`
 
 ### Build Info
-- **Upstream:** ${UPSTREAM:+[${UPSTREAM}](https://github.com/${UPSTREAM})}${UPSTREAM:-N/A (local Dockerfile)}
+- **Upstream:** ${UPSTREAM_DISPLAY}
 - **Build Commit:** ${SHA}
 - **Workflow Run:** [#${RUN_NUMBER}](${SERVER_URL}/${REPO}/actions/runs/${RUN_ID})
 
