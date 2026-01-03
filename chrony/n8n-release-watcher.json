@@ -64,7 +64,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Get workflow static data to track last processed version\nconst staticData = $getWorkflowStaticData('global');\n\n// Get Alpine version from earlier node\nconst alpineVersion = $('Parse Alpine Version').item.json.alpineVersion;\n\n// Parse chrony version from APKBUILD\nconst apkbuild = $input.first().json.data;\nconst pkgverMatch = apkbuild.match(/pkgver=([0-9.]+)/);\nconst pkgrelMatch = apkbuild.match(/pkgrel=([0-9]+)/);\n\nif (!pkgverMatch) {\n  return [{ json: { isNew: false, version: null, error: 'Could not parse pkgver from APKBUILD' } }];\n}\n\nconst pkgver = pkgverMatch[1];\nconst pkgrel = pkgrelMatch ? pkgrelMatch[1] : '0';\nconst version = `${pkgver}-r${pkgrel}`;\n\n// Check if this is a new version\nconst lastVersion = staticData.lastVersion || null;\nconst isNew = lastVersion !== version;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: version,\n    pkgver: pkgver,\n    pkgrel: pkgrel,\n    lastVersion: lastVersion,\n    alpineVersion: alpineVersion\n  }\n}];"
+        "jsCode": "// Get workflow static data to track last processed version\nconst staticData = $getWorkflowStaticData('global');\n\n// Get Alpine version from earlier node\nconst alpineVersion = $('Parse Alpine Version').item.json.alpineVersion;\n\n// Parse chrony version from APKBUILD\nconst apkbuild = $input.first().json.data;\nconst pkgverMatch = apkbuild.match(/pkgver=([0-9.]+)/);\nconst pkgrelMatch = apkbuild.match(/pkgrel=([0-9]+)/);\n\nif (!pkgverMatch) {\n  return [{ json: { isNew: false, version: null, error: 'Could not parse pkgver from APKBUILD' } }];\n}\n\nconst pkgver = pkgverMatch[1];\nconst pkgrel = pkgrelMatch ? pkgrelMatch[1] : '0';\nconst version = `${pkgver}-r${pkgrel}`;\n\n// Check if this is a new version\nconst lastVersion = staticData.lastVersion_chrony || null;\nconst isNew = lastVersion !== version;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: version,\n    pkgver: pkgver,\n    pkgrel: pkgrel,\n    lastVersion: lastVersion,\n    alpineVersion: alpineVersion\n  }\n}];"
       },
       "id": "check-version",
       "name": "Check New Version",
@@ -156,7 +156,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Update static data with the new version\nconst staticData = $getWorkflowStaticData('global');\nconst version = $('Check New Version').item.json.version;\nstaticData.lastVersion = version;\n\nreturn [{\n  json: {\n    success: true,\n    version: version,\n    message: `Updated last version to ${version}`\n  }\n}];"
+        "jsCode": "// Update static data with the new version\nconst staticData = $getWorkflowStaticData('global');\nconst version = $('Check New Version').item.json.version;\nstaticData.lastVersion_chrony = version;\n\nreturn [{\n  json: {\n    success: true,\n    version: version,\n    message: `Updated last version to ${version}`\n  }\n}];"
       },
       "id": "update-state",
       "name": "Update State",

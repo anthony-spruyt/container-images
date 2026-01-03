@@ -42,6 +42,20 @@ version: "1.0.0"
 
 Create `<image-name>/test.sh` - runs after build, before Trivy scan. See `chrony/test.sh` for example.
 
+### Optional: Add n8n Release Watcher
+
+When creating n8n workflows that track versions using static data:
+
+- **Variable pattern:** `lastVersion_{image_name}` (lowercase image name)
+- **Examples:**
+  - Firemerge: `staticData.lastVersion_firemerge`
+  - Chrony: `staticData.lastVersion_chrony`
+  - New image: `staticData.lastVersion_{imagename}`
+
+This prevents variable name collisions when multiple workflows run on the same n8n instance.
+
+When copying an existing workflow template, update all `staticData.lastVersion` references to include the image name.
+
 ## Build Triggers
 
 - **Pull requests**: Tests run on PRs when Dockerfile/test.sh/assets/metadata.yaml change

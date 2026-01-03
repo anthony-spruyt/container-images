@@ -24,4 +24,4 @@ pre-commit install --install-hooks
 
 echo ""
 echo "Running setup verification..."
-"$SCRIPT_DIR/../verify-setup.sh"
+"$SCRIPT_DIR/verify-setup.sh"
