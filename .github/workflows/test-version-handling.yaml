@@ -2,12 +2,31 @@
 name: Test Version Handling
 
 on:
+  # Run on PRs that modify version handling logic
+  pull_request:
+    paths:
+      - ".github/scripts/version-handling.sh"
+      - ".github/scripts/validate-configuration.sh"
+      - ".github/scripts/create-release.sh"
+      - ".github/workflows/image-pipeline.yaml"
+      - ".github/workflows/test-version-handling.yaml"
+  # Run on pushes to main
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/scripts/version-handling.sh"
+      - ".github/scripts/validate-configuration.sh"
+      - ".github/scripts/create-release.sh"
+      - ".github/workflows/image-pipeline.yaml"
+  # Allow manual testing with specific versions
   workflow_dispatch:
     inputs:
       test_version:
         description: "Version to test (e.g., v0.5.3, 0.5.3, viscious-llama)"
-        required: true
+        required: false
         type: string
+        default: "v0.5.3"
 
 jobs:
   test-version-format:
@@ -21,7 +40,8 @@ jobs:
       - name: Test release tag generation
         env:
           IMAGE_NAME: "test-image"
-          VERSION: ${{ inputs.test_version }}
+          # Use workflow_dispatch input if provided, otherwise use default test version
+          VERSION: ${{ inputs.test_version || 'v0.5.3' }}
         run: |
           # Use shared version handling script (same logic as production workflow)
           source .github/scripts/version-handling.sh
