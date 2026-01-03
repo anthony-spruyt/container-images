@@ -33,6 +33,39 @@ if gh release view "$RELEASE_TAG" &>/dev/null; then
   exit 0
 fi
 
+# Function to create release with retry logic for immutable tags
+create_release_with_retry() {
+  local release_tag="$1"
+  local notes_file="$2"
+  local title="$3"
+  local rebuild_num=1
+  local max_retries=5
+
+  while [ $rebuild_num -le $max_retries ]; do
+    # Try to create the release
+    if gh release create "$release_tag" \
+      --title "$title" \
+      --notes-file "$notes_file" 2>&1 | tee /tmp/gh-release-error.log; then
+      echo "✅ Created release: $release_tag"
+      return 0
+    fi
+
+    # Check if error is due to immutable release
+    if grep -q "tag_name was used by an immutable release" /tmp/gh-release-error.log; then
+      echo "⚠️  Tag $release_tag is immutable, trying with rebuild suffix..."
+      release_tag="${RELEASE_TAG}-r${rebuild_num}"
+      rebuild_num=$((rebuild_num + 1))
+    else
+      # Different error, fail
+      cat /tmp/gh-release-error.log
+      return 1
+    fi
+  done
+
+  echo "::error::Failed to create release after $max_retries attempts"
+  return 1
+}
+
 # Generate release notes
 cat <<EOF > /tmp/release-notes.md
 ## Container Image
@@ -57,9 +90,5 @@ docker pull ${REGISTRY}/${OWNER}/${IMAGE_NAME}@${DIGEST}
 - Provenance: Attested
 EOF
 
-# Create release
-gh release create "$RELEASE_TAG" \
-  --title "${IMAGE_NAME} ${TAG}" \
-  --notes-file /tmp/release-notes.md
-
-echo "✅ Created release: $RELEASE_TAG"
+# Create release with retry logic for immutable tags
+create_release_with_retry "$RELEASE_TAG" "/tmp/release-notes.md" "${IMAGE_NAME} ${TAG}"
