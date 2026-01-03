@@ -1,0 +1,3 @@
+---
+# Test fixture: branch name with slashes (like firemerge security fix)
+version: "feature/add-auth"
