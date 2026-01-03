@@ -504,5 +504,5 @@ Expected:
 
 - Original double 'v' bug: PR #45
 - n8n workflow pattern: `sungather/n8n-release-watcher.json`
-- Upstream with 'v': https://github.com/bohdan-s/SunGather/tags
-- Upstream without 'v': https://github.com/lvu/firemerge/tags
+- Upstream with 'v': <https://github.com/bohdan-s/SunGather/tags>
+- Upstream without 'v': <https://github.com/lvu/firemerge/tags>

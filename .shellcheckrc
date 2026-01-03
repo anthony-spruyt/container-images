@@ -1,0 +1,3 @@
+
+# Disable SC2153: Uppercase env vars from GitHub Actions workflows
+disable=SC2153
