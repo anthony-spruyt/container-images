@@ -142,7 +142,9 @@ jobs:
           fi
 
           # Validate release tag format (if release will be created)
-          RELEASE_TAG="${IMAGE_NAME}-v${TAG}"
+          # Strip leading 'v' if present to avoid double 'v' in release tag
+          TAG_WITHOUT_V="${TAG#v}"
+          RELEASE_TAG="${IMAGE_NAME}-v${TAG_WITHOUT_V}"
           if ! echo "$RELEASE_TAG" | grep -qE '^[a-zA-Z0-9_-]+-v[a-zA-Z0-9._-]+$'; then
             echo "::error::Release tag '$RELEASE_TAG' has invalid format"
             ERRORS=$((ERRORS + 1))
@@ -333,7 +335,9 @@ jobs:
           SERVER_URL: ${{ github.server_url }}
           REPO: ${{ github.repository }}
         run: |
-          RELEASE_TAG="${IMAGE_NAME}-v${TAG}"
+          # Strip leading 'v' if present to avoid double 'v' in release tag
+          TAG_WITHOUT_V="${TAG#v}"
+          RELEASE_TAG="${IMAGE_NAME}-v${TAG_WITHOUT_V}"
           if gh release view "$RELEASE_TAG" &>/dev/null; then
             echo "Release $RELEASE_TAG already exists, skipping"
             exit 0
