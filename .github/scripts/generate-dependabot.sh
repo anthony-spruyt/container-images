@@ -46,7 +46,10 @@ for dir in "${IMAGE_DIRS[@]}"; do
         continue
     fi
 
-    cat >> "$DEPENDABOT_FILE" << EOF
+    # Only add Docker ecosystem entry if a Dockerfile exists
+    # Upstream-sourced images (no local Dockerfile) are skipped
+    if [[ -f "$REPO_ROOT/$dir/Dockerfile" ]]; then
+        cat >> "$DEPENDABOT_FILE" << EOF
   # Docker base images for $dir
   - package-ecosystem: "docker"
     directory: "/$dir"
@@ -54,6 +57,7 @@ for dir in "${IMAGE_DIRS[@]}"; do
       interval: weekly
 
 EOF
+    fi
 done
 
 # Add npm packages entry
