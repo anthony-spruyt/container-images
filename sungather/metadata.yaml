@@ -1,0 +1,6 @@
+---
+# SunGather - Data collector for Sungrow Inverters
+# https://github.com/bohdan-s/SunGather
+
+upstream: bohdan-s/SunGather
+version: v0.5.3
