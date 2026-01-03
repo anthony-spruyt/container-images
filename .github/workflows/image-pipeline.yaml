@@ -142,10 +142,8 @@ jobs:
           fi
 
           # Validate release tag format (if release will be created)
-          # Strip leading 'v' if present to avoid double 'v' in release tag
-          TAG_WITHOUT_V="${TAG#v}"
-          RELEASE_TAG="${IMAGE_NAME}-v${TAG_WITHOUT_V}"
-          if ! echo "$RELEASE_TAG" | grep -qE '^[a-zA-Z0-9_-]+-v[a-zA-Z0-9._-]+$'; then
+          RELEASE_TAG="${IMAGE_NAME}-${TAG}"
+          if ! echo "$RELEASE_TAG" | grep -qE '^[a-zA-Z0-9_-]+-[a-zA-Z0-9._-]+$'; then
             echo "::error::Release tag '$RELEASE_TAG' has invalid format"
             ERRORS=$((ERRORS + 1))
           fi
@@ -282,7 +280,7 @@ jobs:
           - **Image:** \`${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}\`
           - **Tags:** \`latest\`, \`${TAG}\`, \`${SHA}\`
           - **Upstream:** ${UPSTREAM:+[${UPSTREAM}](https://github.com/${UPSTREAM})}${UPSTREAM:-N/A (local Dockerfile)}
-          - **Release tag:** \`${IMAGE_NAME}-v${TAG}\`
+          - **Release tag:** \`${IMAGE_NAME}-${TAG}\`
 
           ### Completed steps:
           - ✅ Metadata validation
@@ -335,9 +333,7 @@ jobs:
           SERVER_URL: ${{ github.server_url }}
           REPO: ${{ github.repository }}
         run: |
-          # Strip leading 'v' if present to avoid double 'v' in release tag
-          TAG_WITHOUT_V="${TAG#v}"
-          RELEASE_TAG="${IMAGE_NAME}-v${TAG_WITHOUT_V}"
+          RELEASE_TAG="${IMAGE_NAME}-${TAG}"
           if gh release view "$RELEASE_TAG" &>/dev/null; then
             echo "Release $RELEASE_TAG already exists, skipping"
             exit 0
@@ -365,5 +361,5 @@ jobs:
           - Provenance: Attested
           EOF
           gh release create "$RELEASE_TAG" \
-            --title "${IMAGE_NAME} v${TAG}" \
+            --title "${IMAGE_NAME} ${TAG}" \
             --notes-file release-notes.md

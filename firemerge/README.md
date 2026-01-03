@@ -14,9 +14,11 @@ The `n8n-release-watcher.json` workflow automatically detects new Firemerge rele
 1. Checks GitHub daily (midnight UTC) for new tags on `lvu/firemerge`
 2. Compares with the last processed version (stored in workflow static data)
 3. If a new version is found:
-   - Triggers the container build workflow
+   - Triggers the container build workflow with the exact upstream tag
    - Sends an email notification
    - Updates the stored version
+
+**Note:** The workflow preserves the exact upstream tag format (including 'v' prefix if present) to ensure correct git checkout.
 
 ### Import into n8n
 
