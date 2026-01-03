@@ -119,7 +119,7 @@ jobs:
           # We verify the logic, not an actual checkout (to avoid dependency on external branches)
 
           # Simulate what image-pipeline.yaml does:
-          # ref: ${{ inputs.upstream-ref || steps.metadata.outputs.version }}
+          # The workflow uses: inputs.upstream-ref OR steps.metadata.outputs.version
 
           source .github/scripts/version-handling.sh
           VERSION="security/fix-cve-2025-123"

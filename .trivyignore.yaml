@@ -9,3 +9,13 @@ misconfigurations:
   - id: AVD-DS-0002
     paths:
       - chrony/Dockerfile
+  # Test fixtures are minimal and don't need production-grade security
+  - id: AVD-DS-0001
+    paths:
+      - test-images/**/Dockerfile
+  - id: AVD-DS-0002
+    paths:
+      - test-images/**/Dockerfile
+  - id: AVD-DS-0026
+    paths:
+      - test-images/**/Dockerfile
