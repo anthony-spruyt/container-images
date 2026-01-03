@@ -101,7 +101,7 @@ spec:
 
 ## Configuration
 
-SunGather requires a `config.yaml` file. See the [upstream config-example.yaml](https://github.com/bohdan-s/SunGather/blob/master/config-example.yaml) for all available options.
+SunGather requires a `config.yaml` file. See the [upstream config-example.yaml](https://github.com/bohdan-s/SunGather/blob/master/SunGather/config-example.yaml) for all available options.
 
 **Minimum configuration:**
 
@@ -205,7 +205,7 @@ Create a GitHub PAT with `repo` and `workflow` scopes:
    - Update `toEmail` to your notification recipient
 3. Save and activate the workflow
 
-### Testing
+### Testing the Workflow
 
 1. Open the workflow in n8n
 2. Click **Execute Workflow** to run manually
