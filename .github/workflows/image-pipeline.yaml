@@ -107,7 +107,7 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
         with:
           repository: ${{ inputs.upstream || steps.metadata.outputs.upstream }}
-          ref: ${{ inputs.upstream-ref || steps.metadata.outputs.tag }}
+          ref: ${{ inputs.upstream-ref || steps.metadata.outputs.version }}
           path: upstream
 
       - name: Prepare build context
