@@ -11,10 +11,12 @@ set -euo pipefail
 #   UPSTREAM_INPUT: Upstream repo from workflow input (optional)
 #   UPSTREAM_METADATA: Upstream repo from metadata.yaml (optional)
 
+# shellcheck disable=SC2153
 ERRORS=0
 
 # Source shared version handling functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=.github/scripts/version-handling.sh
 source "$SCRIPT_DIR/version-handling.sh"
 
 # Determine effective upstream (input takes precedence)

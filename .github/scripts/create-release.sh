@@ -18,8 +18,10 @@ set -euo pipefail
 #   REPO: GitHub repository (owner/repo)
 #   GH_TOKEN: GitHub token for gh CLI
 
+# shellcheck disable=SC2153
 # Source shared version handling functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=.github/scripts/version-handling.sh
 source "$SCRIPT_DIR/version-handling.sh"
 
 # Generate release tag

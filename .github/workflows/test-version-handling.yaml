@@ -43,6 +43,7 @@ jobs:
           # Use workflow_dispatch input if provided, otherwise use default test version
           VERSION: ${{ inputs.test_version || 'v0.5.3' }}
         run: |
+          # shellcheck disable=SC2153
           # Use shared version handling script (same logic as production workflow)
           source .github/scripts/version-handling.sh
 
