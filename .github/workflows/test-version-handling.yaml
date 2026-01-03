@@ -10,6 +10,7 @@ on:
       - ".github/scripts/create-release.sh"
       - ".github/workflows/image-pipeline.yaml"
       - ".github/workflows/test-version-handling.yaml"
+      - "test-images/**/*"
   # Run on pushes to main
   push:
     branches:
@@ -19,6 +20,7 @@ on:
       - ".github/scripts/validate-configuration.sh"
       - ".github/scripts/create-release.sh"
       - ".github/workflows/image-pipeline.yaml"
+      - "test-images/**/*"
   # Allow manual testing with specific versions
   workflow_dispatch:
     inputs:
@@ -32,47 +34,112 @@ permissions:
   contents: read
 
 jobs:
-  test-version-format:
-    name: Test Version Format Handling
+  test-version-handling:
+    name: Test Version Handling
     runs-on: ubuntu-latest
     steps:
-      # Checkout to access shared scripts
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Test release tag generation
-        env:
-          IMAGE_NAME: "test-image"
-          # Use workflow_dispatch input if provided, otherwise use default test version
-          VERSION: ${{ inputs.test_version || 'v0.5.3' }}
+      - name: Test all fixture images
         run: |
-          # shellcheck disable=SC2153
-          # Use shared version handling script (same logic as production workflow)
           source .github/scripts/version-handling.sh
 
-          generate_tags "$IMAGE_NAME" "$VERSION"
+          echo "🔍 Discovering test fixture images..."
+          test_images=$(find test-images -name metadata.yaml -type f 2>/dev/null | sort || true)
 
-          echo "Input version: $VERSION"
-          echo "Docker tag: $TAG"
-          echo "Release tag: $RELEASE_TAG"
-
-          # Validate using shared validation function
-          if ! validate_tags; then
+          if [ -z "$test_images" ]; then
+            echo "::error::No test fixture images found in test-images/"
             exit 1
           fi
 
-          echo "✅ Version format valid"
+          total=0
+          passed=0
+          failed=0
 
-      - name: Test various formats
+          for metadata_file in $test_images; do
+            total=$((total + 1))
+            image_dir=$(dirname "$metadata_file")
+            image_name=$(basename "$image_dir")
+
+            # Read version from metadata.yaml
+            version=$(grep '^version:' "$metadata_file" | sed 's/version: *"\?\([^"]*\)"\?/\1/')
+
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "Testing: $image_name (version: $version)"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+            # Generate tags using shared script
+            generate_tags "$image_name" "$version"
+
+            echo "  VERSION: $version"
+            echo "  TAG: $TAG"
+            echo "  RELEASE_TAG: $RELEASE_TAG"
+
+            # Validate tags
+            if validate_tags; then
+              echo "  ✅ Tag validation passed"
+
+              # Verify TAG has slashes converted to dashes
+              expected_tag=$(echo "$version" | tr '/' '-')
+              if [ "$TAG" != "$expected_tag" ]; then
+                echo "  ::error::TAG conversion incorrect (expected: $expected_tag, got: $TAG)"
+                failed=$((failed + 1))
+                continue
+              fi
+
+              # Verify RELEASE_TAG format
+              expected_release="${image_name}-${TAG}"
+              if [ "$RELEASE_TAG" != "$expected_release" ]; then
+                echo "  ::error::RELEASE_TAG incorrect (expected: $expected_release, got: $RELEASE_TAG)"
+                failed=$((failed + 1))
+                continue
+              fi
+
+              echo "  ✅ All validations passed"
+              passed=$((passed + 1))
+            else
+              echo "  ❌ Tag validation failed"
+              failed=$((failed + 1))
+            fi
+          done
+
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Test Summary"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Total: $total"
+          echo "Passed: $passed"
+          echo "Failed: $failed"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          if [ $failed -gt 0 ]; then
+            echo "::error::$failed test fixture(s) failed validation"
+            exit 1
+          fi
+
+          echo "✅ All $total test fixture images passed validation"
+
+      - name: Test workflow_dispatch input (if provided)
+        if: inputs.test_version
         run: |
-          # Use shared version handling script
           source .github/scripts/version-handling.sh
 
-          # Test various version formats using the shared test function
-          test_version "v0.5.3" "v0.5.3" "test-image-v0.5.3"
-          test_version "0.5.3" "0.5.3" "test-image-0.5.3"
-          test_version "viscious-llama" "viscious-llama" "test-image-viscious-llama"
-          test_version "security/fix-cve-2025-123" "security-fix-cve-2025-123" "test-image-security-fix-cve-2025-123"
-          test_version "1.2.3-beta.1" "1.2.3-beta.1" "test-image-1.2.3-beta.1"
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Testing workflow_dispatch input: ${{ inputs.test_version }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-          echo "✅ All version format tests passed"
+          generate_tags "manual-test" "${{ inputs.test_version }}"
+
+          echo "  VERSION: ${{ inputs.test_version }}"
+          echo "  TAG: $TAG"
+          echo "  RELEASE_TAG: $RELEASE_TAG"
+
+          if ! validate_tags; then
+            echo "::error::Manual test version validation failed"
+            exit 1
+          fi
+
+          echo "✅ Manual test version validation passed"
