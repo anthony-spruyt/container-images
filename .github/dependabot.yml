@@ -25,18 +25,6 @@ updates:
     schedule:
       interval: weekly
 
-  # Docker base images for firemerge
-  - package-ecosystem: "docker"
-    directory: "/firemerge"
-    schedule:
-      interval: weekly
-
-  # Docker base images for sungather
-  - package-ecosystem: "docker"
-    directory: "/sungather"
-    schedule:
-      interval: weekly
-
   # npm packages in devcontainer
   - package-ecosystem: "npm"
     directory: "/.devcontainer"
