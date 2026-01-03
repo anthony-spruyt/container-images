@@ -1,0 +1,67 @@
+---
+name: Test Version Handling
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_version:
+        description: "Version to test (e.g., v0.5.3, 0.5.3, viscious-llama)"
+        required: true
+        type: string
+
+jobs:
+  test-version-format:
+    name: Test Version Format Handling
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test release tag generation
+        env:
+          IMAGE_NAME: "test-image"
+          VERSION: ${{ inputs.test_version }}
+        run: |
+          # Simulate workflow logic
+          TAG=$(echo "$VERSION" | tr '/' '-')
+          RELEASE_TAG="${IMAGE_NAME}-${TAG}"
+
+          echo "Input version: $VERSION"
+          echo "Docker tag: $TAG"
+          echo "Release tag: $RELEASE_TAG"
+
+          # Validate release tag format
+          if ! echo "$RELEASE_TAG" | grep -qE '^[a-zA-Z0-9_-]+-[a-zA-Z0-9._-]+$'; then
+            echo "::error::Invalid release tag format: $RELEASE_TAG"
+            exit 1
+          fi
+
+          echo "✅ Version format valid"
+
+      - name: Test various formats
+        run: |
+          test_version() {
+            local VERSION="$1"
+            local EXPECTED_DOCKER="$2"
+            local EXPECTED_RELEASE="$3"
+
+            TAG=$(echo "$VERSION" | tr '/' '-')
+            RELEASE_TAG="test-image-${TAG}"
+
+            if [ "$TAG" != "$EXPECTED_DOCKER" ]; then
+              echo "::error::Docker tag mismatch for $VERSION: got $TAG, expected $EXPECTED_DOCKER"
+              return 1
+            fi
+
+            if [ "$RELEASE_TAG" != "$EXPECTED_RELEASE" ]; then
+              echo "::error::Release tag mismatch for $VERSION: got $RELEASE_TAG, expected $EXPECTED_RELEASE"
+              return 1
+            fi
+
+            echo "✅ $VERSION → Docker: $TAG, Release: $RELEASE_TAG"
+          }
+
+          test_version "v0.5.3" "v0.5.3" "test-image-v0.5.3"
+          test_version "0.5.3" "0.5.3" "test-image-0.5.3"
+          test_version "viscious-llama" "viscious-llama" "test-image-viscious-llama"
+          test_version "security/fix-cve-2025-123" "security-fix-cve-2025-123" "test-image-security-fix-cve-2025-123"
+          test_version "1.2.3-beta.1" "1.2.3-beta.1" "test-image-1.2.3-beta.1"
+
+          echo "✅ All version format tests passed"
