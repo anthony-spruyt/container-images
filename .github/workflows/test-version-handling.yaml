@@ -34,117 +34,14 @@ permissions:
   contents: read
 
 jobs:
-  test-version-format:
-    name: Test Version Format Handling
-    runs-on: ubuntu-latest
-    steps:
-      # Checkout to access shared scripts
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Test release tag generation
-        env:
-          IMAGE_NAME: "test-image"
-          # Use workflow_dispatch input if provided, otherwise use default test version
-          VERSION: ${{ inputs.test_version || 'v0.5.3' }}
-        run: |
-          # shellcheck disable=SC2153
-          # Use shared version handling script (same logic as production workflow)
-          source .github/scripts/version-handling.sh
-
-          generate_tags "$IMAGE_NAME" "$VERSION"
-
-          echo "Input version: $VERSION"
-          echo "Docker tag: $TAG"
-          echo "Release tag: $RELEASE_TAG"
-
-          # Validate using shared validation function
-          if ! validate_tags; then
-            exit 1
-          fi
-
-          echo "✅ Version format valid"
-
-      - name: Test various formats
-        run: |
-          # Use shared version handling script
-          source .github/scripts/version-handling.sh
-
-          # Test various version formats using the shared test function
-          test_version "v0.5.3" "v0.5.3" "test-image-v0.5.3"
-          test_version "0.5.3" "0.5.3" "test-image-0.5.3"
-          test_version "viscious-llama" "viscious-llama" "test-image-viscious-llama"
-          test_version "security/fix-cve-2025-123" "security-fix-cve-2025-123" "test-image-security-fix-cve-2025-123"
-          test_version "1.2.3-beta.1" "1.2.3-beta.1" "test-image-1.2.3-beta.1"
-
-          echo "✅ All version format tests passed"
-
-  test-checkout-integration:
-    name: Test Git Checkout with Slashes
+  test-version-handling:
+    name: Test Version Handling
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Test checkout with branch containing slashes
-        run: |
-          # Simulate the workflow's version handling
-          source .github/scripts/version-handling.sh
-
-          # Test with a version that has slashes (like firemerge)
-          VERSION="security/fix-cve-2025-64512-cve-2024-47874"
-          generate_tags "firemerge" "$VERSION"
-
-          echo "VERSION (for git checkout): $VERSION"
-          echo "TAG (for Docker): $TAG"
-          echo "RELEASE_TAG: $RELEASE_TAG"
-
-          # Verify TAG converted slashes to dashes (for Docker compatibility)
-          if [ "$TAG" != "security-fix-cve-2025-64512-cve-2024-47874" ]; then
-            echo "::error::TAG should have slashes converted to dashes"
-            exit 1
-          fi
-
-          # Verify VERSION still has slashes (for git checkout)
-          if [ "$VERSION" != "security/fix-cve-2025-64512-cve-2024-47874" ]; then
-            echo "::error::VERSION should preserve slashes for git checkout"
-            exit 1
-          fi
-
-          echo "✅ Version/Tag split works correctly"
-
-      - name: Verify checkout preserves slashes in ref
-        run: |
-          # Test that the image-pipeline workflow would use VERSION (not TAG) for checkout
-          # We verify the logic, not an actual checkout (to avoid dependency on external branches)
-
-          # Simulate what image-pipeline.yaml does:
-          # The workflow uses: inputs.upstream-ref OR steps.metadata.outputs.version
-
-          source .github/scripts/version-handling.sh
-          VERSION="security/fix-cve-2025-123"
-          generate_tags "test-image" "$VERSION"
-
-          # The workflow should use VERSION for git checkout
-          GIT_REF="$VERSION"
-
-          # Verify it has the slash (git will accept this)
-          if [[ "$GIT_REF" != *"/"* ]]; then
-            echo "::error::Git ref should contain slashes: $GIT_REF"
-            exit 1
-          fi
-
-          echo "✅ Git checkout would use VERSION with slashes: $GIT_REF"
-          echo "✅ Docker would use TAG with dashes: $TAG"
-
-  test-fixture-images:
-    name: Test Fixture Images
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Discover and test all fixture images
+      - name: Test all fixture images
         run: |
           source .github/scripts/version-handling.sh
 
@@ -183,10 +80,6 @@ jobs:
             # Validate tags
             if validate_tags; then
               echo "  ✅ Tag validation passed"
-
-              # Verify VERSION is preserved (for git checkout)
-              # Note: generate_tags doesn't set VERSION, it only sets TAG and RELEASE_TAG
-              # VERSION is the input parameter, so we compare against the input
 
               # Verify TAG has slashes converted to dashes
               expected_tag=$(echo "$version" | tr '/' '-')
@@ -227,3 +120,26 @@ jobs:
           fi
 
           echo "✅ All $total test fixture images passed validation"
+
+      - name: Test workflow_dispatch input (if provided)
+        if: inputs.test_version
+        run: |
+          source .github/scripts/version-handling.sh
+
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Testing workflow_dispatch input: ${{ inputs.test_version }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          generate_tags "manual-test" "${{ inputs.test_version }}"
+
+          echo "  VERSION: ${{ inputs.test_version }}"
+          echo "  TAG: $TAG"
+          echo "  RELEASE_TAG: $RELEASE_TAG"
+
+          if ! validate_tags; then
+            echo "::error::Manual test version validation failed"
+            exit 1
+          fi
+
+          echo "✅ Manual test version validation passed"
