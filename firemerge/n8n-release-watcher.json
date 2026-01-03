@@ -31,7 +31,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Get workflow static data to track last processed version\nconst staticData = $getWorkflowStaticData('global');\n\n// Get the latest tag from the GitHub API response\n// n8n splits the array response into separate items, so first item = latest tag\nconst items = $input.all();\nif (!items || items.length === 0 || !items[0].json) {\n  return [{ json: { isNew: false, version: null, error: 'No tags found' } }];\n}\n\n// First item is the latest tag (GitHub returns tags sorted by creation date desc)\nconst latestTag = items[0].json;\nif (!latestTag.name) {\n  return [{ json: { isNew: false, version: null, error: 'Invalid tag data' } }];\n}\n\n// Extract version (strip 'v' prefix if present)\nlet version = latestTag.name;\nif (version.startsWith('v')) {\n  version = version.substring(1);\n}\n\n// Check if this is a new version\nconst lastVersion = staticData.lastVersion || null;\nconst isNew = lastVersion !== version;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: version,\n    lastVersion: lastVersion,\n    tagName: latestTag.name,\n    commitSha: latestTag.commit?.sha || null\n  }\n}];"
+        "jsCode": "// Get workflow static data to track last processed version\nconst staticData = $getWorkflowStaticData('global');\n\n// Get the latest tag from the GitHub API response\n// n8n splits the array response into separate items, so first item = latest tag\nconst items = $input.all();\nif (!items || items.length === 0 || !items[0].json) {\n  return [{ json: { isNew: false, version: null, error: 'No tags found' } }];\n}\n\n// First item is the latest tag (GitHub returns tags sorted by creation date desc)\nconst latestTag = items[0].json;\nif (!latestTag.name) {\n  return [{ json: { isNew: false, version: null, error: 'Invalid tag data' } }];\n}\n\n// Extract version (strip 'v' prefix if present)\nlet version = latestTag.name;\nif (version.startsWith('v')) {\n  version = version.substring(1);\n}\n\n// Check if this is a new version\nconst lastVersion = staticData.lastVersion_firemerge || null;\nconst isNew = lastVersion !== version;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: version,\n    lastVersion: lastVersion,\n    tagName: latestTag.name,\n    commitSha: latestTag.commit?.sha || null\n  }\n}];"
       },
       "id": "check-version",
       "name": "Check New Version",
@@ -123,7 +123,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Update static data with the new version\nconst staticData = $getWorkflowStaticData('global');\nconst version = $('Check New Version').item.json.version;\nstaticData.lastVersion = version;\n\nreturn [{\n  json: {\n    success: true,\n    version: version,\n    message: `Updated last version to ${version}`\n  }\n}];"
+        "jsCode": "// Update static data with the new version\nconst staticData = $getWorkflowStaticData('global');\nconst version = $('Check New Version').item.json.version;\nstaticData.lastVersion_firemerge = version;\n\nreturn [{\n  json: {\n    success: true,\n    version: version,\n    message: `Updated last version to ${version}`\n  }\n}];"
       },
       "id": "update-state",
       "name": "Update State",

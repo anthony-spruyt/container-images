@@ -87,7 +87,7 @@ Create a token at [GitHub Settings > Developer settings > Personal access tokens
 After opening the devcontainer, verify everything is working:
 
 ```bash
-./verify-setup.sh
+./.devcontainer/verify-setup.sh
 ```
 
 This checks Docker-in-Docker, pre-commit hooks, safe-chain protection, GitHub CLI, and SSH agent forwarding.
