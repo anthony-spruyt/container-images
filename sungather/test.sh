@@ -51,7 +51,7 @@ sleep 10
 
 # Test 3: Verify application started and config was loaded
 echo "Test 3: Verify application startup and config loading..."
-docker logs "$CONTAINER_NAME" 2>&1 > /tmp/sungather-logs-$$.txt
+docker logs "$CONTAINER_NAME" > /tmp/sungather-logs-$$.txt 2>&1
 if grep -q "Starting SunGather" /tmp/sungather-logs-$$.txt && \
    grep -q "Loaded config:" /tmp/sungather-logs-$$.txt; then
     echo "  Application started successfully and loaded config"
