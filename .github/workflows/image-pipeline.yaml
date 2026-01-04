@@ -39,24 +39,23 @@ on:
         value: ${{ jobs.build.outputs.digest }}
       tag:
         description: "Image tag"
-        value: ${{ jobs.build.outputs.tag }}
+        value: ${{ jobs.check-release.outputs.tag }}
 
 env:
   REGISTRY: ghcr.io
   OWNER: ${{ github.repository_owner }}
 
 jobs:
-  build:
-    name: Build and Test
+  check-release:
+    name: Check Release
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Release creation (gated by create-release input)
-      packages: write # Push to GHCR (gated by push input)
-      id-token: write # OIDC for attestations
-      attestations: write # Build provenance (gated by push input)
+      contents: read # Read releases
     outputs:
-      digest: ${{ steps.push.outputs.digest }}
+      should-build: ${{ steps.check.outputs.should-build }}
       tag: ${{ steps.metadata.outputs.tag }}
+      version: ${{ steps.metadata.outputs.version }}
+      upstream: ${{ steps.metadata.outputs.upstream }}
     steps:
       # SHA pin: actions/checkout@v4.3.1
       - name: Checkout
@@ -101,13 +100,55 @@ jobs:
           UPSTREAM_METADATA: ${{ steps.metadata.outputs.upstream }}
         run: .github/scripts/validate-configuration.sh
 
+      - name: Check if release exists
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_NAME: ${{ inputs.image }}
+          TAG: ${{ steps.metadata.outputs.tag }}
+          CREATE_RELEASE: ${{ inputs.create-release }}
+        run: |
+          # Always build for dry runs or when not creating releases
+          if [ "$CREATE_RELEASE" != "true" ]; then
+            echo "::notice::Dry run mode, will build"
+            echo "should-build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          RELEASE_TAG="${IMAGE_NAME}-${TAG}"
+          if gh release view "$RELEASE_TAG" &>/dev/null; then
+            echo "::notice::Release $RELEASE_TAG already exists, skipping build"
+            echo "should-build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Release $RELEASE_TAG does not exist, will build"
+            echo "should-build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build and Test
+    needs: check-release
+    if: needs.check-release.outputs.should-build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Release creation (gated by create-release input)
+      packages: write # Push to GHCR (gated by push input)
+      id-token: write # OIDC for attestations
+      attestations: write # Build provenance (gated by push input)
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+      tag: ${{ needs.check-release.outputs.tag }}
+    steps:
+      # SHA pin: actions/checkout@v4.3.1
+      - name: Checkout
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
       # SHA pin: actions/checkout@v4.3.1
       - name: Checkout upstream source
-        if: inputs.upstream != '' || steps.metadata.outputs.upstream != ''
+        if: inputs.upstream != '' || needs.check-release.outputs.upstream != ''
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
         with:
-          repository: ${{ inputs.upstream || steps.metadata.outputs.upstream }}
-          ref: ${{ inputs.upstream-ref || steps.metadata.outputs.version }}
+          repository: ${{ inputs.upstream || needs.check-release.outputs.upstream }}
+          ref: ${{ inputs.upstream-ref || needs.check-release.outputs.version }}
           path: upstream
 
       - name: Prepare build context
@@ -155,7 +196,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}
           tags: |
             type=raw,value=latest
-            type=raw,value=${{ steps.metadata.outputs.tag }},enable=${{ steps.metadata.outputs.tag != 'latest' }}
+            type=raw,value=${{ needs.check-release.outputs.tag }},enable=${{ needs.check-release.outputs.tag != 'latest' }}
             type=sha,prefix=
 
       # SHA pin: docker/build-push-action@v6.18.0
@@ -174,7 +215,7 @@ jobs:
       - name: Run tests
         env:
           IMAGE_NAME: ${{ inputs.image }}
-          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}:${{ steps.metadata.outputs.tag }}
+          IMAGE_REF: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}:${{ needs.check-release.outputs.tag }}
         run: |
           TEST_SCRIPT="${IMAGE_NAME}/test.sh"
           if [ -f "$TEST_SCRIPT" ]; then
@@ -189,7 +230,7 @@ jobs:
       - name: Scan for vulnerabilities
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}:${{ steps.metadata.outputs.tag }}
+          image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}:${{ needs.check-release.outputs.tag }}
           format: table
           exit-code: 1
           severity: CRITICAL,HIGH
@@ -200,8 +241,8 @@ jobs:
         if: ${{ !inputs.push }}
         env:
           IMAGE_NAME: ${{ inputs.image }}
-          TAG: ${{ steps.metadata.outputs.tag }}
-          UPSTREAM: ${{ inputs.upstream || steps.metadata.outputs.upstream }}
+          TAG: ${{ needs.check-release.outputs.tag }}
+          UPSTREAM: ${{ inputs.upstream || needs.check-release.outputs.upstream }}
           REGISTRY: ${{ env.REGISTRY }}
           OWNER: ${{ env.OWNER }}
           SHA: ${{ github.sha }}
@@ -253,13 +294,13 @@ jobs:
           push-to-registry: true
 
       - name: Create GitHub Release
-        if: inputs.create-release && steps.metadata.outputs.tag != 'latest'
+        if: inputs.create-release && needs.check-release.outputs.tag != 'latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_NAME: ${{ inputs.image }}
-          TAG: ${{ steps.metadata.outputs.tag }}
+          TAG: ${{ needs.check-release.outputs.tag }}
           DIGEST: ${{ steps.push.outputs.digest }}
-          UPSTREAM: ${{ inputs.upstream || steps.metadata.outputs.upstream }}
+          UPSTREAM: ${{ inputs.upstream || needs.check-release.outputs.upstream }}
           REGISTRY: ${{ env.REGISTRY }}
           OWNER: ${{ env.OWNER }}
           SHA: ${{ github.sha }}
