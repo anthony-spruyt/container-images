@@ -31,13 +31,30 @@
     },
     {
       "parameters": {
-        "jsCode": "// Get workflow static data to track last processed version\nconst staticData = $getWorkflowStaticData('global');\n\n// Get the latest tag from the GitHub API response\n// n8n splits the array response into separate items, so first item = latest tag\nconst items = $input.all();\nif (!items || items.length === 0 || !items[0].json) {\n  return [{ json: { isNew: false, version: null, error: 'No tags found' } }];\n}\n\n// First item is the latest tag (GitHub returns tags sorted by creation date desc)\nconst latestTag = items[0].json;\nif (!latestTag.name) {\n  return [{ json: { isNew: false, version: null, error: 'Invalid tag data' } }];\n}\n\n// Keep version as-is from upstream tag (needed for git checkout)\nconst version = latestTag.name;\n\n// Check if this is a new version\nconst lastVersion = staticData.lastVersion_sungather || null;\nconst isNew = lastVersion !== version;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: version,\n    lastVersion: lastVersion,\n    commitSha: latestTag.commit?.sha || null\n  }\n}];"
+        "url": "https://api.github.com/repos/anthony-spruyt/container-images/releases",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "id": "get-releases",
+      "name": "Get GitHub Releases",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the latest tag from the upstream GitHub API response\n// Access tags from earlier node since releases are now the input\nconst tags = $('Get GitHub Tags').all();\nif (!tags || tags.length === 0 || !tags[0].json) {\n  return [{ json: { isNew: false, version: null, error: 'No tags found' } }];\n}\n\n// First item is the latest tag (GitHub returns tags sorted by creation date desc)\nconst latestTag = tags[0].json;\nif (!latestTag.name) {\n  return [{ json: { isNew: false, version: null, error: 'Invalid tag data' } }];\n}\n\n// Keep version as-is from upstream tag (needed for git checkout)\nconst version = latestTag.name;\n\n// Check GitHub releases to see if this version was already built\n// Release tag format: sungather-{version} or sungather-{version}-rN (for retries)\nconst releases = $input.first().json;\nconst releasePattern = new RegExp(`^sungather-${version.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}(-r[0-9]+)?$`);\nconst existingRelease = Array.isArray(releases) \n  ? releases.find(r => releasePattern.test(r.tag_name))\n  : null;\n\nconst isNew = !existingRelease;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: version,\n    existingRelease: existingRelease ? existingRelease.tag_name : null,\n    commitSha: latestTag.commit?.sha || null\n  }\n}];"
       },
       "id": "check-version",
       "name": "Check New Version",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 0]
+      "position": [660, 0]
     },
     {
       "parameters": {
@@ -66,7 +83,17 @@
       "name": "Is New Version?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [660, 0]
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Update static data with the new version (kept for backwards compatibility)\nconst staticData = $getWorkflowStaticData('global');\nconst version = $('Check New Version').item.json.version;\nstaticData.lastVersion_sungather = version;\n\nreturn [{\n  json: {\n    success: true,\n    version: version,\n    message: `Updated last version to ${version}`\n  }\n}];"
+      },
+      "id": "update-state",
+      "name": "Update State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, -100]
     },
     {
       "parameters": {
@@ -85,14 +112,14 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"ref\": \"main\",\n  \"inputs\": {\n    \"image\": \"sungather\",\n    \"version\": \"{{ $json.version }}\",\n    \"dry_run\": \"false\"\n  }\n}",
+        "jsonBody": "={\n  \"ref\": \"main\",\n  \"inputs\": {\n    \"image\": \"sungather\",\n    \"version\": \"{{ $('Check New Version').item.json.version }}\",\n    \"dry_run\": \"false\"\n  }\n}",
         "options": {}
       },
       "id": "trigger-build",
       "name": "Trigger Build Workflow",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, -100],
+      "position": [1320, -100],
       "credentials": {
         "httpHeaderAuth": {
           "id": "CONFIGURE_ME",
@@ -106,30 +133,20 @@
         "toEmail": "CONFIGURE_ME@example.com",
         "subject": "=SunGather {{ $('Check New Version').item.json.version }} - Build triggered",
         "emailType": "text",
-        "message": "=A new SunGather release has been detected and a container build has been triggered.\n\nVersion: {{ $('Check New Version').item.json.version }}\nPrevious Version: {{ $('Check New Version').item.json.lastVersion || 'None (first run)' }}\nCommit: {{ $('Check New Version').item.json.commitSha || 'N/A' }}\n\nGitHub Actions:\nhttps://github.com/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml\n\nUpstream Release:\nhttps://github.com/bohdan-s/SunGather/releases/tag/{{ $('Check New Version').item.json.version }}",
+        "message": "=A new SunGather release has been detected and a container build has been triggered.\n\nVersion: {{ $('Check New Version').item.json.version }}\nExisting Release: {{ $('Check New Version').item.json.existingRelease || 'None' }}\nCommit: {{ $('Check New Version').item.json.commitSha || 'N/A' }}\n\nGitHub Actions:\nhttps://github.com/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml\n\nUpstream Release:\nhttps://github.com/bohdan-s/SunGather/releases/tag/{{ $('Check New Version').item.json.version }}",
         "options": {}
       },
       "id": "send-email",
       "name": "Send Notification",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [1100, -100],
+      "position": [1540, -100],
       "credentials": {
         "smtp": {
           "id": "CONFIGURE_ME",
           "name": "SMTP"
         }
       }
-    },
-    {
-      "parameters": {
-        "jsCode": "// Update static data with the new version\nconst staticData = $getWorkflowStaticData('global');\nconst version = $('Check New Version').item.json.version;\nstaticData.lastVersion_sungather = version;\n\nreturn [{\n  json: {\n    success: true,\n    version: version,\n    message: `Updated last version to ${version}`\n  }\n}];"
-      },
-      "id": "update-state",
-      "name": "Update State",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1320, -100]
     }
   ],
   "connections": {
@@ -145,6 +162,17 @@
       ]
     },
     "Get GitHub Tags": {
+      "main": [
+        [
+          {
+            "node": "Get GitHub Releases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GitHub Releases": {
       "main": [
         [
           {
@@ -170,7 +198,7 @@
       "main": [
         [
           {
-            "node": "Trigger Build Workflow",
+            "node": "Update State",
             "type": "main",
             "index": 0
           }
@@ -178,22 +206,22 @@
         []
       ]
     },
-    "Trigger Build Workflow": {
+    "Update State": {
       "main": [
         [
           {
-            "node": "Send Notification",
+            "node": "Trigger Build Workflow",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Send Notification": {
+    "Trigger Build Workflow": {
       "main": [
         [
           {
-            "node": "Update State",
+            "node": "Send Notification",
             "type": "main",
             "index": 0
           }

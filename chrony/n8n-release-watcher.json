@@ -64,13 +64,30 @@
     },
     {
       "parameters": {
-        "jsCode": "// Get workflow static data to track last processed version\nconst staticData = $getWorkflowStaticData('global');\n\n// Get Alpine version from earlier node\nconst alpineVersion = $('Parse Alpine Version').item.json.alpineVersion;\n\n// Parse chrony version from APKBUILD\nconst apkbuild = $input.first().json.data;\nconst pkgverMatch = apkbuild.match(/pkgver=([0-9.]+)/);\nconst pkgrelMatch = apkbuild.match(/pkgrel=([0-9]+)/);\n\nif (!pkgverMatch) {\n  return [{ json: { isNew: false, version: null, error: 'Could not parse pkgver from APKBUILD' } }];\n}\n\nconst pkgver = pkgverMatch[1];\nconst pkgrel = pkgrelMatch ? pkgrelMatch[1] : '0';\nconst version = `${pkgver}-r${pkgrel}`;\n\n// Check if this is a new version\nconst lastVersion = staticData.lastVersion_chrony || null;\nconst isNew = lastVersion !== version;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: version,\n    pkgver: pkgver,\n    pkgrel: pkgrel,\n    lastVersion: lastVersion,\n    alpineVersion: alpineVersion\n  }\n}];"
+        "url": "https://api.github.com/repos/anthony-spruyt/container-images/releases",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false
+            }
+          }
+        }
+      },
+      "id": "get-releases",
+      "name": "Get GitHub Releases",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get Alpine version from earlier node\nconst alpineVersion = $('Parse Alpine Version').item.json.alpineVersion;\n\n// Parse chrony version from APKBUILD\nconst apkbuild = $('Get Alpine APKBUILD').item.json.data;\nconst pkgverMatch = apkbuild.match(/pkgver=([0-9.]+)/);\nconst pkgrelMatch = apkbuild.match(/pkgrel=([0-9]+)/);\n\nif (!pkgverMatch) {\n  return [{ json: { isNew: false, version: null, error: 'Could not parse pkgver from APKBUILD' } }];\n}\n\nconst pkgver = pkgverMatch[1];\nconst pkgrel = pkgrelMatch ? pkgrelMatch[1] : '0';\nconst version = `${pkgver}-r${pkgrel}`;\n\n// Check GitHub releases to see if this version was already built\n// Release tag format: chrony-{version} or chrony-{version}-rN (for retries)\nconst releases = $input.first().json;\nconst releasePattern = new RegExp(`^chrony-${pkgver}(-r[0-9]+)?$`);\nconst existingRelease = Array.isArray(releases) \n  ? releases.find(r => releasePattern.test(r.tag_name))\n  : null;\n\nconst isNew = !existingRelease;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: pkgver,\n    fullVersion: version,\n    pkgver: pkgver,\n    pkgrel: pkgrel,\n    existingRelease: existingRelease ? existingRelease.tag_name : null,\n    alpineVersion: alpineVersion\n  }\n}];"
       },
       "id": "check-version",
       "name": "Check New Version",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, 0]
+      "position": [1100, 0]
     },
     {
       "parameters": {
@@ -99,7 +116,17 @@
       "name": "Is New Version?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1100, 0]
+      "position": [1320, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Update static data with the new version (kept for backwards compatibility)\nconst staticData = $getWorkflowStaticData('global');\nconst version = $('Check New Version').item.json.fullVersion;\nstaticData.lastVersion_chrony = version;\n\nreturn [{\n  json: {\n    success: true,\n    version: version,\n    message: `Updated last version to ${version}`\n  }\n}];"
+      },
+      "id": "update-state",
+      "name": "Update State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, -100]
     },
     {
       "parameters": {
@@ -118,14 +145,14 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"ref\": \"main\",\n  \"inputs\": {\n    \"image\": \"chrony\",\n    \"version\": \"{{ $json.pkgver }}\",\n    \"dry_run\": \"false\"\n  }\n}",
+        "jsonBody": "={\n  \"ref\": \"main\",\n  \"inputs\": {\n    \"image\": \"chrony\",\n    \"version\": \"{{ $('Check New Version').item.json.version }}\",\n    \"dry_run\": \"false\"\n  }\n}",
         "options": {}
       },
       "id": "trigger-build",
       "name": "Trigger Build Workflow",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1320, -100],
+      "position": [1760, -100],
       "credentials": {
         "httpHeaderAuth": {
           "id": "CONFIGURE_ME",
@@ -137,32 +164,22 @@
       "parameters": {
         "fromEmail": "noreply@example.com",
         "toEmail": "CONFIGURE_ME@example.com",
-        "subject": "=Chrony {{ $('Check New Version').item.json.version }} - Build triggered",
+        "subject": "=Chrony {{ $('Check New Version').item.json.fullVersion }} - Build triggered",
         "emailType": "text",
-        "message": "=A new Chrony package version has been detected in Alpine Linux and a container build has been triggered.\n\nPackage Version: {{ $('Check New Version').item.json.version }}\nPrevious Version: {{ $('Check New Version').item.json.lastVersion || 'None (first run)' }}\nAlpine Version: {{ $('Check New Version').item.json.alpineVersion }}\n\nGitHub Actions:\nhttps://github.com/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml\n\nAlpine Package:\nhttps://pkgs.alpinelinux.org/package/v{{ $('Check New Version').item.json.alpineVersion }}/main/x86_64/chrony\n\nUpstream Project:\nhttps://chrony-project.org/",
+        "message": "=A new Chrony package version has been detected in Alpine Linux and a container build has been triggered.\n\nPackage Version: {{ $('Check New Version').item.json.fullVersion }}\nExisting Release: {{ $('Check New Version').item.json.existingRelease || 'None' }}\nAlpine Version: {{ $('Check New Version').item.json.alpineVersion }}\n\nGitHub Actions:\nhttps://github.com/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml\n\nAlpine Package:\nhttps://pkgs.alpinelinux.org/package/v{{ $('Check New Version').item.json.alpineVersion }}/main/x86_64/chrony\n\nUpstream Project:\nhttps://chrony-project.org/",
         "options": {}
       },
       "id": "send-email",
       "name": "Send Notification",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [1540, -100],
+      "position": [1980, -100],
       "credentials": {
         "smtp": {
           "id": "CONFIGURE_ME",
           "name": "SMTP"
         }
       }
-    },
-    {
-      "parameters": {
-        "jsCode": "// Update static data with the new version\nconst staticData = $getWorkflowStaticData('global');\nconst version = $('Check New Version').item.json.version;\nstaticData.lastVersion_chrony = version;\n\nreturn [{\n  json: {\n    success: true,\n    version: version,\n    message: `Updated last version to ${version}`\n  }\n}];"
-      },
-      "id": "update-state",
-      "name": "Update State",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1760, -100]
     }
   ],
   "connections": {
@@ -203,6 +220,17 @@
       "main": [
         [
           {
+            "node": "Get GitHub Releases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GitHub Releases": {
+      "main": [
+        [
+          {
             "node": "Check New Version",
             "type": "main",
             "index": 0
@@ -225,7 +253,7 @@
       "main": [
         [
           {
-            "node": "Trigger Build Workflow",
+            "node": "Update State",
             "type": "main",
             "index": 0
           }
@@ -233,22 +261,22 @@
         []
       ]
     },
-    "Trigger Build Workflow": {
+    "Update State": {
       "main": [
         [
           {
-            "node": "Send Notification",
+            "node": "Trigger Build Workflow",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Send Notification": {
+    "Trigger Build Workflow": {
       "main": [
         [
           {
-            "node": "Update State",
+            "node": "Send Notification",
             "type": "main",
             "index": 0
           }

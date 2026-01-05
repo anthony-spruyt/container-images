@@ -44,17 +44,19 @@ Create `<image-name>/test.sh` - runs after build, before Trivy scan. See `chrony
 
 ### Optional: Add n8n Release Watcher
 
-When creating n8n workflows that track versions using static data:
+The existing n8n templates (`chrony/n8n-release-watcher.json`, `firemerge/n8n-release-watcher.json`, `sungather/n8n-release-watcher.json`) check for new upstream versions and trigger builds automatically.
 
-- **Variable pattern:** `lastVersion_{image_name}` (lowercase image name)
-- **Examples:**
-  - Firemerge: `staticData.lastVersion_firemerge`
-  - Chrony: `staticData.lastVersion_chrony`
-  - New image: `staticData.lastVersion_{imagename}`
+**How version checking works:**
 
-This prevents variable name collisions when multiple workflows run on the same n8n instance.
+- Templates fetch existing releases from `api.github.com/repos/{owner}/container-images/releases`
+- Compare upstream version against existing release tags (pattern: `{image}-{version}` or `{image}-{version}-rN`)
+- Only dispatch build if no matching release exists
 
-When copying an existing workflow template, update all `staticData.lastVersion` references to include the image name.
+When copying a template for a new image, update:
+
+- The upstream repository URL (tags endpoint)
+- The image name in the release tag pattern
+- The image name in the workflow dispatch body
 
 ## Build Triggers
 

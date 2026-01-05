@@ -116,13 +116,30 @@ jobs:
           fi
 
           RELEASE_TAG="${IMAGE_NAME}-${TAG}"
+
+          # Check if release exists (exact match)
           if gh release view "$RELEASE_TAG" &>/dev/null; then
             echo "::notice::Release $RELEASE_TAG already exists, skipping build"
             echo "should-build=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::Release $RELEASE_TAG does not exist, will build"
-            echo "should-build=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          # Check for releases with -rN suffix (immutable tag retries)
+          if gh release list --limit 100 2>/dev/null | grep -qE "^${RELEASE_TAG}-r[0-9]+[[:space:]]"; then
+            echo "::notice::Release with retry suffix exists for $RELEASE_TAG, skipping build"
+            echo "should-build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Check if git tag exists (indicates prior release, even if deleted)
+          if git ls-remote --tags origin "refs/tags/${RELEASE_TAG}" 2>/dev/null | grep -q .; then
+            echo "::notice::Git tag $RELEASE_TAG exists (immutable), skipping build"
+            echo "should-build=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "::notice::Release $RELEASE_TAG does not exist, will build"
+          echo "should-build=true" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build and Test
