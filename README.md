@@ -134,7 +134,7 @@ Create an n8n workflow to automatically trigger builds when upstream repos relea
    GET https://api.github.com/repos/lvu/firemerge/tags?per_page=1
    ```
 
-3. **Compare Version** - Check if version differs from last triggered build (store in n8n static data or external DB)
+3. **Compare Version** - Check if release already exists via GitHub releases API (pattern: `{image}-{version}` or `{image}-{version}-rN`)
 
 4. **Trigger Build** - HTTP Request (only if new version):
 
