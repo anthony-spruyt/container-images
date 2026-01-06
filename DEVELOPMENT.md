@@ -51,8 +51,12 @@ git config --global commit.gpgsign true
 **Linux/WSL:**
 
 ```bash
+# Start agent and add key
 eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_ed25519  # or your key path
+ssh-add ~/.ssh/id_ed25519
+
+# Verify SSH_AUTH_SOCK is set
+echo $SSH_AUTH_SOCK
 ```
 
 For passphrase-protected keys, use `keychain` to persist across sessions:
@@ -60,11 +64,14 @@ For passphrase-protected keys, use `keychain` to persist across sessions:
 ```bash
 # Install: sudo apt install keychain
 # Add to ~/.bashrc or ~/.zshrc:
+# SSH agent setup
 eval "$(keychain --eval --agents ssh id_ed25519)"
 
-# Create stable symlink for devcontainer (required for reboot persistence)
+# Create stable symlink for devcontainer (only if not already correct)
 export SSH_AUTH_SOCK_LINK="$HOME/.ssh/agent.sock"
-if [ -S "$SSH_AUTH_SOCK" ]; then
+if [ -S "$SSH_AUTH_SOCK" ] && [ -n "$SSH_AUTH_SOCK" ]; then
+  # Remove if it exists as directory or wrong symlink
+  [ -e "$SSH_AUTH_SOCK_LINK" ] && rm -f "$SSH_AUTH_SOCK_LINK"
   ln -sf "$SSH_AUTH_SOCK" "$SSH_AUTH_SOCK_LINK"
   export SSH_AUTH_SOCK="$SSH_AUTH_SOCK_LINK"
 fi
