@@ -125,15 +125,16 @@ jobs:
           fi
 
           # Check for releases with -rN suffix (immutable tag retries)
-          if gh release list --limit 100 2>/dev/null | grep -qE "^${RELEASE_TAG}-r[0-9]+[[:space:]]"; then
-            echo "::notice::Release with retry suffix exists for $RELEASE_TAG, skipping build"
+          # gh release list format: TITLE<tab>TAG<tab>DATE - search for tag anywhere in line
+          if gh release list --limit 100 2>/dev/null | grep -qE "[[:space:]]${RELEASE_TAG}(-r[0-9]+)?[[:space:]]"; then
+            echo "::notice::Release matching $RELEASE_TAG found, skipping build"
             echo "should-build=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Check if git tag exists (indicates prior release, even if deleted)
-          if git ls-remote --tags origin "refs/tags/${RELEASE_TAG}" 2>/dev/null | grep -q .; then
-            echo "::notice::Git tag $RELEASE_TAG exists (immutable), skipping build"
+          # Check if git tag exists (with or without -rN suffix)
+          if git ls-remote --tags origin "refs/tags/${RELEASE_TAG}*" 2>/dev/null | grep -q .; then
+            echo "::notice::Git tag matching $RELEASE_TAG exists (immutable), skipping build"
             echo "should-build=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
