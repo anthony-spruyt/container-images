@@ -5,7 +5,6 @@
     ".output": false,
     "node_modules": false,
     ".gitignore": false,
-    ".jscpd.json": false,
     ".lycheeignore": false,
     ".markdownlint.json": false,
     ".markdownlintignore": false,
