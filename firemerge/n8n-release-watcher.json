@@ -6,55 +6,52 @@
         "rule": {
           "interval": [
             {
-              "field": "days",
-              "triggerAtHour": 0
+              "triggerAtHour": 23
             }
           ]
         }
       },
-      "id": "schedule-trigger",
+      "id": "400f43d5-9ee8-4b0f-9efa-b7c0a7ebf469",
       "name": "Daily Check",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 0]
+      "position": [-1024, 928]
     },
     {
       "parameters": {
         "url": "https://api.github.com/repos/lvu/firemerge/tags",
         "options": {}
       },
-      "id": "get-tags",
+      "id": "0c017bb2-8877-4ed7-b8a7-824db324cf34",
       "name": "Get GitHub Tags",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [220, 0]
+      "position": [-816, 928]
     },
     {
       "parameters": {
         "url": "https://api.github.com/repos/anthony-spruyt/container-images/releases",
         "options": {
           "response": {
-            "response": {
-              "fullResponse": false
-            }
+            "response": {}
           }
         }
       },
-      "id": "get-releases",
+      "id": "d3c408ae-87f6-4d55-8c7d-c3f2aa4b33b3",
       "name": "Get GitHub Releases",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 0]
+      "position": [-592, 928]
     },
     {
       "parameters": {
-        "jsCode": "// Get the latest tag from the upstream GitHub API response\n// Access tags from earlier node since releases are now the input\nconst tags = $('Get GitHub Tags').all();\nif (!tags || tags.length === 0 || !tags[0].json) {\n  return [{ json: { isNew: false, version: null, error: 'No tags found' } }];\n}\n\n// First item is the latest tag (GitHub returns tags sorted by creation date desc)\nconst latestTag = tags[0].json;\nif (!latestTag.name) {\n  return [{ json: { isNew: false, version: null, error: 'Invalid tag data' } }];\n}\n\n// Keep version as-is from upstream tag (needed for git checkout)\nconst version = latestTag.name;\n\n// Check GitHub releases to see if this version was already built\n// Release tag format: firemerge-{version} or firemerge-{version}-rN (for retries)\nconst releases = $input.first().json;\nconst releasePattern = new RegExp(`^firemerge-${version.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}(-r[0-9]+)?$`);\nconst existingRelease = Array.isArray(releases) \n  ? releases.find(r => releasePattern.test(r.tag_name))\n  : null;\n\nconst isNew = !existingRelease;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: version,\n    existingRelease: existingRelease ? existingRelease.tag_name : null,\n    commitSha: latestTag.commit?.sha || null\n  }\n}];"
+        "jsCode": "// Get the latest tag from the upstream GitHub API response\n// Access tags from earlier node since releases are now the input\nconst tags = $('Get GitHub Tags').all();\nif (!tags || tags.length === 0 || !tags[0].json) {\n  return [{ json: { isNew: false, version: null, error: 'No tags found' } }];\n}\n\n// First item is the latest tag (GitHub returns tags sorted by creation date desc)\nconst latestTag = tags[0].json;\nif (!latestTag.name) {\n  return [{ json: { isNew: false, version: null, error: 'Invalid tag data' } }];\n}\n\n// Keep version as-is from upstream tag (needed for git checkout)\nconst version = latestTag.name;\n\n// Check GitHub releases to see if this version was already built\n// Release tag format: firemerge-{version} or firemerge-{version}-rN (for retries)\n// Get ALL releases from input (n8n splits array responses into multiple items)\nconst releases = $input.all().map(item => item.json);\nconst releasePattern = new RegExp(`^firemerge-${version.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}(-r[0-9]+)?$`);\nconst existingRelease = releases.find(r => releasePattern.test(r.tag_name));\n\nconst isNew = !existingRelease;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: version,\n    existingRelease: existingRelease ? existingRelease.tag_name : null,\n    commitSha: latestTag.commit?.sha || null\n  }\n}];"
       },
-      "id": "check-version",
+      "id": "dc8b92f9-de80-4e57-89f8-3b7cf13b9080",
       "name": "Check New Version",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 0]
+      "position": [-368, 928]
     },
     {
       "parameters": {
@@ -79,21 +76,21 @@
         },
         "options": {}
       },
-      "id": "if-new",
+      "id": "379fb109-8d9e-4e1f-8aeb-a17b0e1b7371",
       "name": "Is New Version?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [880, 0]
+      "position": [-144, 928]
     },
     {
       "parameters": {
         "jsCode": "// Update static data with the new version (kept for backwards compatibility)\nconst staticData = $getWorkflowStaticData('global');\nconst version = $('Check New Version').item.json.version;\nstaticData.lastVersion_firemerge = version;\n\nreturn [{\n  json: {\n    success: true,\n    version: version,\n    message: `Updated last version to ${version}`\n  }\n}];"
       },
-      "id": "update-state",
+      "id": "e4d44d9f-f4e3-4ded-b104-78b0b718a5d9",
       "name": "Update State",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, -100]
+      "position": [80, 816]
     },
     {
       "parameters": {
@@ -115,11 +112,11 @@
         "jsonBody": "={\n  \"ref\": \"main\",\n  \"inputs\": {\n    \"image\": \"firemerge\",\n    \"version\": \"{{ $('Check New Version').item.json.version }}\",\n    \"dry_run\": \"false\"\n  }\n}",
         "options": {}
       },
-      "id": "trigger-build",
+      "id": "25bba67c-0125-4bc0-b253-4977c925ef55",
       "name": "Trigger Build Workflow",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1320, -100],
+      "position": [304, 816],
       "credentials": {
         "httpHeaderAuth": {
           "id": "CONFIGURE_ME",
@@ -132,15 +129,13 @@
         "fromEmail": "noreply@example.com",
         "toEmail": "CONFIGURE_ME@example.com",
         "subject": "=Firemerge {{ $('Check New Version').item.json.version }} - Build triggered",
-        "emailType": "text",
-        "message": "=A new Firemerge release has been detected and a container build has been triggered.\n\nVersion: {{ $('Check New Version').item.json.version }}\nExisting Release: {{ $('Check New Version').item.json.existingRelease || 'None' }}\nCommit: {{ $('Check New Version').item.json.commitSha || 'N/A' }}\n\nGitHub Actions:\nhttps://github.com/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml\n\nUpstream Release:\nhttps://github.com/lvu/firemerge/releases/tag/{{ $('Check New Version').item.json.version }}",
         "options": {}
       },
-      "id": "send-email",
+      "id": "019dd2b6-cc59-4a92-88ff-f3870a0088ac",
       "name": "Send Notification",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [1540, -100],
+      "position": [512, 816],
       "credentials": {
         "smtp": {
           "id": "CONFIGURE_ME",
@@ -149,6 +144,7 @@
       }
     }
   ],
+  "pinData": {},
   "connections": {
     "Daily Check": {
       "main": [
@@ -202,8 +198,7 @@
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     },
     "Update State": {
@@ -229,7 +224,6 @@
       ]
     }
   },
-  "pinData": {},
   "meta": {
     "templateCredsSetupCompleted": false
   }
