@@ -6,17 +6,16 @@
         "rule": {
           "interval": [
             {
-              "field": "days",
-              "triggerAtHour": 0
+              "triggerAtHour": 23
             }
           ]
         }
       },
-      "id": "schedule-trigger",
+      "id": "819ebde0-198b-4014-aac3-fc5c1fca6997",
       "name": "Daily Check",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 0]
+      "position": [-720, 736]
     },
     {
       "parameters": {
@@ -29,21 +28,21 @@
           }
         }
       },
-      "id": "get-dockerfile",
+      "id": "e1ac4b93-1f0d-4e5e-935b-fc5ee7f5aeeb",
       "name": "Get Dockerfile",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [220, 0]
+      "position": [-512, 736]
     },
     {
       "parameters": {
         "jsCode": "// Parse Alpine version from Dockerfile\nconst dockerfile = $input.first().json.data;\nconst match = dockerfile.match(/FROM\\s+alpine:(\\d+\\.\\d+)/);\nconst alpineVersion = match ? match[1] : null;\n\nif (!alpineVersion) {\n  return [{ json: { error: 'Could not parse Alpine version from Dockerfile' } }];\n}\n\nreturn [{ json: { alpineVersion } }];"
       },
-      "id": "parse-alpine-version",
+      "id": "8de7a9a1-4b66-46bd-baa3-66ca2ab858c2",
       "name": "Parse Alpine Version",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 0]
+      "position": [-288, 736]
     },
     {
       "parameters": {
@@ -56,38 +55,36 @@
           }
         }
       },
-      "id": "get-apkbuild",
+      "id": "3ff6bfaf-6a33-403e-aba0-a03da73a464f",
       "name": "Get Alpine APKBUILD",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, 0]
+      "position": [-64, 736]
     },
     {
       "parameters": {
         "url": "https://api.github.com/repos/anthony-spruyt/container-images/releases",
         "options": {
           "response": {
-            "response": {
-              "fullResponse": false
-            }
+            "response": {}
           }
         }
       },
-      "id": "get-releases",
+      "id": "5d6a6437-b236-4bad-b3bd-7d9d4eedb189",
       "name": "Get GitHub Releases",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 0]
+      "position": [160, 736]
     },
     {
       "parameters": {
-        "jsCode": "// Get Alpine version from earlier node\nconst alpineVersion = $('Parse Alpine Version').item.json.alpineVersion;\n\n// Parse chrony version from APKBUILD\nconst apkbuild = $('Get Alpine APKBUILD').item.json.data;\nconst pkgverMatch = apkbuild.match(/pkgver=([0-9.]+)/);\nconst pkgrelMatch = apkbuild.match(/pkgrel=([0-9]+)/);\n\nif (!pkgverMatch) {\n  return [{ json: { isNew: false, version: null, error: 'Could not parse pkgver from APKBUILD' } }];\n}\n\nconst pkgver = pkgverMatch[1];\nconst pkgrel = pkgrelMatch ? pkgrelMatch[1] : '0';\nconst version = `${pkgver}-r${pkgrel}`;\n\n// Check GitHub releases to see if this version was already built\n// Release tag format: chrony-{version} or chrony-{version}-rN (for retries)\nconst releases = $input.first().json;\nconst releasePattern = new RegExp(`^chrony-${pkgver}(-r[0-9]+)?$`);\nconst existingRelease = Array.isArray(releases) \n  ? releases.find(r => releasePattern.test(r.tag_name))\n  : null;\n\nconst isNew = !existingRelease;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: pkgver,\n    fullVersion: version,\n    pkgver: pkgver,\n    pkgrel: pkgrel,\n    existingRelease: existingRelease ? existingRelease.tag_name : null,\n    alpineVersion: alpineVersion\n  }\n}];"
+        "jsCode": "// Get Alpine version from earlier node\nconst alpineVersion = $('Parse Alpine Version').item.json.alpineVersion;\n\n// Parse chrony version from APKBUILD\nconst apkbuild = $('Get Alpine APKBUILD').item.json.data;\nconst pkgverMatch = apkbuild.match(/pkgver=([0-9.]+)/);\nconst pkgrelMatch = apkbuild.match(/pkgrel=([0-9]+)/);\n\nif (!pkgverMatch) {\n  return [{ json: { isNew: false, version: null, error: 'Could not parse pkgver from APKBUILD' } }];\n}\n\nconst pkgver = pkgverMatch[1];\nconst pkgrel = pkgrelMatch ? pkgrelMatch[1] : '0';\nconst version = `${pkgver}-r${pkgrel}`;\n\n// Check GitHub releases to see if this version was already built\n// Release tag format: chrony-{version} or chrony-{version}-rN (for retries)\n// Get ALL releases from input (n8n splits array responses into multiple items)\nconst releases = $input.all().map(item => item.json);\nconst releasePattern = new RegExp(`^chrony-${pkgver}(-r[0-9]+)?$`);\nconst existingRelease = releases.find(r => releasePattern.test(r.tag_name));\n\nconst isNew = !existingRelease;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: pkgver,\n    fullVersion: version,\n    pkgver: pkgver,\n    pkgrel: pkgrel,\n    existingRelease: existingRelease ? existingRelease.tag_name : null,\n    alpineVersion: alpineVersion\n  }\n}];"
       },
-      "id": "check-version",
+      "id": "4a5eaadd-8027-4212-8073-d31c0842bea8",
       "name": "Check New Version",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 0]
+      "position": [384, 736]
     },
     {
       "parameters": {
@@ -112,21 +109,21 @@
         },
         "options": {}
       },
-      "id": "if-new",
+      "id": "628efa82-06af-42c6-af03-d94f30354eaa",
       "name": "Is New Version?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1320, 0]
+      "position": [608, 736]
     },
     {
       "parameters": {
         "jsCode": "// Update static data with the new version (kept for backwards compatibility)\nconst staticData = $getWorkflowStaticData('global');\nconst version = $('Check New Version').item.json.fullVersion;\nstaticData.lastVersion_chrony = version;\n\nreturn [{\n  json: {\n    success: true,\n    version: version,\n    message: `Updated last version to ${version}`\n  }\n}];"
       },
-      "id": "update-state",
+      "id": "8d7f0049-28e4-40b3-89ef-efd0d65c31ad",
       "name": "Update State",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1540, -100]
+      "position": [816, 640]
     },
     {
       "parameters": {
@@ -148,11 +145,11 @@
         "jsonBody": "={\n  \"ref\": \"main\",\n  \"inputs\": {\n    \"image\": \"chrony\",\n    \"version\": \"{{ $('Check New Version').item.json.version }}\",\n    \"dry_run\": \"false\"\n  }\n}",
         "options": {}
       },
-      "id": "trigger-build",
+      "id": "e4256070-c45b-4ada-a6d0-253ff3b52875",
       "name": "Trigger Build Workflow",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1760, -100],
+      "position": [1040, 640],
       "credentials": {
         "httpHeaderAuth": {
           "id": "CONFIGURE_ME",
@@ -165,15 +162,13 @@
         "fromEmail": "noreply@example.com",
         "toEmail": "CONFIGURE_ME@example.com",
         "subject": "=Chrony {{ $('Check New Version').item.json.fullVersion }} - Build triggered",
-        "emailType": "text",
-        "message": "=A new Chrony package version has been detected in Alpine Linux and a container build has been triggered.\n\nPackage Version: {{ $('Check New Version').item.json.fullVersion }}\nExisting Release: {{ $('Check New Version').item.json.existingRelease || 'None' }}\nAlpine Version: {{ $('Check New Version').item.json.alpineVersion }}\n\nGitHub Actions:\nhttps://github.com/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml\n\nAlpine Package:\nhttps://pkgs.alpinelinux.org/package/v{{ $('Check New Version').item.json.alpineVersion }}/main/x86_64/chrony\n\nUpstream Project:\nhttps://chrony-project.org/",
         "options": {}
       },
-      "id": "send-email",
+      "id": "0f3f511d-7d8e-456f-9593-7dae980c8ee8",
       "name": "Send Notification",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [1980, -100],
+      "position": [1264, 640],
       "credentials": {
         "smtp": {
           "id": "CONFIGURE_ME",
@@ -182,6 +177,7 @@
       }
     }
   ],
+  "pinData": {},
   "connections": {
     "Daily Check": {
       "main": [
@@ -257,8 +253,7 @@
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     },
     "Update State": {
@@ -284,7 +279,6 @@
       ]
     }
   },
-  "pinData": {},
   "meta": {
     "templateCredsSetupCompleted": false
   }
