@@ -7,13 +7,13 @@ updates:
   - package-ecosystem: "devcontainers"
     directory: "/"
     schedule:
-      interval: weekly
+      interval: daily
 
   # GitHub Actions (SHA-pinned)
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: weekly
+      interval: daily
     groups:
       actions:
         patterns:
@@ -23,10 +23,10 @@ updates:
   - package-ecosystem: "docker"
     directory: "/chrony"
     schedule:
-      interval: weekly
+      interval: daily
 
   # npm packages in devcontainer
   - package-ecosystem: "npm"
     directory: "/.devcontainer"
     schedule:
-      interval: weekly
+      interval: daily

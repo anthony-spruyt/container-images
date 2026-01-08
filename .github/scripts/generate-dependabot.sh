@@ -25,13 +25,13 @@ updates:
   - package-ecosystem: "devcontainers"
     directory: "/"
     schedule:
-      interval: weekly
+      interval: daily
 
   # GitHub Actions (SHA-pinned)
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: weekly
+      interval: daily
     groups:
       actions:
         patterns:
@@ -54,7 +54,7 @@ for dir in "${IMAGE_DIRS[@]}"; do
   - package-ecosystem: "docker"
     directory: "/$dir"
     schedule:
-      interval: weekly
+      interval: daily
 
 EOF
     fi
@@ -66,7 +66,7 @@ cat >> "$DEPENDABOT_FILE" << 'EOF'
   - package-ecosystem: "npm"
     directory: "/.devcontainer"
     schedule:
-      interval: weekly
+      interval: daily
 EOF
 
 echo "Generated $DEPENDABOT_FILE with entries for: ${IMAGE_DIRS[*]}"
