@@ -160,6 +160,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
+      - name: Free up disk space
+        run: |
+          # Remove unnecessary tools and packages to free disk space for large images
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo apt-get clean
+          docker system prune -af
+          df -h
+
       # SHA pin: actions/checkout@v4.3.1
       - name: Checkout upstream source
         if: inputs.upstream != '' || needs.check-release.outputs.upstream != ''
