@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends jq tmux \
     && curl -fsSL https://raw.githubusercontent.com/MilkClouds/devcontainer-feature-installer/main/install-feature-cli.sh | bash
 
 # Copy devcontainer.json and install features from it
-COPY assets/devcontainer.json /tmp/devcontainer.json
+COPY assets/.devcontainer.json /tmp/devcontainer.json
 RUN feature-install --features "$(jq -c '.features' /tmp/devcontainer.json)" \
     && rm /tmp/devcontainer.json
 
