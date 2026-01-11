@@ -66,10 +66,3 @@ fix(trivy): update scan configuration for new format
 Link PRs to issues using GitHub keywords in the PR body:
 
 - `Closes #123` or `Fixes #123`
-
-## Examples from This Repository
-
-- `feat(chrony): add n8n release watcher and restore CI features`
-- `fix(chrony): remove CAP_CHOWN requirement by running as chrony user`
-- `docs(readme): add GitHub badges and MIT license`
-- `ci(lint): add trivy vulnerability scanning`
