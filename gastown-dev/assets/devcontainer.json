@@ -20,6 +20,9 @@
       "helm": "4.0.4",
       "minikube": "none"
     },
-    "ghcr.io/devcontainers/features/github-cli:1.0.15": {}
+    "ghcr.io/devcontainers/features/github-cli:1.0.15": {},
+    "ghcr.io/devcontainers-extra/features/renovate-cli:2.0.16": {
+      "version": "42.74.2"
+    }
   }
 }

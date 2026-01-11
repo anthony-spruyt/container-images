@@ -24,6 +24,7 @@ Pre-built development container image with all CLI tools for the Gastown multi-a
 | kubectl    | Kubernetes CLI             |
 | Helm       | Kubernetes package manager |
 | GitHub CLI | GitHub command line tool   |
+| Renovate   | Dependency update tool     |
 
 ### CLI Tools (via install scripts)
 
