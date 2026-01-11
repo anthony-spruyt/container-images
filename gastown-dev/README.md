@@ -16,7 +16,6 @@ Pre-built development container image with all CLI tools for the Gastown multi-a
 
 | Tool       | Description                |
 | ---------- | -------------------------- |
-| Docker     | Docker-in-Docker           |
 | Node.js    | JavaScript runtime         |
 | Python     | Python runtime             |
 | Go         | Go programming language    |
