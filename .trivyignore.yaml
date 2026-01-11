@@ -4,6 +4,12 @@
 
 vulnerabilities:
 
+secrets:
+  # safe-chain creates CA certs for MITM proxy to protect npm/pip installs
+  - id: private-key
+    paths:
+      - "**/safe-chain/certs/**"
+
 misconfigurations:
   # chrony requires root for socket init, drops to chrony user via -u flag
   - id: AVD-DS-0002
@@ -23,3 +29,7 @@ misconfigurations:
   - id: AVD-DS-0026
     paths:
       - gastown-dev/Dockerfile
+  # Go source includes internal Dockerfiles that don't need USER - not our code
+  - id: AVD-DS-0002
+    paths:
+      - "**/go/src/**"
