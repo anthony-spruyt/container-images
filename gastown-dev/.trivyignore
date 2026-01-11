@@ -1,6 +1,12 @@
 # safe-chain creates CA certs for MITM proxy to protect npm/pip installs
 private-key
 
+# Go source misconfigurations - test fixtures bundled with Go, not our code
+AVD-KSV-0014
+AVD-KSV-0118
+AVD-DS-0002
+AVD-DS-0029
+
 # Go stdlib CVEs in CLI tools (flux, talosctl, cilium, etc.)
 # These are compiled into upstream binaries - we can't fix without new releases
 CVE-2022-24675
