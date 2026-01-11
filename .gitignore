@@ -6,3 +6,7 @@ node_modules/
 .env.*
 *.env
 .secrets/
+
+# Python
+__pycache__/
+*.py[cod]
