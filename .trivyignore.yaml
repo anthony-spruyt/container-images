@@ -3,6 +3,57 @@
 # https://trivy.dev/latest/docs/configuration/filtering
 
 vulnerabilities:
+  # Go stdlib CVEs in third-party CLI tools (flux, talosctl, cilium, etc.)
+  # These are compiled into upstream binaries - we can't fix without new releases
+  - id: CVE-2022-24675
+  - id: CVE-2022-27664
+  - id: CVE-2022-28131
+  - id: CVE-2022-28327
+  - id: CVE-2022-2879
+  - id: CVE-2022-2880
+  - id: CVE-2022-29804
+  - id: CVE-2022-30580
+  - id: CVE-2022-30630
+  - id: CVE-2022-30631
+  - id: CVE-2022-30632
+  - id: CVE-2022-30633
+  - id: CVE-2022-30634
+  - id: CVE-2022-30635
+  - id: CVE-2022-32189
+  - id: CVE-2022-41715
+  - id: CVE-2022-41716
+  - id: CVE-2022-41720
+  - id: CVE-2022-41722
+  - id: CVE-2022-41723
+  - id: CVE-2022-41724
+  - id: CVE-2022-41725
+  - id: CVE-2023-24534
+  - id: CVE-2023-24536
+  - id: CVE-2023-24537
+  - id: CVE-2023-24538
+  - id: CVE-2023-24539
+  - id: CVE-2023-24540
+  - id: CVE-2023-29400
+  - id: CVE-2023-29403
+  - id: CVE-2023-39321
+  - id: CVE-2023-39322
+  - id: CVE-2023-39325
+  - id: CVE-2023-44487
+  - id: CVE-2023-45283
+  - id: CVE-2023-45287
+  - id: CVE-2023-45288
+  - id: CVE-2024-24790
+  - id: CVE-2024-25621
+  - id: CVE-2024-34156
+  - id: CVE-2024-52308
+  - id: CVE-2025-22874
+  - id: CVE-2025-47907
+  - id: CVE-2025-53547
+  - id: CVE-2025-58183
+  - id: CVE-2025-61729
+  - id: CVE-2025-64756
+  - id: CVE-2025-66506
+  - id: CVE-2025-66564
 
 secrets:
   # safe-chain creates CA certs for MITM proxy to protect npm/pip installs
