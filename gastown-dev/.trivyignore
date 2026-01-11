@@ -1,3 +1,6 @@
+# safe-chain creates CA certs for MITM proxy to protect npm/pip installs
+private-key
+
 # Go stdlib CVEs in CLI tools (flux, talosctl, cilium, etc.)
 # These are compiled into upstream binaries - we can't fix without new releases
 CVE-2022-24675

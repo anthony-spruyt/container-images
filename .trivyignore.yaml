@@ -5,10 +5,6 @@
 vulnerabilities:
 
 secrets:
-  # safe-chain creates CA certs for MITM proxy to protect npm/pip installs
-  - id: private-key
-    paths:
-      - "**/safe-chain/certs/**"
 
 misconfigurations:
   # chrony requires root for socket init, drops to chrony user via -u flag
