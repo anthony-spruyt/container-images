@@ -19,3 +19,7 @@ misconfigurations:
   - id: AVD-DS-0026
     paths:
       - test-images/**/Dockerfile
+  # HEALTHCHECK not applicable for interactive dev containers
+  - id: AVD-DS-0026
+    paths:
+      - gastown-dev/Dockerfile
