@@ -26,8 +26,20 @@ ENV PATH="/root/.safe-chain/shims:$PATH"
 RUN for script in /tmp/scripts/install-*.sh; do \
       [ "$(basename "$script")" = "install-safe-chain.sh" ] && continue; \
       echo "Running $script..." && "$script"; \
-    done \
-    && rm -rf /tmp/scripts
+    done
 
 # Set non-root user (vscode is created by base image)
+USER vscode
+
+# Set up user-specific tools for vscode user (runtime)
+# safe-chain: Already installed globally, just run setup for this user
+RUN safe-chain setup && safe-chain setup-ci
+ENV PATH="/home/vscode/.safe-chain/shims:$PATH"
+
+# helm plugins: Install for vscode user
+RUN /tmp/scripts/install-helm-plugins.sh
+
+# Clean up install scripts
+USER root
+RUN rm -rf /tmp/scripts
 USER vscode
