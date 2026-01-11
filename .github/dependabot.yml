@@ -25,6 +25,18 @@ updates:
     schedule:
       interval: daily
 
+  # Docker base images for gastown-dev
+  - package-ecosystem: "docker"
+    directory: "/gastown-dev"
+    schedule:
+      interval: daily
+
+  # Devcontainer features for gastown-dev
+  - package-ecosystem: "devcontainers"
+    directory: "/gastown-dev/assets"
+    schedule:
+      interval: daily
+
   # npm packages in devcontainer
   - package-ecosystem: "npm"
     directory: "/.devcontainer"

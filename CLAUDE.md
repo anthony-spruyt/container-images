@@ -42,6 +42,10 @@ version: "1.0.0"
 
 Create `<image-name>/test.sh` - runs after build, before Trivy scan. See `chrony/test.sh` for example.
 
+### Optional: Add Trivy Ignores
+
+Create `<image-name>/.trivyignore` for per-image vulnerability/secret ignores (plain text, one ID per line). Falls back to global `.trivyignore.yaml` if not present. See `gastown-dev/.trivyignore` for example.
+
 ### Optional: Add n8n Release Watcher
 
 The existing n8n templates (`chrony/n8n-release-watcher.json`, `firemerge/n8n-release-watcher.json`, `sungather/n8n-release-watcher.json`) check for new upstream versions and trigger builds automatically.

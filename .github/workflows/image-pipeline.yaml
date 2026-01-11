@@ -160,6 +160,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
+      - name: Free up disk space
+        run: |
+          # Remove unnecessary tools and packages to free disk space for large images
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo apt-get clean
+          docker system prune -af
+          df -h
+
       # SHA pin: actions/checkout@v4.3.1
       - name: Checkout upstream source
         if: inputs.upstream != '' || needs.check-release.outputs.upstream != ''
@@ -244,16 +252,35 @@ jobs:
             echo "No test script found at $TEST_SCRIPT, skipping"
           fi
 
+      - name: Determine trivy config
+        id: trivyconfig
+        env:
+          IMAGE_NAME: ${{ inputs.image }}
+        run: |
+          # Use per-image ignore file if it exists, otherwise use global
+          if [ -f "${IMAGE_NAME}/.trivyignore" ]; then
+            echo "ignorefile=${IMAGE_NAME}/.trivyignore" >> "$GITHUB_OUTPUT"
+          else
+            echo "ignorefile=.trivyignore.yaml" >> "$GITHUB_OUTPUT"
+          fi
+          # Dev containers only need vuln scanning (secrets/misconfig caught in repo lint)
+          if [[ "$IMAGE_NAME" == *-dev ]]; then
+            echo "scanners=vuln" >> "$GITHUB_OUTPUT"
+          else
+            echo "scanners=vuln,secret,misconfig" >> "$GITHUB_OUTPUT"
+          fi
+
       # SHA pin: aquasecurity/trivy-action@0.29.0
       - name: Scan for vulnerabilities
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}:${{ needs.check-release.outputs.tag }}
+          scanners: ${{ steps.trivyconfig.outputs.scanners }}
           format: table
           exit-code: 1
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          trivyignores: .trivyignore.yaml
+          trivyignores: ${{ steps.trivyconfig.outputs.ignorefile }}
 
       - name: Dry run summary
         if: ${{ !inputs.push }}
