@@ -43,3 +43,6 @@ RUN /tmp/scripts/install-helm-plugins.sh
 USER root
 RUN rm -rf /tmp/scripts
 USER vscode
+
+# Start Docker daemon via entrypoint (required for docker-in-docker feature)
+ENTRYPOINT ["/usr/local/share/docker-init.sh"]
