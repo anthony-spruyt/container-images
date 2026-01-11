@@ -12,7 +12,6 @@ docker run --rm "$IMAGE_REF" bash -c '
   kubectl version --client &&
   helm version &&
   gh --version &&
-  renovate --version &&
   echo "=== CLI Tools ===" &&
   flux --version &&
   cilium version --client &&
@@ -23,6 +22,8 @@ docker run --rm "$IMAGE_REF" bash -c '
   velero version --client-only &&
   task --version &&
   yq --version &&
+  renovate --version &&
+  sops --version &&
   pre-commit --version &&
   age --version
 '
