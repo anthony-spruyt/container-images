@@ -7,10 +7,6 @@ vulnerabilities:
 secrets:
 
 misconfigurations:
-  # chrony requires root for socket init, drops to chrony user via -u flag
-  - id: AVD-DS-0002
-    paths:
-      - chrony/Dockerfile
   # Test fixtures are minimal and don't need production-grade security
   - id: AVD-DS-0001
     paths:
