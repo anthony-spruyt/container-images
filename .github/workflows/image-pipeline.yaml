@@ -252,6 +252,18 @@ jobs:
             echo "No test script found at $TEST_SCRIPT, skipping"
           fi
 
+      - name: Determine trivy ignore file
+        id: trivyignore
+        env:
+          IMAGE_NAME: ${{ inputs.image }}
+        run: |
+          # Use per-image ignore file if it exists, otherwise use global
+          if [ -f "${IMAGE_NAME}/.trivyignore" ]; then
+            echo "file=${IMAGE_NAME}/.trivyignore" >> "$GITHUB_OUTPUT"
+          else
+            echo "file=.trivyignore.yaml" >> "$GITHUB_OUTPUT"
+          fi
+
       # SHA pin: aquasecurity/trivy-action@0.29.0
       - name: Scan for vulnerabilities
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
@@ -261,7 +273,7 @@ jobs:
           exit-code: 1
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          trivyignores: .trivyignore.yaml
+          trivyignores: ${{ steps.trivyignore.outputs.file }}
 
       - name: Dry run summary
         if: ${{ !inputs.push }}
