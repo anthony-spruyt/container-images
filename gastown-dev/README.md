@@ -41,6 +41,9 @@ Pre-built development container image with all CLI tools for the Gastown multi-a
 | falcoctl   | Falco CLI                           |
 | cnpg       | CloudNative-PG kubectl plugin       |
 | task       | Task runner (go-task)               |
+| yq         | YAML/JSON/XML processor             |
+| renovate   | Dependency update tool              |
+| sops       | Encrypted secrets editor            |
 | pre-commit | Git hooks framework                 |
 | safe-chain | Supply chain security for npm/pip   |
 

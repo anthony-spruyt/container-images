@@ -21,6 +21,9 @@ docker run --rm "$IMAGE_REF" bash -c '
   talosctl version --client &&
   velero version --client-only &&
   task --version &&
+  yq --version &&
+  renovate --version &&
+  sops --version &&
   pre-commit --version &&
   age --version
 '
