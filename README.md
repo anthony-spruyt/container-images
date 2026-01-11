@@ -17,11 +17,12 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for development environment setup.
 
 ## Available Images
 
-| Image     | Upstream                                                                | Registry                           |
-| --------- | ----------------------------------------------------------------------- | ---------------------------------- |
-| chrony    | Local (no upstream)                                                     | `ghcr.io/anthony-spruyt/chrony`    |
-| firemerge | [anthony-spruyt/firemerge](https://github.com/anthony-spruyt/firemerge) | `ghcr.io/anthony-spruyt/firemerge` |
-| sungather | [bohdan-s/SunGather](https://github.com/bohdan-s/SunGather)             | `ghcr.io/anthony-spruyt/sungather` |
+| Image       | Upstream                                                                | Registry                             |
+| ----------- | ----------------------------------------------------------------------- | ------------------------------------ |
+| chrony      | Local (no upstream)                                                     | `ghcr.io/anthony-spruyt/chrony`      |
+| firemerge   | [anthony-spruyt/firemerge](https://github.com/anthony-spruyt/firemerge) | `ghcr.io/anthony-spruyt/firemerge`   |
+| gastown-dev | Local (no upstream)                                                     | `ghcr.io/anthony-spruyt/gastown-dev` |
+| sungather   | [bohdan-s/SunGather](https://github.com/bohdan-s/SunGather)             | `ghcr.io/anthony-spruyt/sungather`   |
 
 ## Usage
 

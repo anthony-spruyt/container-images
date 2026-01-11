@@ -60,6 +60,20 @@ EOF
     fi
 done
 
+# Add devcontainers entries for images with devcontainer.json in assets
+for dir in "${IMAGE_DIRS[@]}"; do
+    if [[ -f "$REPO_ROOT/$dir/assets/devcontainer.json" ]]; then
+        cat >> "$DEPENDABOT_FILE" << EOF
+  # Devcontainer features for $dir
+  - package-ecosystem: "devcontainers"
+    directory: "/$dir/assets"
+    schedule:
+      interval: daily
+
+EOF
+    fi
+done
+
 # Add npm packages entry
 cat >> "$DEPENDABOT_FILE" << 'EOF'
   # npm packages in devcontainer
