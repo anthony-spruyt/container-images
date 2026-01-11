@@ -4,9 +4,9 @@ IMAGE_REF="$1"
 
 echo "Testing gastown-dev image..."
 
-# Test CLI tools are available
+# Test CLI tools are available (skip entrypoint since we don't need Docker here)
 echo "=== Testing CLI Tools ==="
-docker run --rm "$IMAGE_REF" bash -c '
+docker run --rm --entrypoint "" "$IMAGE_REF" bash -c '
   echo "=== Devcontainer Features ===" &&
   node --version &&
   python3 --version &&
