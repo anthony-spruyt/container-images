@@ -267,7 +267,7 @@ jobs:
 
           if [ -n "$EXISTING" ]; then
             # Update existing issue (title, body, and labels)
-            gh issue edit "$EXISTING" --title "$TITLE" --body "$BODY" --add-label "$LABELS"
+            gh issue edit "$EXISTING" --title "$TITLE" --body "$BODY" --remove-label "critical,high,medium" --add-label "$LABELS"
             echo "Updated issue #$EXISTING"
           else
             # Create new issue with labels
