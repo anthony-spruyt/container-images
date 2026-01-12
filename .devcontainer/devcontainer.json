@@ -25,7 +25,8 @@
         "redhat.vscode-yaml",
         "mhutchie.git-graph",
         "esbenp.prettier-vscode",
-        "anthropic.claude-code"
+        "anthropic.claude-code",
+        "github.vscode-github-actions"
       ]
     }
   }
