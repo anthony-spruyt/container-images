@@ -13,7 +13,6 @@
   suppressNotifications: ["prIgnoreNotification"],
   commitBodyTable: true,
   rebaseWhen: "conflicted",
-  // Automerge minor and patch updates when CI passes
   automerge: true,
   automergeType: "pr",
   automergeStrategy: "squash",
@@ -24,20 +23,20 @@
     "devcontainer",
     "npm",
   ],
-  // Extend devcontainer fileMatch to include custom image assets
   devcontainer: {
-    fileMatch: [
-      "(^|/)\\.devcontainer\\.json$",
-      "(^|/)devcontainer\\.json$",
-      "assets/\\.devcontainer\\.json$",
+    managerFilePatterns: [
+      "/(^|/)\\.devcontainer\\.json$/",
+      "/(^|/)devcontainer\\.json$/",
+      "/assets/\\.devcontainer\\.json$/",
     ],
   },
-  // Import custom managers for shell script version annotations
   customManagers: [
     {
       customType: "regex",
-      description: ["Process renovate-annotated shell scripts (depName first)."],
-      fileMatch: ["\\.sh$"],
+      description: [
+        "Process renovate-annotated shell scripts (depName first).",
+      ],
+      managerFilePatterns: ["/\\.sh$/"],
       matchStrings: [
         'depName=(?<depName>\\S+) datasource=(?<datasource>\\S+)(?:\\s+versioning=(?<versioning>\\S+))?\\n(?:export\\s+)?[A-Z_]+="(?<currentValue>v?[^"]+)"',
       ],
@@ -46,8 +45,10 @@
     },
     {
       customType: "regex",
-      description: ["Process renovate-annotated shell scripts (datasource first)."],
-      fileMatch: ["\\.sh$"],
+      description: [
+        "Process renovate-annotated shell scripts (datasource first).",
+      ],
+      managerFilePatterns: ["/\\.sh$/"],
       matchStrings: [
         'datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?:\\s+versioning=(?<versioning>\\S+))?\\n(?:export\\s+)?[A-Z_]+="(?<currentValue>v?[^"]+)"',
       ],
@@ -94,12 +95,10 @@
       matchManagers: ["npm"],
       labels: ["renovate/npm"],
     },
-    // Automerge minor and patch updates
     {
       matchUpdateTypes: ["minor", "patch"],
       automerge: true,
     },
-    // Do not automerge major updates
     {
       matchUpdateTypes: ["major"],
       automerge: false,
