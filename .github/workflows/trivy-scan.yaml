@@ -209,14 +209,14 @@ jobs:
           TABLE
             if [ "$MEDIUM" -gt 0 ]; then
               echo ""
-              echo "**Note:** $MEDIUM MEDIUM severity vulnerabilities not shown in table. [View full Trivy scan results](\$GITHUB_SERVER_URL/\$GITHUB_REPOSITORY/actions/runs/\$GITHUB_RUN_ID)."
+              echo "**Note:** $MEDIUM MEDIUM severity vulnerabilities not shown in table. [View full Trivy scan results]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
             fi
           fi)$(if [ "$ACTIONABLE_COUNT" -eq 0 ] && [ "$MEDIUM" -gt 0 ]; then
             cat <<MEDIUMONLY
 
           ### Summary
 
-          Only MEDIUM severity vulnerabilities detected. [View full Trivy scan results](\$GITHUB_SERVER_URL/\$GITHUB_REPOSITORY/actions/runs/\$GITHUB_RUN_ID) for details.
+          Only MEDIUM severity vulnerabilities detected. [View full Trivy scan results]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID) for details.
           MEDIUMONLY
           fi)
 
