@@ -28,14 +28,27 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     steps:
+      - name: Check if renovate PR
+        id: check
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          if [[ "$ACTOR" == "renovate[bot]" ]] || [[ "$HEAD_REF" == renovate/* ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping lint for renovate PR"
+          fi
+
       # SHA pin: actions/checkout@v4.3.1
       - name: Repo checkout
+        if: steps.check.outputs.skip != 'true'
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
         with:
           fetch-depth: 0
 
       # SHA pin: oxsecurity/megalinter/flavors/documentation@v9.2.0
       - name: Run mega linter
+        if: steps.check.outputs.skip != 'true'
         uses: oxsecurity/megalinter/flavors/documentation@c6425783a869f8c6d4b6ff45a57e6b2680b758eb
         env:
           # Token required for: PR comments, status checks, and fetching .github configs
