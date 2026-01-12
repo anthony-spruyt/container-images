@@ -59,7 +59,7 @@ jobs:
     steps:
       # SHA pin: actions/checkout@v4.3.1
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
 
       - name: Read metadata
         id: metadata
@@ -158,7 +158,7 @@ jobs:
     steps:
       # SHA pin: actions/checkout@v4.3.1
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
 
       - name: Free up disk space
         run: |
@@ -171,7 +171,7 @@ jobs:
       # SHA pin: actions/checkout@v4.3.1
       - name: Checkout upstream source
         if: inputs.upstream != '' || needs.check-release.outputs.upstream != ''
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
         with:
           repository: ${{ inputs.upstream || needs.check-release.outputs.upstream }}
           ref: ${{ inputs.upstream-ref || needs.check-release.outputs.version }}

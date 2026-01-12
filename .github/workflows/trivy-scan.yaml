@@ -24,7 +24,7 @@ jobs:
     steps:
       # SHA pin: actions/checkout@v4.3.1
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
 
       - name: Find image directories
         id: discover
@@ -60,7 +60,7 @@ jobs:
     steps:
       # SHA pin: actions/checkout@v4.3.1
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
 
       - name: Log in to GHCR
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
