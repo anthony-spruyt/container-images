@@ -20,6 +20,14 @@
     "devcontainer",
     "npm",
   ],
+  // Extend devcontainer fileMatch to include custom image assets
+  devcontainer: {
+    fileMatch: [
+      "(^|/)\\.devcontainer\\.json$",
+      "(^|/)devcontainer\\.json$",
+      "assets/\\.devcontainer\\.json$",
+    ],
+  },
   // Import custom managers for shell script version annotations
   customManagers: [
     {
