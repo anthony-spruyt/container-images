@@ -109,7 +109,7 @@ jobs:
       # SHA pin: aquasecurity/trivy-action@0.29.0
       - name: Scan image for vulnerabilities
         if: steps.check-image.outputs.exists == 'true'
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
+        uses: aquasecurity/trivy-action@22438a435773de8c97dc0958cc0b823c45b064ac
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}:latest
           scanners: ${{ steps.trivyconfig.outputs.scanners }}
