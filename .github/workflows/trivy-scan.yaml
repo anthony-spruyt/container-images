@@ -210,8 +210,35 @@ jobs:
           EOF
           )
 
-          # Use CRITICAL/HIGH count for title (more actionable)
-          TITLE="[Trivy] $IMAGE: $ACTIONABLE_COUNT critical/high vulnerabilities found"
+          # Build title dynamically based on severity counts
+          TITLE_PARTS=()
+          if [ "$CRITICAL" -gt 0 ]; then
+            if [ "$CRITICAL" -eq 1 ]; then
+              TITLE_PARTS+=("$CRITICAL critical vulnerability")
+            else
+              TITLE_PARTS+=("$CRITICAL critical vulnerabilities")
+            fi
+          fi
+          if [ "$HIGH" -gt 0 ]; then
+            if [ "$HIGH" -eq 1 ]; then
+              TITLE_PARTS+=("$HIGH high vulnerability")
+            else
+              TITLE_PARTS+=("$HIGH high vulnerabilities")
+            fi
+          fi
+
+          # Join title parts with comma, or fallback to MEDIUM if no CRITICAL/HIGH
+          if [ "${#TITLE_PARTS[@]}" -gt 0 ]; then
+            TITLE_TEXT=$(IFS=", "; echo "${TITLE_PARTS[*]}")
+            TITLE="[Trivy] $IMAGE: $TITLE_TEXT found"
+          else
+            # Only MEDIUM vulnerabilities present
+            if [ "$MEDIUM" -eq 1 ]; then
+              TITLE="[Trivy] $IMAGE: $MEDIUM medium vulnerability found"
+            else
+              TITLE="[Trivy] $IMAGE: $MEDIUM medium vulnerabilities found"
+            fi
+          fi
 
           # Build labels based on severity
           LABELS="security,trivy"
