@@ -5,6 +5,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends jq tmux \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fsSL https://raw.githubusercontent.com/MilkClouds/devcontainer-feature-installer/main/install-feature-cli.sh | bash
 
+# Pre-install cosign for Python 3.14+ signature verification
+# renovate: datasource=github-releases depName=sigstore/cosign
+ARG COSIGN_VERSION="v3.0.4"
+RUN ARCH=$(dpkg --print-architecture) \
+    && curl -fsSL "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign_${COSIGN_VERSION#v}_${ARCH}.deb" -o /tmp/cosign.deb \
+    && dpkg -i /tmp/cosign.deb \
+    && rm /tmp/cosign.deb
+
 # Copy devcontainer.json and install features from it
 COPY assets/.devcontainer.json /tmp/devcontainer.json
 RUN feature-install --features "$(jq -c '.features' /tmp/devcontainer.json)" \
