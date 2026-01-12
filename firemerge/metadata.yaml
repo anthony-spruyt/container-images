@@ -3,4 +3,4 @@
 # https://github.com/lvu/firemerge
 
 upstream: anthony-spruyt/firemerge
-version: security/fix-cve-2025-64512-cve-2024-47874
+version: 0.5.3
