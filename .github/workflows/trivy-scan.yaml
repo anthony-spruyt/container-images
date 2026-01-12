@@ -184,12 +184,11 @@ jobs:
             exit 0
           fi
 
-          # Build vulnerability table from CRITICAL/HIGH only (if needed)
-          if [ "$ACTIONABLE_COUNT" -gt 0 ]; then
-            VULN_TABLE=$(echo "$CRITICAL_HIGH_VULNS" | jq -r '
-              .[] | "| \(.id) | \(.severity) | \(.package) | \(.installed) | \(.fixed) |"
-            ')
-          fi
+          # Build vulnerability table from CRITICAL/HIGH only
+          # shellcheck disable=SC2034  # Used in heredoc below
+          VULN_TABLE=$(echo "$CRITICAL_HIGH_VULNS" | jq -r '
+            .[] | "| \(.id) | \(.severity) | \(.package) | \(.installed) | \(.fixed) |"
+          ')
 
           # Create issue body with CRITICAL/HIGH table and MEDIUM summary
           BODY=$(cat <<EOF
