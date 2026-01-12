@@ -184,10 +184,12 @@ jobs:
             exit 0
           fi
 
-          # Build vulnerability table from CRITICAL/HIGH only
-          VULN_TABLE=$(echo "$CRITICAL_HIGH_VULNS" | jq -r '
-            .[] | "| \(.id) | \(.severity) | \(.package) | \(.installed) | \(.fixed) |"
-          ')
+          # Build vulnerability table from CRITICAL/HIGH only (if needed)
+          if [ "$ACTIONABLE_COUNT" -gt 0 ]; then
+            VULN_TABLE=$(echo "$CRITICAL_HIGH_VULNS" | jq -r '
+              .[] | "| \(.id) | \(.severity) | \(.package) | \(.installed) | \(.fixed) |"
+            ')
+          fi
 
           # Create issue body with CRITICAL/HIGH table and MEDIUM summary
           BODY=$(cat <<EOF
