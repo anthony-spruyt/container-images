@@ -106,17 +106,11 @@ Create an n8n workflow to automatically trigger builds when upstream repos relea
 
 ### Workflow Design
 
-```text
-┌─────────────┐     ┌──────────────────┐     ┌─────────────────────┐
-│  Schedule   │────▶│  GitHub API:     │────▶│  GitHub API:        │
-│  (daily)    │     │  Get latest tag  │     │  Trigger workflow   │
-└─────────────┘     └──────────────────┘     └─────────────────────┘
-                            │
-                            ▼
-                    ┌──────────────────┐
-                    │  Compare with    │
-                    │  last known ver  │
-                    └──────────────────┘
+```mermaid
+flowchart LR
+    A[Schedule\ndaily] --> B[GitHub API:\nGet latest tag]
+    B --> C[Compare with\nlast known ver]
+    C --> D[GitHub API:\nTrigger workflow]
 ```
 
 ### Nodes
