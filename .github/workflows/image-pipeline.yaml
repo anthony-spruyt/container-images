@@ -64,8 +64,10 @@ jobs:
       - name: Read metadata
         id: metadata
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_NAME: ${{ inputs.image }}
           VERSION_OVERRIDE: ${{ inputs.version-override }}
+          CREATE_RELEASE: ${{ inputs.create-release }}
         run: |
           METADATA_FILE="$IMAGE_NAME/metadata.yaml"
           if [ ! -f "$METADATA_FILE" ]; then
@@ -76,8 +78,10 @@ jobs:
           # Read metadata values
           METADATA_VERSION=$(yq -r '.version // ""' "$METADATA_FILE")
           UPSTREAM=$(yq -r '.upstream // ""' "$METADATA_FILE")
+          AUTO_PATCH=$(yq -r '.auto_patch // false' "$METADATA_FILE")
 
           echo "upstream=$UPSTREAM" >> "$GITHUB_OUTPUT"
+          echo "auto_patch=$AUTO_PATCH" >> "$GITHUB_OUTPUT"
 
           # Priority: override > metadata > latest
           if [ -n "$VERSION_OVERRIDE" ]; then
@@ -86,6 +90,25 @@ jobs:
             VERSION="$METADATA_VERSION"
           else
             VERSION="latest"
+          fi
+
+          # Auto-increment patch version for internal images
+          if [ "$AUTO_PATCH" = "true" ] && [ "$CREATE_RELEASE" = "true" ]; then
+            BASE_VERSION="$VERSION"
+            # Find highest existing patch for this base version
+            HIGHEST_PATCH=-1
+            while IFS= read -r release_tag; do
+              if [[ "$release_tag" =~ ^${IMAGE_NAME}-${BASE_VERSION}\.([0-9]+)(-r[0-9]+)?$ ]]; then
+                PATCH="${BASH_REMATCH[1]}"
+                if [ "$PATCH" -gt "$HIGHEST_PATCH" ]; then
+                  HIGHEST_PATCH="$PATCH"
+                fi
+              fi
+            done < <(gh release list --limit 100 --json tagName -q '.[].tagName' 2>/dev/null || true)
+
+            NEXT_PATCH=$((HIGHEST_PATCH + 1))
+            VERSION="${BASE_VERSION}.${NEXT_PATCH}"
+            echo "::notice::Auto-patch: calculated version $VERSION (base=$BASE_VERSION, next_patch=$NEXT_PATCH)"
           fi
 
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
