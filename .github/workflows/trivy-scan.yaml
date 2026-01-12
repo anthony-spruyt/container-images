@@ -83,17 +83,41 @@ jobs:
             echo "Image does not exist: $IMAGE_REF"
           fi
 
+      - name: Detect Trivy configuration
+        id: trivyconfig
+        env:
+          IMAGE: ${{ matrix.image }}
+        run: |
+          # Use per-image ignore file if it exists, otherwise use global
+          if [ -f "${IMAGE}/.trivyignore" ]; then
+            echo "ignorefile=${IMAGE}/.trivyignore" >> "$GITHUB_OUTPUT"
+            echo "Using per-image ignore file: ${IMAGE}/.trivyignore"
+          else
+            echo "ignorefile=.trivyignore.yaml" >> "$GITHUB_OUTPUT"
+            echo "Using global ignore file: .trivyignore.yaml"
+          fi
+
+          # Dev containers only need vuln scanning (secrets/misconfig caught in repo lint)
+          if [[ "$IMAGE" == *-dev ]]; then
+            echo "scanners=vuln" >> "$GITHUB_OUTPUT"
+            echo "Scanning dev container: vuln only"
+          else
+            echo "scanners=vuln,secret,misconfig" >> "$GITHUB_OUTPUT"
+            echo "Scanning production image: vuln,secret,misconfig"
+          fi
+
       # SHA pin: aquasecurity/trivy-action@0.29.0
       - name: Scan image for vulnerabilities
         if: steps.check-image.outputs.exists == 'true'
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ matrix.image }}:latest
+          scanners: ${{ steps.trivyconfig.outputs.scanners }}
           format: json
           output: trivy-results.json
           severity: CRITICAL,HIGH,MEDIUM
           ignore-unfixed: false
-          trivyignores: .trivyignore.yaml
+          trivyignores: ${{ steps.trivyconfig.outputs.ignorefile }}
           # Don't fail on vulnerabilities - we process results in next step
           exit-code: 0
 
@@ -109,8 +133,19 @@ jobs:
             exit 0
           fi
 
-          # Extract vulnerabilities from results
-          VULNS=$(jq -r '
+          # Extract CRITICAL and HIGH vulnerabilities for table
+          CRITICAL_HIGH_VULNS=$(jq -r '
+            [.Results[]? | .Vulnerabilities[]? | select(.Severity == "CRITICAL" or .Severity == "HIGH") | {
+              id: .VulnerabilityID,
+              severity: .Severity,
+              package: .PkgName,
+              installed: .InstalledVersion,
+              fixed: (.FixedVersion // "unfixed")
+            }] | unique_by(.id)
+          ' trivy-results.json)
+
+          # Extract all vulnerabilities for counts
+          ALL_VULNS=$(jq -r '
             [.Results[]? | .Vulnerabilities[]? | {
               id: .VulnerabilityID,
               severity: .Severity,
@@ -120,13 +155,13 @@ jobs:
             }] | unique_by(.id)
           ' trivy-results.json)
 
-          VULN_COUNT=$(echo "$VULNS" | jq 'length')
-          echo "Found $VULN_COUNT vulnerabilities"
+          TOTAL_VULN_COUNT=$(echo "$ALL_VULNS" | jq 'length')
+          CRITICAL=$(echo "$ALL_VULNS" | jq '[.[] | select(.severity == "CRITICAL")] | length')
+          HIGH=$(echo "$ALL_VULNS" | jq '[.[] | select(.severity == "HIGH")] | length')
+          MEDIUM=$(echo "$ALL_VULNS" | jq '[.[] | select(.severity == "MEDIUM")] | length')
+          ACTIONABLE_COUNT=$(echo "$CRITICAL_HIGH_VULNS" | jq 'length')
 
-          # Count by severity
-          CRITICAL=$(echo "$VULNS" | jq '[.[] | select(.severity == "CRITICAL")] | length')
-          HIGH=$(echo "$VULNS" | jq '[.[] | select(.severity == "HIGH")] | length')
-          MEDIUM=$(echo "$VULNS" | jq '[.[] | select(.severity == "MEDIUM")] | length')
+          echo "Found $TOTAL_VULN_COUNT total vulnerabilities ($ACTIONABLE_COUNT CRITICAL/HIGH, $MEDIUM MEDIUM)"
 
           # Search for existing open issue by title prefix
           # Use jq --arg to safely pass the image name
@@ -137,7 +172,7 @@ jobs:
           SCAN_DATE=$(date -u +"%Y-%m-%d %H:%M UTC")
           IMAGE_REF="${REGISTRY}/${OWNER}/${IMAGE}:latest"
 
-          if [ "$VULN_COUNT" -eq 0 ]; then
+          if [ "$TOTAL_VULN_COUNT" -eq 0 ]; then
             echo "No vulnerabilities found"
 
             # Close existing issue if present
@@ -149,31 +184,34 @@ jobs:
             exit 0
           fi
 
-          # Build vulnerability table
-          VULN_TABLE=$(echo "$VULNS" | jq -r '
+          # Build vulnerability table from CRITICAL/HIGH only
+          VULN_TABLE=$(echo "$CRITICAL_HIGH_VULNS" | jq -r '
             .[] | "| \(.id) | \(.severity) | \(.package) | \(.installed) | \(.fixed) |"
           ')
 
-          # Create issue body using heredoc
+          # Create issue body with CRITICAL/HIGH table and MEDIUM summary
           BODY=$(cat <<EOF
           ## Vulnerability Scan Results
 
           **Image:** \`$IMAGE_REF\`
           **Scan Date:** $SCAN_DATE
-          **Total:** $VULN_COUNT vulnerabilities ($CRITICAL CRITICAL, $HIGH HIGH, $MEDIUM MEDIUM)
+          **Total:** $TOTAL_VULN_COUNT vulnerabilities ($CRITICAL CRITICAL, $HIGH HIGH, $MEDIUM MEDIUM)
 
-          ### Vulnerabilities
+          ### CRITICAL and HIGH Vulnerabilities
 
           | CVE | Severity | Package | Installed | Fixed |
           |-----|----------|---------|-----------|-------|
           $VULN_TABLE
+
+          $(if [ "$MEDIUM" -gt 0 ]; then echo "**Note:** $MEDIUM MEDIUM severity vulnerabilities not shown in table. View full Trivy scan results in the workflow run."; fi)
 
           ---
           *This issue is auto-generated by the Trivy scan workflow.*
           EOF
           )
 
-          TITLE="[Trivy] $IMAGE: $VULN_COUNT vulnerabilities found"
+          # Use CRITICAL/HIGH count for title (more actionable)
+          TITLE="[Trivy] $IMAGE: $ACTIONABLE_COUNT critical/high vulnerabilities found"
 
           # Build labels based on severity
           LABELS="security,trivy"
