@@ -108,9 +108,9 @@ Create an n8n workflow to automatically trigger builds when upstream repos relea
 
 ```mermaid
 flowchart LR
-    A[Schedule\ndaily] --> B[GitHub API:\nGet latest tag]
-    B --> C[Compare with\nlast known ver]
-    C --> D[GitHub API:\nTrigger workflow]
+    A[Schedule<br/>daily] --> B[GitHub API:<br/>Get latest tag]
+    B --> C[Compare with<br/>last known ver]
+    C --> D[GitHub API:<br/>Trigger workflow]
 ```
 
 ### Nodes
