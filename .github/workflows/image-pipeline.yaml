@@ -231,7 +231,7 @@ jobs:
       # SHA pin: docker/login-action@v3.6.0
       - name: Log in to GitHub Container Registry
         if: inputs.push
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
+        uses: docker/login-action@0567fa5ae8c9a197cb207537dc5cbb43ca3d803f
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
