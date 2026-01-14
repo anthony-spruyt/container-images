@@ -22,9 +22,9 @@ RUN feature-install --features "$(jq -c '.features' /tmp/devcontainer.json)" \
 COPY assets/scripts/ /tmp/scripts/
 RUN chmod +x /tmp/scripts/*.sh
 
-# Set up PATH for installed features (nvm/node, go, python)
+# Set up PATH for installed features (nvm/node, go, python, py-utils)
 ENV NVM_DIR="/usr/local/share/nvm"
-ENV PATH="/usr/local/share/nvm/current/bin:/usr/local/go/bin:/usr/local/python/current/bin:$PATH"
+ENV PATH="/usr/local/py-utils/bin:/usr/local/share/nvm/current/bin:/usr/local/go/bin:/usr/local/python/current/bin:$PATH"
 
 # Install safe-chain first to protect subsequent npm/pip installs
 RUN /tmp/scripts/install-safe-chain.sh

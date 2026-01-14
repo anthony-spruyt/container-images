@@ -3,10 +3,19 @@ set -euo pipefail
 
 # Install Python development tools via pipx (isolated venvs)
 # Then patch each venv to fix known vulnerabilities
+#
+# Uses /usr/local/py-utils/ for shared access between root and vscode users
+# (same location as the devcontainer Python feature)
+
+# Set up shared pipx directories
+export PIPX_HOME="/usr/local/py-utils"
+export PIPX_BIN_DIR="/usr/local/py-utils/bin"
+export PATH="${PIPX_BIN_DIR}:${PATH}"
+
+mkdir -p "${PIPX_HOME}" "${PIPX_BIN_DIR}"
 
 echo "Installing pipx..."
 pip install --no-cache-dir pipx
-pipx ensurepath
 
 # Tools to install (based on devcontainer feature defaults + pre-commit)
 TOOLS=(
@@ -33,7 +42,6 @@ done
 # Patch venvs to fix GHSA-58pv-8j8x-9vj2 (jaraco.context path traversal)
 # Only virtualenv pulls in jaraco.context, but we patch all venvs defensively
 echo "Patching venvs for security fixes..."
-PIPX_HOME="${PIPX_HOME:-/root/.local/pipx}"
 for venv_dir in "${PIPX_HOME}/venvs"/*; do
   if [ -d "${venv_dir}" ]; then
     venv_name=$(basename "${venv_dir}")
