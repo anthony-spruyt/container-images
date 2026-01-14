@@ -23,6 +23,7 @@ on:
     paths:
       - "**/Dockerfile"
       - "**/metadata.yaml"
+      - "**/assets/**"
 
 # Permissions required by reusable workflow (image-pipeline.yaml)
 permissions:
@@ -67,8 +68,8 @@ jobs:
             fi
             echo "images=[\"$INPUT_IMAGE\"]" >> "$GITHUB_OUTPUT"
           else
-            # Find directories with changed Dockerfiles or metadata
-            CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|metadata\.yaml)$' | cut -d'/' -f1 | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))')
+            # Find directories with changed Dockerfiles, metadata, or assets
+            CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|metadata\.yaml|assets/)' | cut -d'/' -f1 | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))')
             if [ "$CHANGED" = "[]" ] || [ -z "$CHANGED" ]; then
               echo "images=[]" >> "$GITHUB_OUTPUT"
             else
