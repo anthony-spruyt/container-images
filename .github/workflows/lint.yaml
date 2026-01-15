@@ -49,7 +49,7 @@ jobs:
       # SHA pin: oxsecurity/megalinter/flavors/documentation@v9.2.0
       - name: Run mega linter
         if: steps.check.outputs.skip != 'true'
-        uses: oxsecurity/megalinter/flavors/documentation@8c4daab8a10ed94e7f9de51710b669f9d7c7e751
+        uses: oxsecurity/megalinter/flavors/documentation@4c83b216e75db331a2e7913562196c807d61b29e
         env:
           # Token required for: PR comments, status checks, and fetching .github configs
           # Scoped to read:contents + write:pull-requests + write:statuses via job permissions
