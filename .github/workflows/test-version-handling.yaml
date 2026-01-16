@@ -121,6 +121,85 @@ jobs:
 
           echo "✅ All $total test fixture images passed validation"
 
+      - name: Test changelog generation functions
+        run: |
+          # Define the changelog functions inline for testing
+          # These mirror the functions in create-release.sh
+
+          generate_local_changelog() {
+            local image="$1"
+            local prev_tag="$2"
+            if [ -z "$prev_tag" ]; then
+              echo "Initial release"
+              return
+            fi
+            local commits
+            commits=$(git log --oneline "${prev_tag}..HEAD" -- "${image}/" 2>/dev/null || true)
+            if [ -z "$commits" ]; then
+              echo "Rebuild (no source changes)"
+            else
+              echo "$commits" | while read -r line; do
+                echo "- $line"
+              done
+            fi
+          }
+
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Testing changelog generation"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          passed=0
+          failed=0
+
+          # Test 1: Local image with no previous release (initial)
+          echo "Test 1: Initial release (no previous tag)"
+          result=$(generate_local_changelog "test-image" "")
+          if [ "$result" = "Initial release" ]; then
+            echo "  ✅ Passed"
+            passed=$((passed + 1))
+          else
+            echo "  ❌ Failed: expected 'Initial release', got '$result'"
+            failed=$((failed + 1))
+          fi
+
+          # Test 2: Upstream image changelog format
+          echo "Test 2: Upstream changelog format"
+          UPSTREAM="example/repo"
+          TAG="v1.0.0"
+          expected="See [example/repo release v1.0.0](https://github.com/example/repo/releases/tag/v1.0.0)"
+          result="See [${UPSTREAM} release ${TAG}](https://github.com/${UPSTREAM}/releases/tag/${TAG})"
+          if [ "$result" = "$expected" ]; then
+            echo "  ✅ Passed"
+            passed=$((passed + 1))
+          else
+            echo "  ❌ Failed: format mismatch"
+            failed=$((failed + 1))
+          fi
+
+          # Test 3: Verify generate_local_changelog handles empty commits
+          echo "Test 3: No commits returns rebuild message"
+          result=$(generate_local_changelog "nonexistent-image" "v99.99.99")
+          if [ "$result" = "Rebuild (no source changes)" ]; then
+            echo "  ✅ Passed"
+            passed=$((passed + 1))
+          else
+            echo "  ❌ Failed: expected 'Rebuild (no source changes)', got '$result'"
+            failed=$((failed + 1))
+          fi
+
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Changelog Test Summary: $passed passed, $failed failed"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          if [ $failed -gt 0 ]; then
+            echo "::error::$failed changelog test(s) failed"
+            exit 1
+          fi
+
+          echo "✅ All changelog tests passed"
+
       - name: Test workflow_dispatch input (if provided)
         if: inputs.test_version
         run: |

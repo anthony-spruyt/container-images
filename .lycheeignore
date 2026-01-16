@@ -15,3 +15,6 @@ https://github.com/anthony-spruyt/container-images/blob/main/LICENSE
 
 # Ignore renamed workflow badge URL until PR is merged
 https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml/badge.svg
+
+# Ignore example URLs used in tests
+https://github.com/example/repo/.*
