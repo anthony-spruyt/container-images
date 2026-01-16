@@ -355,7 +355,7 @@ jobs:
       # SHA pin: actions/attest-build-provenance@v2.4.0
       - name: Generate provenance attestation
         if: inputs.push
-        uses: actions/attest-build-provenance@98f3aa9c27c3d6da66cf51b7d38fb7511df72d3a
+        uses: actions/attest-build-provenance@6865550d0380db508fc599a58cc87c50c0bba5c5
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}
           subject-digest: ${{ steps.push.outputs.digest }}
