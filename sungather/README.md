@@ -156,7 +156,7 @@ The `n8n-release-watcher.json` workflow automatically detects new SunGather rele
 
 ### What it does
 
-1. Checks GitHub daily (midnight UTC) for new tags on `bohdan-s/SunGather`
+1. Checks GitHub daily (11PM AEST) for new tags on `bohdan-s/SunGather`
 2. Compares with the last processed version (stored in workflow static data)
 3. If a new version is found:
    - Triggers the container build workflow with the exact upstream tag

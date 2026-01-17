@@ -9,8 +9,6 @@
   "editor.formatOnSave": true,
   "editor.codeActions.triggerOnFocusChange": false,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "prettier.configPath": ".prettierrc.yaml",
-  "prettier.ignorePath": ".prettierignore",
   "explorer.sortOrder": "type",
   "editor.tabSize": 2,
   "chat.agent.enabled": false

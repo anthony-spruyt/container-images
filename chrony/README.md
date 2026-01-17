@@ -97,7 +97,7 @@ The `n8n-release-watcher.json` workflow automatically detects new chrony package
 
 ### What it does
 
-1. Checks daily (midnight UTC) for chrony package updates in Alpine Linux
+1. Checks daily (11PM AEST) for chrony package updates in Alpine Linux
 2. Dynamically reads the Alpine version from this repo's Dockerfile
 3. Fetches the corresponding APKBUILD from Alpine's Git repository
 4. Compares the package version with the last processed version (stored in workflow static data)
