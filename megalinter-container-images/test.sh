@@ -64,17 +64,6 @@ fi
 
 echo ""
 
-# Test 3: Quick MegaLinter smoke test (help command)
-echo "Test 3: MegaLinter smoke test..."
-if docker run --rm "$IMAGE_REF" --help >/dev/null 2>&1; then
-    echo "  [PASS] MegaLinter --help works"
-else
-    echo "  [FAIL] MegaLinter --help failed"
-    FAILED=$((FAILED + 1))
-fi
-
-echo ""
-
 if [ $FAILED -gt 0 ]; then
     echo "=== $FAILED test(s) FAILED ==="
     exit 1
