@@ -66,11 +66,58 @@ create_release_with_retry() {
   return 1
 }
 
+# Find the previous release tag for this image
+get_previous_release() {
+  local image="$1"
+  local current_tag="$2"
+
+  # List releases, filter by image prefix, exclude current version (with optional -rN suffix)
+  gh release list --limit 100 2>/dev/null \
+    | grep -E "^${image}-" \
+    | grep -v "^${image}-${current_tag}\(   \|-r[0-9]\)" \
+    | head -1 \
+    | awk '{print $1}' || true
+}
+
+# Generate commit log since previous release
+generate_local_changelog() {
+  local image="$1"
+  local prev_tag="$2"
+
+  if [ -z "$prev_tag" ]; then
+    echo "Initial release"
+    return
+  fi
+
+  # Get commits that touched this image's directory
+  local commits
+  commits=$(git log --oneline "${prev_tag}..HEAD" -- "${image}/" 2>/dev/null || true)
+
+  if [ -z "$commits" ]; then
+    echo "Rebuild (no source changes)"
+  else
+    echo "$commits" | while read -r line; do
+      echo "- $line"
+    done
+  fi
+}
+
 # Set upstream display value
 if [ -n "$UPSTREAM" ]; then
   UPSTREAM_DISPLAY="[${UPSTREAM}](https://github.com/${UPSTREAM})"
 else
   UPSTREAM_DISPLAY="N/A (local Dockerfile)"
+fi
+
+# Generate changelog section
+PREV_RELEASE=$(get_previous_release "$IMAGE_NAME" "$TAG")
+
+if [ -n "$UPSTREAM" ]; then
+  # Upstream image: link to upstream release
+  CHANGELOG="See [${UPSTREAM} release ${TAG}](https://github.com/${UPSTREAM}/releases/tag/${TAG})"
+else
+  # Local image: show commit history
+  CHANGELOG=$(generate_local_changelog "$IMAGE_NAME" "$PREV_RELEASE")
 fi
 
 # Generate release notes
@@ -90,6 +137,9 @@ docker pull ${REGISTRY}/${OWNER}/${IMAGE_NAME}@${DIGEST}
 - **Upstream:** ${UPSTREAM_DISPLAY}
 - **Build Commit:** ${SHA}
 - **Workflow Run:** [#${RUN_NUMBER}](${SERVER_URL}/${REPO}/actions/runs/${RUN_ID})
+
+### Changes
+${CHANGELOG}
 
 ### Security
 - Trivy vulnerability scan: Passed (CRITICAL/HIGH)
