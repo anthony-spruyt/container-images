@@ -9,9 +9,9 @@ CONTAINER_NAME="sungather-test-$$"
 TEST_PORT=18080
 
 cleanup() {
-    echo "Cleaning up..."
-    docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
-    rm -f /tmp/sungather-config-$$.yaml /tmp/sungather-logs-$$.txt
+  echo "Cleaning up..."
+  docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+  rm -f /tmp/sungather-config-$$.yaml /tmp/sungather-logs-$$.txt
 }
 trap cleanup EXIT
 
@@ -39,11 +39,11 @@ EOF
 
 # Start container with test config
 docker run -d \
-    --name "$CONTAINER_NAME" \
-    -p "$TEST_PORT:8080" \
-    -v "$TEST_CONFIG:/config/config.yaml:ro" \
-    -e TZ="UTC" \
-    "$IMAGE_REF"
+  --name "$CONTAINER_NAME" \
+  -p "$TEST_PORT:8080" \
+  -v "$TEST_CONFIG:/config/config.yaml:ro" \
+  -e TZ="UTC" \
+  "$IMAGE_REF"
 
 # Test 2: Wait for application to start and log initial messages
 echo "Test 2: Waiting for application startup (10 seconds)..."
@@ -53,12 +53,12 @@ sleep 10
 echo "Test 3: Verify application startup and config loading..."
 docker logs "$CONTAINER_NAME" >/tmp/sungather-logs-$$.txt 2>&1
 if grep -q "Starting SunGather" /tmp/sungather-logs-$$.txt &&
-    grep -q "Loaded config:" /tmp/sungather-logs-$$.txt; then
-    echo "  Application started successfully and loaded config"
+  grep -q "Loaded config:" /tmp/sungather-logs-$$.txt; then
+  echo "  Application started successfully and loaded config"
 else
-    echo "  ERROR: Application did not start properly"
-    cat /tmp/sungather-logs-$$.txt
-    exit 1
+  echo "  ERROR: Application did not start properly"
+  cat /tmp/sungather-logs-$$.txt
+  exit 1
 fi
 
 # Note: Container may exit after connection timeout (expected in CI without real inverter)
@@ -67,17 +67,17 @@ fi
 # Test 4: Verify registers file was loaded
 echo "Test 4: Verify registers loading..."
 if grep -q "Loaded registers:" /tmp/sungather-logs-$$.txt; then
-    echo "  Registers file loaded successfully"
+  echo "  Registers file loaded successfully"
 else
-    echo "  WARNING: Could not verify registers loading"
+  echo "  WARNING: Could not verify registers loading"
 fi
 
 # Test 5: Verify connection attempt was made
 echo "Test 5: Verify connection attempt..."
 if grep -qE "(Connection to|failed: timed out)" /tmp/sungather-logs-$$.txt; then
-    echo "  Connection attempt detected (timeout expected in CI without real hardware)"
+  echo "  Connection attempt detected (timeout expected in CI without real hardware)"
 else
-    echo "  WARNING: No connection attempt found in logs"
+  echo "  WARNING: No connection attempt found in logs"
 fi
 
 # Test 6: Check final exit status

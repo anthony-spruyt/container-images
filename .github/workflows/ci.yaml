@@ -133,10 +133,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      # SHA pin: oxsecurity/megalinter/flavors/documentation@v9.2.0
+      # Custom MegaLinter flavor with 11 linters optimized for container repos
+      # MEGALINTER_FLAVOR=all bypasses flavor validation (custom flavors aren't recognized)
       - name: Run MegaLinter
-        uses: oxsecurity/megalinter/flavors/documentation@1d653c6e1e3e6583bd5a80ff854cb2d3bf35cc08
+        uses: docker://ghcr.io/anthony-spruyt/megalinter-container-images@sha256:575587d9caf54235888e3749734aec1ef094bdbd876dd0e0c88f443114a415ee
         env:
+          MEGALINTER_FLAVOR: all
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_ALL_CODEBASE: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
 

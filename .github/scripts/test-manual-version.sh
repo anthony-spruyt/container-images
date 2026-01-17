@@ -7,9 +7,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ $# -lt 1 ]; then
-    echo "Usage: $0 <version>"
-    echo "Example: $0 v1.2.3"
-    exit 1
+  echo "Usage: $0 <version>"
+  echo "Example: $0 v1.2.3"
+  exit 1
 fi
 
 VERSION="$1"
@@ -30,8 +30,8 @@ echo "  TAG: $TAG"
 echo "  RELEASE_TAG: $RELEASE_TAG"
 
 if ! validate_tags; then
-    echo "::error::Manual test version validation failed"
-    exit 1
+  echo "::error::Manual test version validation failed"
+  exit 1
 fi
 
 echo "✅ Manual test version validation passed"

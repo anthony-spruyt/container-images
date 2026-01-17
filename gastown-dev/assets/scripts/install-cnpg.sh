@@ -7,9 +7,9 @@ case "$ARCH" in
 x86_64) ARCH="x86_64" ;;
 aarch64) ARCH="arm64" ;;
 *)
-    echo "Unsupported architecture: $ARCH"
-    exit 1
-    ;;
+  echo "Unsupported architecture: $ARCH"
+  exit 1
+  ;;
 esac
 
 # Fetch latest CNPG release tag from GitHub (e.g., v1.28.0)
