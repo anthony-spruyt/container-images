@@ -16,7 +16,7 @@ FROM lycheeverse/lychee:sha-db63437-alpine@sha256:50726dbf2af609acc8adc8ce09ee12
 
 # Base: ci_light has shellcheck, shfmt, hadolint, yamllint, gitleaks, secretlint, trivy, jsonlint
 # renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
-FROM oxsecurity/megalinter-ci_light:v9.2.0@sha256:13345038effc56d6eadf2168373b52ae3ac90279881894a6e0760a6ff27fa591
+FROM oxsecurity/megalinter-ci_light:v9.3.0@sha256:a71e62c83e3b2d52316e7322b9168e1588e9bcf454dbf9b21fc71b0954786e5e
 
 # Add actionlint (GitHub Actions linter)
 COPY --link --from=actionlint /usr/local/bin/actionlint /usr/bin/actionlint
