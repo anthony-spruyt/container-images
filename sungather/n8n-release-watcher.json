@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "url": "https://api.github.com/repos/bohdan-s/SunGather/tags",
+        "url": "https://api.github.com/repos/anthony-spruyt/SunGather/tags",
         "options": {}
       },
       "id": "8f3771e2-6bef-402c-b261-8d718b11a216",

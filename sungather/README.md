@@ -2,7 +2,7 @@
 
 Python tool that collects data from Sungrow Inverters using ModbusTcpClient and exports to various platforms.
 
-- **Upstream:** <https://github.com/bohdan-s/SunGather>
+- **Upstream:** <https://github.com/anthony-spruyt/SunGather>
 - **Container:** `ghcr.io/anthony-spruyt/sungather`
 
 ## Features
@@ -42,7 +42,7 @@ metadata:
   name: sungather-config
 data:
   config.yaml: |
-    # See https://github.com/bohdan-s/SunGather/blob/master/config-example.yaml
+    # See https://github.com/anthony-spruyt/SunGather/blob/master/config-example.yaml
     inverter:
       host: "192.168.1.100"
       port: 502
@@ -101,7 +101,7 @@ spec:
 
 ## Configuration
 
-SunGather requires a `config.yaml` file. See the [upstream config-example.yaml](https://github.com/bohdan-s/SunGather/blob/master/SunGather/config-example.yaml) for all available options.
+SunGather requires a `config.yaml` file. See the [upstream config-example.yaml](https://github.com/anthony-spruyt/SunGather/blob/master/SunGather/config-example.yaml) for all available options.
 
 **Minimum configuration:**
 
@@ -156,7 +156,7 @@ The `n8n-release-watcher.json` workflow automatically detects new SunGather rele
 
 ### What it does
 
-1. Checks GitHub daily (midnight UTC) for new tags on `bohdan-s/SunGather`
+1. Checks GitHub daily (midnight UTC) for new tags on `anthony-spruyt/SunGather`
 2. Compares with the last processed version (stored in workflow static data)
 3. If a new version is found:
    - Triggers the container build workflow with the exact upstream tag
@@ -221,6 +221,5 @@ On subsequent runs, `isNew` will be `false` until a new release is published ups
 
 ## Related
 
-- [Upstream Repository](https://github.com/bohdan-s/SunGather)
-- [Upstream Documentation](https://github.com/bohdan-s/SunGather#readme)
-- [Upstream Docker Hub](https://hub.docker.com/r/bohdans/sungather)
+- [Upstream Repository](https://github.com/anthony-spruyt/SunGather)
+- [Upstream Documentation](https://github.com/anthony-spruyt/SunGather#readme)
