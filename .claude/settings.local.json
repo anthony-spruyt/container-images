@@ -22,7 +22,8 @@
       "Skill(hookify:list:*)",
       "Skill(hookify:writing-rules)",
       "Skill(hookify:writing-rules:*)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(docker pull:*)"
     ]
   }
 }

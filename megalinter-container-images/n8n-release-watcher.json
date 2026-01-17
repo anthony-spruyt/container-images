@@ -1,0 +1,230 @@
+{
+  "name": "MegaLinter Release Watcher",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 23
+            }
+          ]
+        }
+      },
+      "id": "42ff9825-e0ca-4486-85eb-7b86d27e9071",
+      "name": "Daily Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-2032, 272]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/oxsecurity/megalinter/tags",
+        "options": {}
+      },
+      "id": "8f3771e2-6bef-402c-b261-8d718b11a216",
+      "name": "Get GitHub Tags",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1808, 272]
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/anthony-spruyt/container-images/releases",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "id": "1551186f-86a7-483d-ae64-b16e57579a47",
+      "name": "Get GitHub Releases",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1584, 272]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the latest tag from the upstream GitHub API response\n// Access tags from earlier node since releases are now the input\nconst tags = $('Get GitHub Tags').all();\nif (!tags || tags.length === 0 || !tags[0].json) {\n  return [{ json: { isNew: false, version: null, error: 'No tags found' } }];\n}\n\n// Find the latest vX.Y.Z tag (MegaLinter uses semantic versioning with v prefix)\nconst versionTags = tags.filter(t => /^v\\d+\\.\\d+\\.\\d+$/.test(t.json.name));\nif (versionTags.length === 0) {\n  return [{ json: { isNew: false, version: null, error: 'No version tags found' } }];\n}\n\n// Sort by version number (descending) and get latest\nconst latestTag = versionTags.sort((a, b) => {\n  const va = a.json.name.slice(1).split('.').map(Number);\n  const vb = b.json.name.slice(1).split('.').map(Number);\n  for (let i = 0; i < 3; i++) {\n    if (va[i] !== vb[i]) return vb[i] - va[i];\n  }\n  return 0;\n})[0].json;\n\n// Keep version as-is from upstream tag (needed for git checkout)\nconst version = latestTag.name;\n\n// Check GitHub releases to see if this version was already built\n// Release tag format: megalinter-container-images-{version} or megalinter-container-images-{version}-rN (for retries)\nconst releases = $input.all().map(item => item.json);\nconst releasePattern = new RegExp(`^megalinter-container-images-${version.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}(-r[0-9]+)?$`);\nconst existingRelease = releases.find(r => releasePattern.test(r.tag_name));\n\nconst isNew = !existingRelease;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: version,\n    existingRelease: existingRelease ? existingRelease.tag_name : null,\n    commitSha: latestTag.commit?.sha || null\n  }\n}];"
+      },
+      "id": "3f97c8a1-28eb-4802-a380-5fa9c2d252ec",
+      "name": "Check New Version",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1376, 272]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-new-version",
+              "leftValue": "={{ $json.isNew }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "afcf6c5b-f713-4b19-b5f9-f2e0595308b3",
+      "name": "Is New Version?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-1152, 272]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Update static data with the new version (kept for backwards compatibility)\nconst staticData = $getWorkflowStaticData('global');\nconst version = $('Check New Version').item.json.version;\nstaticData.lastVersion_megalinter = version;\n\nreturn [{\n  json: {\n    success: true,\n    version: version,\n    message: `Updated last version to ${version}`\n  }\n}];"
+      },
+      "id": "aacd9916-977a-4129-bebb-4b7cdee3a7eb",
+      "name": "Update State",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-928, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/ci.yaml/dispatches",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github.v3+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"ref\": \"main\",\n  \"inputs\": {\n    \"image\": \"megalinter-container-images\",\n    \"version\": \"{{ $('Check New Version').item.json.version }}\",\n    \"dry_run\": \"false\"\n  }\n}",
+        "options": {}
+      },
+      "id": "ba36a90e-3bc1-4f21-987d-fcb1c15f938c",
+      "name": "Trigger Build Workflow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-704, 160],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURE_ME",
+          "name": "GitHub PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@example.com",
+        "toEmail": "CONFIGURE_ME@example.com",
+        "subject": "=MegaLinter {{ $('Check New Version').item.json.version }} - Build triggered",
+        "options": {}
+      },
+      "id": "562db225-c17a-4cfd-a7c8-741e77e1626d",
+      "name": "Send Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [-496, 160],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURE_ME",
+          "name": "SMTP"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily Check": {
+      "main": [
+        [
+          {
+            "node": "Get GitHub Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GitHub Tags": {
+      "main": [
+        [
+          {
+            "node": "Get GitHub Releases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GitHub Releases": {
+      "main": [
+        [
+          {
+            "node": "Check New Version",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check New Version": {
+      "main": [
+        [
+          {
+            "node": "Is New Version?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Version?": {
+      "main": [
+        [
+          {
+            "node": "Update State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update State": {
+      "main": [
+        [
+          {
+            "node": "Trigger Build Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Build Workflow": {
+      "main": [
+        [
+          {
+            "node": "Send Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

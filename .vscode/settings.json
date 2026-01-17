@@ -1,22 +1,4 @@
 {
-  "files.exclude": {
-    ".devcontainer": false,
-    ".github": false,
-    ".output": false,
-    "node_modules": false,
-    ".gitignore": false,
-    ".lycheeignore": false,
-    ".markdownlint.json": false,
-    ".markdownlintignore": false,
-    ".mega-linter.yml": false,
-    ".pre-commit-config.yaml": false,
-    ".prettierignore": false,
-    ".prettierrc.yaml": false,
-    ".shellcheckrc": false,
-    ".trivyignore.yaml": false,
-    ".yamllint.yml": false,
-    "trivy.yaml": false
-  },
   "search.exclude": {
     "**/node_modules": true
   },

@@ -24,7 +24,7 @@ echo "Test 1: Container startup with minimal config..."
 
 # Create minimal test config
 TEST_CONFIG="/tmp/sungather-config-$$.yaml"
-cat > "$TEST_CONFIG" << 'EOF'
+cat >"$TEST_CONFIG" <<'EOF'
 # Minimal test configuration for CI
 inverter:
   host: "192.168.1.100"
@@ -51,9 +51,9 @@ sleep 10
 
 # Test 3: Verify application started and config was loaded
 echo "Test 3: Verify application startup and config loading..."
-docker logs "$CONTAINER_NAME" > /tmp/sungather-logs-$$.txt 2>&1
-if grep -q "Starting SunGather" /tmp/sungather-logs-$$.txt && \
-   grep -q "Loaded config:" /tmp/sungather-logs-$$.txt; then
+docker logs "$CONTAINER_NAME" >/tmp/sungather-logs-$$.txt 2>&1
+if grep -q "Starting SunGather" /tmp/sungather-logs-$$.txt &&
+    grep -q "Loaded config:" /tmp/sungather-logs-$$.txt; then
     echo "  Application started successfully and loaded config"
 else
     echo "  ERROR: Application did not start properly"
