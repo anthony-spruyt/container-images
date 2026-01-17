@@ -12,7 +12,7 @@
   dependencyDashboardTitle: "Renovate Dashboard",
   suppressNotifications: ["prIgnoreNotification"],
   commitBodyTable: true,
-  rebaseWhen: "conflicted",
+  rebaseWhen: "behind-base-branch",
   automerge: true,
   automergeType: "pr",
   automergeStrategy: "squash",
