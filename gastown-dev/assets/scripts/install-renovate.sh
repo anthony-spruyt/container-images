@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # renovate: depName=renovate datasource=npm
-VERSION="42.83.2"
+VERSION="42.84.0"
 
 echo "Installing renovate@${VERSION}..."
 npm install -g --safe-chain-skip-minimum-package-age "renovate@${VERSION}"
