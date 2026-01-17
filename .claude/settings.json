@@ -61,6 +61,7 @@
       "Skill(hookify:writing-rules:*)",
       "WebFetch(domain:docs.ceph.com)",
       "WebFetch(domain:docs.cilium.io)",
+      "WebFetch(domain:docs.github.com)",
       "WebFetch(domain:docs.goauthentik.io)",
       "WebFetch(domain:docs.n8n.io)",
       "WebFetch(domain:docs.siderolabs.com)",
