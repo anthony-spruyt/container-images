@@ -34,6 +34,9 @@ misconfigurations:
     paths:
       - megalinter-container-images/Dockerfile
   # Upstream MegaLinter source code - not our code, can't fix their Dockerfiles
+  # Trivy scans from within upstream dir, so paths are relative to that
   - id: AVD-DS-0002
     paths:
       - upstream/**
+      - server/Dockerfile
+      - "**/server/Dockerfile"
