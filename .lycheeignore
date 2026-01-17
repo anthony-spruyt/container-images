@@ -13,8 +13,9 @@ https://git.alpinelinux.org/aports/plain/.*\?h=.*
 # Ignore LICENSE URL until pushed (lychee checks remote URLs)
 https://github.com/anthony-spruyt/container-images/blob/main/LICENSE
 
-# Ignore renamed workflow badge URL until PR is merged
+# Ignore workflow badge URLs until PR is merged
 https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml/badge.svg
+https://github.com/anthony-spruyt/container-images/actions/workflows/ci.yaml/badge.svg\?branch=main
 
 # Ignore example URLs used in tests
 https://github.com/example/repo/.*
