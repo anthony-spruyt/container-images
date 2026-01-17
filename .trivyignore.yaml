@@ -33,3 +33,7 @@ misconfigurations:
   - id: AVD-DS-0026
     paths:
       - megalinter-container-images/Dockerfile
+  # Upstream MegaLinter source code - not our code, can't fix their Dockerfiles
+  - id: AVD-DS-0002
+    paths:
+      - upstream/**
