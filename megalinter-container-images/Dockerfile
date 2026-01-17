@@ -9,7 +9,7 @@
 
 # Source images for linters not in ci_light
 # renovate: datasource=docker depName=rhysd/actionlint
-FROM rhysd/actionlint:1.7.9@sha256:a0383f60d92601e2694e24b24d37df7b6a40bed7cedbc447611c50009bf02d94 AS actionlint
+FROM rhysd/actionlint:1.7.10@sha256:ef8299f97635c4c30e2298f48f30763ab782a4ad2c95b744649439a039421e36 AS actionlint
 
 # renovate: datasource=docker depName=lycheeverse/lychee
 FROM lycheeverse/lychee:sha-db63437-alpine@sha256:50726dbf2af609acc8adc8ce09ee1248af7753108ae29c09849c8cc86a957a34 AS lychee
