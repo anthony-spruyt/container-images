@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "url": "https://api.github.com/repos/lvu/firemerge/tags",
+        "url": "https://api.github.com/repos/anthony-spruyt/firemerge/tags",
         "options": {}
       },
       "id": "0c017bb2-8877-4ed7-b8a7-824db324cf34",
