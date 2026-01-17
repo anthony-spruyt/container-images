@@ -91,9 +91,11 @@ jobs:
 
           elif [ "$EVENT_NAME" = "pull_request" ]; then
             # PR: compare against base branch
+            # Filter to only include images whose directories still exist (excludes deletions)
             CHANGED=$(git diff --name-only origin/main...HEAD | \
               grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|test\.sh|assets/|metadata\.yaml)' | \
               cut -d'/' -f1 | sort -u | \
+              while read -r img; do [ -d "$img" ] && echo "$img"; done | \
               jq -R -s -c 'split("\n") | map(select(length > 0))')
             SCRIPTS=$(detect_scripts "git diff --name-only origin/main...HEAD")
 
@@ -103,9 +105,11 @@ jobs:
 
           else
             # Push to main: compare against previous commit
+            # Filter to only include images whose directories still exist (excludes deletions)
             CHANGED=$(git diff --name-only HEAD~1 HEAD | \
               grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|metadata\.yaml|assets/)' | \
               cut -d'/' -f1 | sort -u | \
+              while read -r img; do [ -d "$img" ] && echo "$img"; done | \
               jq -R -s -c 'split("\n") | map(select(length > 0))')
             SCRIPTS=$(detect_scripts "git diff --name-only HEAD~1 HEAD")
 

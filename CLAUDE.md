@@ -48,7 +48,7 @@ Create `<image-name>/.trivyignore` for per-image vulnerability/secret ignores (p
 
 ### Optional: Add n8n Release Watcher
 
-The existing n8n templates (`chrony/n8n-release-watcher.json`, `firemerge/n8n-release-watcher.json`, `sungather/n8n-release-watcher.json`) check for new upstream versions and trigger builds automatically.
+The existing n8n templates (`chrony/n8n-release-watcher.json`, `firemerge/n8n-release-watcher.json`) check for new upstream versions and trigger builds automatically.
 
 **How version checking works:**
 
