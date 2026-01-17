@@ -1,0 +1,10 @@
+# Hadolint configuration
+# https://github.com/hadolint/hadolint#configure
+
+ignored:
+  # DL3007: Using latest - allowed in test-images/ fixtures
+  - DL3007
+  # DL3008/DL3018: Pin package versions - impractical for rolling releases
+  # Alpine/apt repos don't keep old versions available
+  - DL3008
+  - DL3018

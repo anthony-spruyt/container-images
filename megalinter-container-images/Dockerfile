@@ -31,5 +31,6 @@ RUN npm install -g markdownlint-cli@${MARKDOWNLINT_VERSION} \
     && npm cache clean --force \
     && rm -rf /root/.npm/_cacache
 
-# Set custom flavor name
-ENV MEGALINTER_FLAVOR=container-images
+# Set flavor to 'all' to bypass MegaLinter's flavor validation
+# (custom flavor names like 'container-images' aren't recognized by MegaLinter)
+ENV MEGALINTER_FLAVOR=all

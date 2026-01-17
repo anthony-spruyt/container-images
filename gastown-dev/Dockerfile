@@ -1,5 +1,8 @@
 FROM mcr.microsoft.com/devcontainers/base:jammy
 
+# Use bash with pipefail for safer pipe handling
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Install jq, tmux and feature-install CLI
 RUN apt-get update && apt-get install -y --no-install-recommends jq tmux \
     && rm -rf /var/lib/apt/lists/* \

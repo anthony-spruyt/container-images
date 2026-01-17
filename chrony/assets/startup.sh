@@ -13,18 +13,18 @@ NOCLIENTLOG="${NOCLIENTLOG:-false}"
 
 # Input validation (security: prevent injection attacks)
 if ! echo "$LOG_LEVEL" | grep -qE '^[0-3]$'; then
-    echo "ERROR: LOG_LEVEL must be 0-3, got: $LOG_LEVEL" >&2
-    exit 1
+  echo "ERROR: LOG_LEVEL must be 0-3, got: $LOG_LEVEL" >&2
+  exit 1
 fi
 
 if ! echo "$NTP_PORT" | grep -qE '^[0-9]+$'; then
-    echo "ERROR: NTP_PORT must be numeric, got: $NTP_PORT" >&2
-    exit 1
+  echo "ERROR: NTP_PORT must be numeric, got: $NTP_PORT" >&2
+  exit 1
 fi
 
 if [ "$NTP_PORT" -lt 1 ] || [ "$NTP_PORT" -gt 65535 ]; then
-    echo "ERROR: NTP_PORT must be 1-65535, got: $NTP_PORT" >&2
-    exit 1
+  echo "ERROR: NTP_PORT must be 1-65535, got: $NTP_PORT" >&2
+  exit 1
 fi
 
 # Configuration paths (writable locations)
@@ -57,25 +57,25 @@ EOF
 # Add NTP servers
 IFS=','
 for server in ${NTP_SERVERS}; do
-    server=$(echo "${server}" | xargs) # trim whitespace
-    if [ -n "${server}" ]; then
-        # Validate server name (hostname or IP format, security: prevent config injection)
-        if ! echo "$server" | grep -qE '^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$'; then
-            echo "WARNING: Invalid server name format: $server (skipping)" >&2
-            continue
-        fi
-        if [ "${ENABLE_NTS}" = "true" ]; then
-            echo "server ${server} iburst nts" >>"${CHRONY_CONF}"
-        else
-            echo "server ${server} iburst" >>"${CHRONY_CONF}"
-        fi
+  server=$(echo "${server}" | xargs) # trim whitespace
+  if [ -n "${server}" ]; then
+    # Validate server name (hostname or IP format, security: prevent config injection)
+    if ! echo "$server" | grep -qE '^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$'; then
+      echo "WARNING: Invalid server name format: $server (skipping)" >&2
+      continue
     fi
+    if [ "${ENABLE_NTS}" = "true" ]; then
+      echo "server ${server} iburst nts" >>"${CHRONY_CONF}"
+    else
+      echo "server ${server} iburst" >>"${CHRONY_CONF}"
+    fi
+  fi
 done
 unset IFS
 
 # Add noclientlog if enabled
 if [ "${NOCLIENTLOG}" = "true" ]; then
-    echo "noclientlog" >>"${CHRONY_CONF}"
+  echo "noclientlog" >>"${CHRONY_CONF}"
 fi
 
 # Log configuration on startup

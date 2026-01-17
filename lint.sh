@@ -9,25 +9,28 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 rm -rf "$REPO_ROOT/.output"
 mkdir "$REPO_ROOT/.output"
 
+# Custom MegaLinter flavor with 11 linters optimized for container repos
+# MEGALINTER_FLAVOR=all bypasses flavor validation (custom flavors aren't recognized)
 docker run \
-    -a STDOUT \
-    -a STDERR \
-    -u "$(id -u):$(id -g)" \
-    -w /tmp/lint \
-    -e HOME=/tmp \
-    -e APPLY_FIXES="all" \
-    -e UPDATED_SOURCES_REPORTER="true" \
-    -e REPORT_OUTPUT_FOLDER="/tmp/lint/.output" \
-    -v "$REPO_ROOT:/tmp/lint" \
-    --rm \
-    ghcr.io/oxsecurity/megalinter-documentation@sha256:c2f426be556c45c8ca6ca4bccb147160711531c698362dd0a05918536fc022bf # v9.2.0
+  -a STDOUT \
+  -a STDERR \
+  -u "$(id -u):$(id -g)" \
+  -w /tmp/lint \
+  -e HOME=/tmp \
+  -e MEGALINTER_FLAVOR=all \
+  -e APPLY_FIXES="all" \
+  -e UPDATED_SOURCES_REPORTER="true" \
+  -e REPORT_OUTPUT_FOLDER="/tmp/lint/.output" \
+  -v "$REPO_ROOT:/tmp/lint" \
+  --rm \
+  ghcr.io/anthony-spruyt/megalinter-container-images@sha256:575587d9caf54235888e3749734aec1ef094bdbd876dd0e0c88f443114a415ee # v9.3.0
 
 # Capture MegaLinter exit code
 LINT_EXIT_CODE=$?
 
 # Copy fixed files back to workspace
 if compgen -G "$REPO_ROOT/.output/updated_sources/*" >/dev/null; then
-    cp -r "$REPO_ROOT/.output/updated_sources"/* "$REPO_ROOT/"
+  cp -r "$REPO_ROOT/.output/updated_sources"/* "$REPO_ROOT/"
 fi
 
 exit $LINT_EXIT_CODE
