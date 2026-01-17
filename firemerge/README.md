@@ -2,7 +2,7 @@
 
 Semi-automated transaction entry for Firefly III.
 
-- **Upstream:** <https://github.com/lvu/firemerge>
+- **Upstream:** <https://github.com/anthony-spruyt/firemerge>
 - **Container:** `ghcr.io/anthony-spruyt/firemerge`
 
 ## n8n Release Watcher
@@ -11,7 +11,7 @@ The `n8n-release-watcher.json` workflow automatically detects new Firemerge rele
 
 ### What it does
 
-1. Checks GitHub daily (midnight UTC) for new tags on `lvu/firemerge`
+1. Checks GitHub daily (11PM AEST) for new tags on `anthony-spruyt/firemerge`
 2. Compares with the last processed version (stored in workflow static data)
 3. If a new version is found:
    - Triggers the container build workflow with the exact upstream tag
