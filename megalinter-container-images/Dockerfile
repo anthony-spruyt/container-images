@@ -9,17 +9,14 @@
 
 # Source images for linters not in ci_light
 # renovate: datasource=docker depName=rhysd/actionlint
-ARG ACTIONLINT_VERSION=1.7.9
-FROM rhysd/actionlint:${ACTIONLINT_VERSION}@sha256:a0383f60d92601e2694e24b24d37df7b6a40bed7cedbc447611c50009bf02d94 AS actionlint
+FROM rhysd/actionlint:1.7.9@sha256:a0383f60d92601e2694e24b24d37df7b6a40bed7cedbc447611c50009bf02d94 AS actionlint
 
 # renovate: datasource=docker depName=lycheeverse/lychee
-ARG LYCHEE_VERSION=sha-db63437-alpine
-FROM lycheeverse/lychee:${LYCHEE_VERSION}@sha256:50726dbf2af609acc8adc8ce09ee1248af7753108ae29c09849c8cc86a957a34 AS lychee
+FROM lycheeverse/lychee:sha-db63437-alpine@sha256:50726dbf2af609acc8adc8ce09ee1248af7753108ae29c09849c8cc86a957a34 AS lychee
 
 # Base: ci_light has shellcheck, shfmt, hadolint, yamllint, gitleaks, secretlint, trivy, jsonlint
 # renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
-ARG MEGALINTER_VERSION=v9.2.0
-FROM oxsecurity/megalinter-ci_light:${MEGALINTER_VERSION}@sha256:13345038effc56d6eadf2168373b52ae3ac90279881894a6e0760a6ff27fa591
+FROM oxsecurity/megalinter-ci_light:v9.2.0@sha256:13345038effc56d6eadf2168373b52ae3ac90279881894a6e0760a6ff27fa591
 
 # Add actionlint (GitHub Actions linter)
 COPY --link --from=actionlint /usr/local/bin/actionlint /usr/bin/actionlint
