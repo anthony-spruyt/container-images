@@ -35,19 +35,19 @@ ELAPSED=0
 while [ $ELAPSED -lt $TIMEOUT ]; do
     STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$CONTAINER_NAME" 2>/dev/null || echo "starting")
     case "$STATUS" in
-        healthy)
-            echo "  Container is healthy after ${ELAPSED}s"
-            break
-            ;;
-        unhealthy)
-            echo "  ERROR: Container became unhealthy"
-            docker logs "$CONTAINER_NAME"
-            exit 1
-            ;;
-        *)
-            sleep 2
-            ELAPSED=$((ELAPSED + 2))
-            ;;
+    healthy)
+        echo "  Container is healthy after ${ELAPSED}s"
+        break
+        ;;
+    unhealthy)
+        echo "  ERROR: Container became unhealthy"
+        docker logs "$CONTAINER_NAME"
+        exit 1
+        ;;
+    *)
+        sleep 2
+        ELAPSED=$((ELAPSED + 2))
+        ;;
     esac
 done
 
@@ -59,7 +59,7 @@ fi
 
 # Test 3: Verify chronyc can query tracking info (proves chronyd is running)
 echo "Test 3: Verify chronyc tracking..."
-if docker exec "$CONTAINER_NAME" chronyc -h /var/lib/chrony/chrony.sock -n tracking > /dev/null 2>&1; then
+if docker exec "$CONTAINER_NAME" chronyc -h /var/lib/chrony/chrony.sock -n tracking >/dev/null 2>&1; then
     echo "  chronyc tracking successful"
     docker exec "$CONTAINER_NAME" chronyc -h /var/lib/chrony/chrony.sock -n tracking | head -5
 else
@@ -89,19 +89,19 @@ ELAPSED=0
 while [ $ELAPSED -lt $TIMEOUT ]; do
     STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$CONTAINER_NAME_ZEROCAP" 2>/dev/null || echo "starting")
     case "$STATUS" in
-        healthy)
-            echo "  Zero-cap container is healthy after ${ELAPSED}s"
-            break
-            ;;
-        unhealthy)
-            echo "  ERROR: Zero-cap container became unhealthy"
-            docker logs "$CONTAINER_NAME_ZEROCAP"
-            exit 1
-            ;;
-        *)
-            sleep 2
-            ELAPSED=$((ELAPSED + 2))
-            ;;
+    healthy)
+        echo "  Zero-cap container is healthy after ${ELAPSED}s"
+        break
+        ;;
+    unhealthy)
+        echo "  ERROR: Zero-cap container became unhealthy"
+        docker logs "$CONTAINER_NAME_ZEROCAP"
+        exit 1
+        ;;
+    *)
+        sleep 2
+        ELAPSED=$((ELAPSED + 2))
+        ;;
     esac
 done
 
@@ -112,7 +112,7 @@ if [ $ELAPSED -ge $TIMEOUT ]; then
 fi
 
 # Verify chronyc works in zero-cap mode
-if docker exec "$CONTAINER_NAME_ZEROCAP" chronyc -h /var/lib/chrony/chrony.sock -n tracking > /dev/null 2>&1; then
+if docker exec "$CONTAINER_NAME_ZEROCAP" chronyc -h /var/lib/chrony/chrony.sock -n tracking >/dev/null 2>&1; then
     echo "  chronyc tracking works in zero-cap mode"
 else
     echo "  ERROR: chronyc failed in zero-cap mode"

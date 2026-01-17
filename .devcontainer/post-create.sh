@@ -13,8 +13,8 @@ echo "Installing safe-chain..."
 npm install -g "@aikidosec/safe-chain@$(node -p "require('./package.json').dependencies['@aikidosec/safe-chain']")"
 
 echo "Setting up safe-chain..."
-safe-chain setup        # Shell aliases for interactive terminals
-safe-chain setup-ci     # Executable shims for scripts/CI
+safe-chain setup    # Shell aliases for interactive terminals
+safe-chain setup-ci # Executable shims for scripts/CI
 
 # Add safe-chain shims to PATH for all subsequent commands
 # This ensures pre-commit and other tools use protected pip/npm
