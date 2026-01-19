@@ -122,11 +122,11 @@ jobs:
     name: Lint
     needs: detect-changes
     runs-on: ubuntu-latest
-    # Run if images or scripts changed (skip for renovate PRs)
+    # Run if images or scripts changed (skip for renovate/dependabot bot commits)
     if: |
       (needs.detect-changes.outputs.images != '[]' || needs.detect-changes.outputs.scripts == 'true') &&
       github.actor != 'renovate[bot]' &&
-      !startsWith(github.head_ref || '', 'renovate/')
+      github.actor != 'dependabot[bot]'
     concurrency:
       group: ${{ github.workflow }}-lint-${{ github.ref }}
       cancel-in-progress: true
