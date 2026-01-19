@@ -28,3 +28,9 @@ CVE-2025-66564
 
 # Dockerfile misconfiguration in upstream MegaLinter source included in image
 AVD-DS-0002
+
+# Python upstream dependency (pyasn1) - MegaLinter base image
+CVE-2026-23490
+
+# npm transitive dependency (tar) - markdownlint-cli
+CVE-2026-23745
