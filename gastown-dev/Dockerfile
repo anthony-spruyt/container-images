@@ -45,7 +45,7 @@ USER vscode
 # Set up user-specific tools for vscode user (runtime)
 # safe-chain: Already installed globally, just run setup for this user
 RUN safe-chain setup && safe-chain setup-ci
-ENV PATH="/home/vscode/.safe-chain/shims:$PATH"
+ENV PATH="/home/vscode/go/bin:/home/vscode/.safe-chain/shims:$PATH"
 
 # helm plugins: Install for vscode user
 RUN /tmp/scripts/install-helm-plugins.sh
