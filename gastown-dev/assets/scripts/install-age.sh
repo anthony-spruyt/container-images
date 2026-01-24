@@ -1,54 +1,30 @@
 #!/bin/bash
 set -euo pipefail
 
-echo "🔍 Checking OS and package manager..."
+# renovate: depName=FiloSottile/age datasource=github-releases
+VERSION="v1.3.0"
 
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-  if command -v apt &>/dev/null; then
-    echo "📦 Using apt (Debian/Ubuntu)"
-    apt update
-    if dpkg -s age &>/dev/null; then
-      echo "🔄 Updating age..."
-      apt install --only-upgrade -y age
-    else
-      echo "🆕 Installing age..."
-      apt install -y age
-    fi
-
-  elif command -v dnf &>/dev/null; then
-    echo "📦 Using dnf (Fedora/RHEL)"
-    dnf check-update || true
-    dnf install -y age # dnf handles upgrades automatically
-
-  elif command -v pacman &>/dev/null; then
-    echo "📦 Using pacman (Arch)"
-    pacman -Sy --noconfirm age # pacman also upgrades if installed
-
-  else
-    echo "❌ No supported package manager found! Install age manually."
-    exit 1
-  fi
-
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-  echo "🍎 macOS detected"
-  if ! command -v brew &>/dev/null; then
-    echo "❌ Homebrew is required but not found. Please install Homebrew first."
-    exit 1
-  fi
-  if brew list age &>/dev/null; then
-    echo "🔄 Upgrading age..."
-    brew upgrade age || echo "✅ Already up to date."
-  else
-    echo "🆕 Installing age..."
-    brew install age
-  fi
-
-else
-  echo "❌ Unsupported OS. Please install age manually:"
-  echo "👉 https://github.com/FiloSottile/age#installation"
+ARCH=$(uname -m)
+case "$ARCH" in
+x86_64) ARCH="amd64" ;;
+aarch64) ARCH="arm64" ;;
+*)
+  echo "Unsupported architecture: $ARCH"
   exit 1
-fi
+  ;;
+esac
 
-echo "✅ Installed versions:"
+# Remove existing to ensure version update
+rm -f /usr/local/bin/age /usr/local/bin/age-keygen
+
+# Download and extract age
+TARBALL="age-${VERSION}-linux-${ARCH}.tar.gz"
+curl -fsSLo /tmp/age.tar.gz "https://github.com/FiloSottile/age/releases/download/${VERSION}/${TARBALL}"
+tar -xzf /tmp/age.tar.gz -C /tmp
+mv /tmp/age/age /usr/local/bin/age
+mv /tmp/age/age-keygen /usr/local/bin/age-keygen
+chmod +x /usr/local/bin/age /usr/local/bin/age-keygen
+rm -rf /tmp/age.tar.gz /tmp/age
+
+echo "✅ age ${VERSION} installed successfully."
 age --version
-age-keygen --version

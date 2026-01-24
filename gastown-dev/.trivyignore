@@ -53,3 +53,4 @@ CVE-2025-66564
 # npm transitive dependency CVEs in global packages (renovate, etc.)
 # These are dependencies of upstream packages - we can't fix without new releases
 CVE-2026-23745
+CVE-2026-23950
