@@ -36,10 +36,10 @@ if [ -n "$UPSTREAM_INPUT" ] && [ -z "$UPSTREAM_METADATA" ]; then
   ERRORS=$((ERRORS + 1))
 fi
 
-# No upstream - verify local Dockerfile exists
+# No upstream - verify local Dockerfile or flavor.yaml exists
 if [ -z "$UPSTREAM" ]; then
-  if [ ! -f "$IMAGE_NAME/Dockerfile" ]; then
-    echo "::error::No upstream specified and no local Dockerfile found at $IMAGE_NAME/Dockerfile"
+  if [ ! -f "$IMAGE_NAME/Dockerfile" ] && [ ! -f "$IMAGE_NAME/flavor.yaml" ]; then
+    echo "::error::No upstream specified and no local Dockerfile or flavor.yaml found at $IMAGE_NAME/"
     ERRORS=$((ERRORS + 1))
   fi
 fi
