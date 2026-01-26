@@ -14,4 +14,3 @@ __pycache__/
 # Generated MegaLinter flavor files (regenerated at build time from flavor.yaml)
 megalinter-*/Dockerfile
 megalinter-*/test.sh
-megalinter-*/metadata.yaml
