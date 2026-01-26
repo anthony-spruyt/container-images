@@ -3,4 +3,5 @@
 # https://github.com/lvu/firemerge
 
 upstream: anthony-spruyt/firemerge
+# renovate: datasource=github-tags depName=anthony-spruyt/firemerge
 version: 0.5.3

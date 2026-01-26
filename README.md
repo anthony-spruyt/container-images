@@ -150,14 +150,14 @@ Trigger via GitHub API (workflow_dispatch):
 curl -X POST \
   -H "Authorization: token $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github.v3+json" \
-  https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml/dispatches \
+  https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/ci.yaml/dispatches \
   -d '{"ref":"main","inputs":{"image":"firemerge","version":"0.5.3"}}'
 
 # Production build - pushes to GHCR and creates release
 curl -X POST \
   -H "Authorization: token $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github.v3+json" \
-  https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml/dispatches \
+  https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/ci.yaml/dispatches \
   -d '{"ref":"main","inputs":{"image":"firemerge","version":"0.5.3","dry_run":"false"}}'
 ```
 
@@ -167,62 +167,29 @@ Parameters:
 - **version** (optional): Semver tag to build (e.g., `0.5.3`) - checks out this tag from upstream
 - **dry_run** (optional, default: `true`): When `true`, builds and scans the image but skips push to GHCR and release creation. Set to `false` for production builds.
 
-## n8n Workflow
+## Automatic Version Updates
 
-Create an n8n workflow to automatically trigger builds when upstream repos release new versions.
+### Renovate (Recommended)
 
-### Workflow Design
+Add a Renovate annotation to `metadata.yaml` for automatic version tracking:
 
-```mermaid
-flowchart LR
-    A[Schedule<br/>daily] --> B[GitHub API:<br/>Get latest tag]
-    B --> C[Compare with<br/>last known ver]
-    C --> D[GitHub API:<br/>Trigger workflow]
+```yaml
+upstream: owner/repo
+# renovate: datasource=github-tags depName=owner/repo
+version: "1.0.0"
 ```
 
-### Nodes
+Supported datasources:
 
-1. **Schedule Trigger** - Run daily (or use GitHub webhook for instant updates)
+- `github-tags` - GitHub repository tags
+- `github-releases` - GitHub releases
+- `docker` - Docker Hub or container registries
 
-2. **Get Latest Release** - HTTP Request to GitHub API:
+When Renovate detects a new version, it creates a PR. Merging triggers the build automatically.
 
-   ```text
-   GET https://api.github.com/repos/lvu/firemerge/releases/latest
-   ```
+### n8n Workflow (Special Cases)
 
-   Or for tags:
-
-   ```text
-   GET https://api.github.com/repos/lvu/firemerge/tags?per_page=1
-   ```
-
-3. **Compare Version** - Check if release already exists via GitHub releases API (pattern: `{image}-{version}` or `{image}-{version}-rN`)
-
-4. **Trigger Build** - HTTP Request (only if new version):
-
-   ```text
-   POST https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml/dispatches
-
-   Headers:
-     Authorization: Bearer $GITHUB_PAT
-     Accept: application/vnd.github.v3+json
-
-   Body:
-     {
-       "ref": "main",
-       "inputs": {
-         "image": "firemerge",
-         "version": "{{ $json.name }}",
-         "dry_run": "false"
-       }
-     }
-   ```
-
-   Note: Set `dry_run` to `"false"` for production builds. Default is `"true"` (dry run mode).
-
-### Required Secrets
-
-- **GitHub PAT** with `repo` and `workflow` scopes for triggering workflow_dispatch
+For upstream sources Renovate cannot monitor (e.g., Alpine packages), use n8n workflows. See `chrony/n8n-release-watcher.json` for an example that monitors Alpine package versions and triggers builds via workflow_dispatch
 
 ## Security
 

@@ -22,8 +22,15 @@ Create `<image-name>/metadata.yaml`:
 
 ```yaml
 upstream: owner/repo
+# renovate: datasource=github-tags depName=owner/repo
 version: "1.0.0"
 ```
+
+The Renovate annotation enables automatic version tracking. Supported datasources:
+
+- `github-tags` - GitHub repository tags
+- `github-releases` - GitHub releases
+- `docker` - Docker Hub or container registries
 
 ### Option 2: Local Dockerfile (no upstream)
 
@@ -46,27 +53,15 @@ Create `<image-name>/test.sh` - runs after build, before Trivy scan. See `chrony
 
 Create `<image-name>/.trivyignore` for per-image vulnerability/secret ignores (plain text, one ID per line). Falls back to global `.trivyignore.yaml` if not present. See `gastown-dev/.trivyignore` for example.
 
-### Optional: Add n8n Release Watcher
+### Optional: n8n Release Watcher (for non-standard sources)
 
-The existing n8n templates (`chrony/n8n-release-watcher.json`, `firemerge/n8n-release-watcher.json`) check for new upstream versions and trigger builds automatically.
-
-**How version checking works:**
-
-- Templates fetch existing releases from `api.github.com/repos/{owner}/container-images/releases`
-- Compare upstream version against existing release tags (pattern: `{image}-{version}` or `{image}-{version}-rN`)
-- Only dispatch build if no matching release exists
-
-When copying a template for a new image, update:
-
-- The upstream repository URL (tags endpoint)
-- The image name in the release tag pattern
-- The image name in the workflow dispatch body
+For upstream sources that Renovate cannot monitor (e.g., Alpine packages), use n8n workflows. See `chrony/n8n-release-watcher.json` for an example that monitors Alpine package versions.
 
 ## Build Triggers
 
 - **Pull requests**: Tests run on PRs when Dockerfile/test.sh/assets/metadata.yaml/flavor.yaml change
 - **Push to main**: Auto-builds on Dockerfile/metadata.yaml/flavor.yaml changes
-- **workflow_dispatch**: Manual trigger with `image` and `version` inputs (used by n8n)
+- **workflow_dispatch**: Manual trigger with `image` and `version` inputs
 
 ## Commits
 

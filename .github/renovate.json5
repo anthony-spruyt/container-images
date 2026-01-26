@@ -67,6 +67,18 @@
       datasourceTemplate: "{{#if datasource}}{{{datasource}}}{{else}}docker{{/if}}",
       versioningTemplate: "{{#if versioning}}{{{versioning}}}{{else}}docker{{/if}}",
     },
+    {
+      customType: "regex",
+      description: [
+        "Process renovate-annotated metadata.yaml files for upstream version tracking.",
+      ],
+      managerFilePatterns: ["/metadata\\.yaml$/"],
+      matchStrings: [
+        '#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(?:\\s+versioning=(?<versioning>\\S+))?\\n\\s*version:\\s*"?(?<currentValue>[^"\\s]+)"?',
+      ],
+      datasourceTemplate: "{{#if datasource}}{{{datasource}}}{{else}}github-tags{{/if}}",
+      versioningTemplate: "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}",
+    },
   ],
   packageRules: [
     {
@@ -111,6 +123,11 @@
       matchManagers: ["custom.regex"],
       matchFileNames: ["**/flavor.yaml"],
       labels: ["renovate/megalinter-flavor"],
+    },
+    {
+      matchManagers: ["custom.regex"],
+      matchFileNames: ["**/metadata.yaml"],
+      labels: ["renovate/upstream"],
     },
     {
       matchUpdateTypes: ["minor", "patch"],

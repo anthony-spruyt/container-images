@@ -128,7 +128,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/build-and-push.yaml/dispatches",
+        "url": "https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/ci.yaml/dispatches",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
