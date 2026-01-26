@@ -1,12 +1,13 @@
 #!/bin/bash
-# Test script for megalinter-container-images custom flavor
+# Test script for megalinter-{{ flavor.name }} custom flavor
+# DO NOT EDIT - Generated from flavor.yaml by megalinter-factory/generate.py
 # Usage: ./test.sh <image-ref>
 
 set -euo pipefail
 
 IMAGE_REF="${1:?Usage: $0 <image-ref>}"
 
-echo "=== MegaLinter Container-Images Flavor Tests ==="
+echo "=== MegaLinter {{ flavor.name | replace('-', ' ') | title }} Flavor Tests ==="
 echo "Image: $IMAGE_REF"
 echo ""
 
@@ -27,28 +28,18 @@ check_linter() {
   fi
 }
 
-# Bash linters (from ci_light base)
-check_linter "shellcheck" "shellcheck --version"
-check_linter "shfmt" "shfmt --version"
-
-# Dockerfile linter (from ci_light base)
-check_linter "hadolint" "hadolint --version"
-
-# YAML linter (from ci_light base)
-check_linter "yamllint" "yamllint --version"
-
-# JSON linter (from ci_light base)
-check_linter "jsonlint" "jsonlint --version"
-
-# Security linters (from ci_light base)
-check_linter "gitleaks" "gitleaks version"
-check_linter "secretlint" "secretlint --version"
-check_linter "trivy" "trivy --version"
-
-# Added linters (not in ci_light)
-check_linter "actionlint" "actionlint --version"
-check_linter "markdownlint" "markdownlint --version"
-check_linter "lychee" "lychee --version"
+{% if base_linters -%}
+# Base flavor linters (from {{ flavor.base_flavor }})
+{% for linter in base_linters -%}
+check_linter "{{ linter.name }}" "{{ linter.version_command }}"
+{% endfor %}
+{% endif -%}
+{% if custom_linters_for_test %}
+# Custom linters (added by this flavor)
+{% for linter in custom_linters_for_test -%}
+check_linter "{{ linter.name }}" "{{ linter.version_command }}"
+{% endfor %}
+{% endif -%}
 
 echo ""
 

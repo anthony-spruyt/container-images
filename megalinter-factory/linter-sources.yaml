@@ -1,0 +1,925 @@
+# MegaLinter Flavor Factory - Linter Sources Catalog
+# Comprehensive catalog of linters with their installation methods
+# Reference: https://github.com/oxsecurity/megalinter/tree/main/flavors
+---
+# Linters included in each base MegaLinter flavor (no install needed)
+# These are pre-installed in the base image
+# Source: https://github.com/oxsecurity/megalinter/tree/main/flavors
+base_flavor_linters:
+  # ci_light: 22 linters - Optimized for CI pipelines
+  ci_light:
+    - BASH_SHELLCHECK
+    - BASH_SHFMT
+    - COPYPASTE_JSCPD
+    - DOCKERFILE_HADOLINT
+    - ENV_DOTENV_LINTER
+    - GROOVY_NPM_GROOVY_LINT
+    - JSON_JSONLINT
+    - JSON_PRETTIER
+    - JSON_V8R
+    - REPOSITORY_GIT_DIFF
+    - REPOSITORY_GITLEAKS
+    - REPOSITORY_GRYPE
+    - REPOSITORY_LS_LINT
+    - REPOSITORY_SECRETLINT
+    - REPOSITORY_SYFT
+    - REPOSITORY_TRIVY
+    - REPOSITORY_TRIVY_SBOM
+    - REPOSITORY_TRUFFLEHOG
+    - XML_XMLLINT
+    - YAML_PRETTIER
+    - YAML_YAMLLINT
+    - YAML_V8R
+
+  # python: 61 linters - Optimized for Python projects
+  python:
+    - ACTION_ACTIONLINT
+    - ANSIBLE_ANSIBLE_LINT
+    - API_SPECTRAL
+    - BASH_EXEC
+    - BASH_SHELLCHECK
+    - BASH_SHFMT
+    - C_CPPCHECK
+    - C_CPPLINT
+    - COPYPASTE_JSCPD
+    - CPP_CPPCHECK
+    - CPP_CPPLINT
+    - CSS_STYLELINT
+    - DOCKERFILE_HADOLINT
+    - EDITORCONFIG_EDITORCONFIG_CHECKER
+    - ENV_DOTENV_LINTER
+    - GRAPHQL_GRAPHQL_SCHEMA_LINTER
+    - GROOVY_NPM_GROOVY_LINT
+    - HTML_DJLINT
+    - HTML_HTMLHINT
+    - JSON_JSONLINT
+    - JSON_PRETTIER
+    - JSON_V8R
+    - KOTLIN_DETEKT
+    - KOTLIN_KTLINT
+    - KUBERNETES_HELM
+    - KUBERNETES_KUBECONFORM
+    - KUBERNETES_KUBESCAPE
+    - MARKDOWN_MARKDOWNLINT
+    - MARKDOWN_MARKDOWN_TABLE_FORMATTER
+    - MARKDOWN_RUMDL
+    - PROTOBUF_PROTOLINT
+    - PYTHON_BANDIT
+    - PYTHON_BLACK
+    - PYTHON_FLAKE8
+    - PYTHON_ISORT
+    - PYTHON_MYPY
+    - PYTHON_PYLINT
+    - PYTHON_PYRIGHT
+    - PYTHON_RUFF
+    - PYTHON_RUFF_FORMAT
+    - REPOSITORY_CHECKOV
+    - REPOSITORY_GIT_DIFF
+    - REPOSITORY_GITLEAKS
+    - REPOSITORY_GRYPE
+    - REPOSITORY_LS_LINT
+    - REPOSITORY_SECRETLINT
+    - REPOSITORY_SEMGREP
+    - REPOSITORY_SYFT
+    - REPOSITORY_TRIVY
+    - REPOSITORY_TRIVY_SBOM
+    - REPOSITORY_TRUFFLEHOG
+    - RST_RST_LINT
+    - RST_RSTCHECK
+    - RST_RSTFMT
+    - SNAKEMAKE_LINT
+    - SNAKEMAKE_SNAKEFMT
+    - SPELL_CODESPELL
+    - SPELL_CSPELL
+    - SPELL_LYCHEE
+    - SPELL_PROSELINT
+    - SPELL_VALE
+    - SQL_SQLFLUFF
+    - TEKTON_TEKTON_LINT
+    - XML_XMLLINT
+    - YAML_PRETTIER
+    - YAML_YAMLLINT
+    - YAML_V8R
+
+  # javascript: 56 linters - Optimized for JavaScript/TypeScript projects
+  javascript:
+    - ACTION_ACTIONLINT
+    - ANSIBLE_ANSIBLE_LINT
+    - API_SPECTRAL
+    - BASH_EXEC
+    - BASH_SHELLCHECK
+    - BASH_SHFMT
+    - COFFEE_COFFEELINT
+    - COPYPASTE_JSCPD
+    - CSS_STYLELINT
+    - DOCKERFILE_HADOLINT
+    - EDITORCONFIG_EDITORCONFIG_CHECKER
+    - ENV_DOTENV_LINTER
+    - GRAPHQL_GRAPHQL_SCHEMA_LINTER
+    - GROOVY_NPM_GROOVY_LINT
+    - HTML_DJLINT
+    - HTML_HTMLHINT
+    - JAVASCRIPT_ES
+    - JAVASCRIPT_PRETTIER
+    - JAVASCRIPT_STANDARD
+    - JSON_JSONLINT
+    - JSON_NPM_PACKAGE_JSON_LINT
+    - JSON_PRETTIER
+    - JSON_V8R
+    - JSX_ESLINT
+    - KOTLIN_DETEKT
+    - KOTLIN_KTLINT
+    - KUBERNETES_HELM
+    - KUBERNETES_KUBECONFORM
+    - KUBERNETES_KUBESCAPE
+    - MARKDOWN_MARKDOWNLINT
+    - MARKDOWN_MARKDOWN_TABLE_FORMATTER
+    - MARKDOWN_RUMDL
+    - PROTOBUF_PROTOLINT
+    - REPOSITORY_CHECKOV
+    - REPOSITORY_GIT_DIFF
+    - REPOSITORY_GITLEAKS
+    - REPOSITORY_GRYPE
+    - REPOSITORY_LS_LINT
+    - REPOSITORY_SECRETLINT
+    - REPOSITORY_SEMGREP
+    - REPOSITORY_SYFT
+    - REPOSITORY_TRIVY
+    - REPOSITORY_TRIVY_SBOM
+    - REPOSITORY_TRUFFLEHOG
+    - SNAKEMAKE_LINT
+    - SNAKEMAKE_SNAKEFMT
+    - SPELL_CODESPELL
+    - SPELL_CSPELL
+    - SPELL_LYCHEE
+    - SPELL_PROSELINT
+    - SPELL_VALE
+    - SQL_SQLFLUFF
+    - TEKTON_TEKTON_LINT
+    - TSX_ESLINT
+    - TYPESCRIPT_ES
+    - TYPESCRIPT_PRETTIER
+    - TYPESCRIPT_STANDARD
+    - XML_XMLLINT
+    - YAML_PRETTIER
+    - YAML_YAMLLINT
+    - YAML_V8R
+
+  # terraform: 52 linters - Optimized for Terraform projects
+  terraform:
+    - ACTION_ACTIONLINT
+    - ANSIBLE_ANSIBLE_LINT
+    - API_SPECTRAL
+    - BASH_EXEC
+    - BASH_SHELLCHECK
+    - BASH_SHFMT
+    - COPYPASTE_JSCPD
+    - CSS_STYLELINT
+    - DOCKERFILE_HADOLINT
+    - EDITORCONFIG_EDITORCONFIG_CHECKER
+    - ENV_DOTENV_LINTER
+    - GRAPHQL_GRAPHQL_SCHEMA_LINTER
+    - GROOVY_NPM_GROOVY_LINT
+    - HTML_DJLINT
+    - HTML_HTMLHINT
+    - JSON_JSONLINT
+    - JSON_PRETTIER
+    - JSON_V8R
+    - KOTLIN_DETEKT
+    - KOTLIN_KTLINT
+    - KUBERNETES_HELM
+    - KUBERNETES_KUBECONFORM
+    - KUBERNETES_KUBESCAPE
+    - MARKDOWN_MARKDOWNLINT
+    - MARKDOWN_MARKDOWN_TABLE_FORMATTER
+    - MARKDOWN_RUMDL
+    - PROTOBUF_PROTOLINT
+    - REPOSITORY_CHECKOV
+    - REPOSITORY_GIT_DIFF
+    - REPOSITORY_GITLEAKS
+    - REPOSITORY_GRYPE
+    - REPOSITORY_KICS
+    - REPOSITORY_LS_LINT
+    - REPOSITORY_SECRETLINT
+    - REPOSITORY_SEMGREP
+    - REPOSITORY_SYFT
+    - REPOSITORY_TRIVY
+    - REPOSITORY_TRIVY_SBOM
+    - REPOSITORY_TRUFFLEHOG
+    - SNAKEMAKE_LINT
+    - SNAKEMAKE_SNAKEFMT
+    - SPELL_CODESPELL
+    - SPELL_CSPELL
+    - SPELL_LYCHEE
+    - SPELL_PROSELINT
+    - SPELL_VALE
+    - SQL_SQLFLUFF
+    - TEKTON_TEKTON_LINT
+    - TERRAFORM_TERRAGRUNT
+    - TERRAFORM_TERRASCAN
+    - TERRAFORM_TERRAFORM_FMT
+    - TERRAFORM_TFLINT
+    - XML_XMLLINT
+    - YAML_PRETTIER
+    - YAML_YAMLLINT
+    - YAML_V8R
+
+  # go: 49 linters - Optimized for Go projects
+  go:
+    - ACTION_ACTIONLINT
+    - ANSIBLE_ANSIBLE_LINT
+    - API_SPECTRAL
+    - BASH_EXEC
+    - BASH_SHELLCHECK
+    - BASH_SHFMT
+    - COPYPASTE_JSCPD
+    - CSS_STYLELINT
+    - DOCKERFILE_HADOLINT
+    - EDITORCONFIG_EDITORCONFIG_CHECKER
+    - ENV_DOTENV_LINTER
+    - GO_GOLANGCI_LINT
+    - GO_REVIVE
+    - GRAPHQL_GRAPHQL_SCHEMA_LINTER
+    - GROOVY_NPM_GROOVY_LINT
+    - HTML_DJLINT
+    - HTML_HTMLHINT
+    - JSON_JSONLINT
+    - JSON_PRETTIER
+    - JSON_V8R
+    - KOTLIN_DETEKT
+    - KOTLIN_KTLINT
+    - KUBERNETES_HELM
+    - KUBERNETES_KUBECONFORM
+    - KUBERNETES_KUBESCAPE
+    - MARKDOWN_MARKDOWNLINT
+    - MARKDOWN_MARKDOWN_TABLE_FORMATTER
+    - MARKDOWN_RUMDL
+    - PROTOBUF_PROTOLINT
+    - REPOSITORY_CHECKOV
+    - REPOSITORY_GIT_DIFF
+    - REPOSITORY_GITLEAKS
+    - REPOSITORY_GRYPE
+    - REPOSITORY_LS_LINT
+    - REPOSITORY_SECRETLINT
+    - REPOSITORY_SEMGREP
+    - REPOSITORY_SYFT
+    - REPOSITORY_TRIVY
+    - REPOSITORY_TRIVY_SBOM
+    - REPOSITORY_TRUFFLEHOG
+    - SNAKEMAKE_LINT
+    - SNAKEMAKE_SNAKEFMT
+    - SPELL_CODESPELL
+    - SPELL_CSPELL
+    - SPELL_LYCHEE
+    - SPELL_PROSELINT
+    - SPELL_VALE
+    - SQL_SQLFLUFF
+    - TEKTON_TEKTON_LINT
+    - XML_XMLLINT
+    - YAML_PRETTIER
+    - YAML_YAMLLINT
+    - YAML_V8R
+
+  # documentation: 51 linters - Optimized for documentation projects
+  documentation:
+    - ACTION_ACTIONLINT
+    - ANSIBLE_ANSIBLE_LINT
+    - API_SPECTRAL
+    - BASH_EXEC
+    - BASH_SHELLCHECK
+    - BASH_SHFMT
+    - COPYPASTE_JSCPD
+    - CSS_STYLELINT
+    - DOCKERFILE_HADOLINT
+    - EDITORCONFIG_EDITORCONFIG_CHECKER
+    - ENV_DOTENV_LINTER
+    - GRAPHQL_GRAPHQL_SCHEMA_LINTER
+    - GROOVY_NPM_GROOVY_LINT
+    - HTML_DJLINT
+    - HTML_HTMLHINT
+    - JSON_JSONLINT
+    - JSON_PRETTIER
+    - JSON_V8R
+    - KOTLIN_DETEKT
+    - KOTLIN_KTLINT
+    - KUBERNETES_HELM
+    - KUBERNETES_KUBECONFORM
+    - KUBERNETES_KUBESCAPE
+    - MARKDOWN_MARKDOWNLINT
+    - MARKDOWN_MARKDOWN_TABLE_FORMATTER
+    - MARKDOWN_RUMDL
+    - PROTOBUF_PROTOLINT
+    - REPOSITORY_CHECKOV
+    - REPOSITORY_GIT_DIFF
+    - REPOSITORY_GITLEAKS
+    - REPOSITORY_GRYPE
+    - REPOSITORY_LS_LINT
+    - REPOSITORY_SECRETLINT
+    - REPOSITORY_SEMGREP
+    - REPOSITORY_SYFT
+    - REPOSITORY_TRIVY
+    - REPOSITORY_TRIVY_SBOM
+    - REPOSITORY_TRUFFLEHOG
+    - SNAKEMAKE_LINT
+    - SNAKEMAKE_SNAKEFMT
+    - SPELL_CODESPELL
+    - SPELL_CSPELL
+    - SPELL_LYCHEE
+    - SPELL_PROSELINT
+    - SPELL_VALE
+    - SQL_SQLFLUFF
+    - TEKTON_TEKTON_LINT
+    - XML_XMLLINT
+    - YAML_PRETTIER
+    - YAML_YAMLLINT
+    - YAML_V8R
+
+  # security: 23 linters - Optimized for security scanning
+  security:
+    - ANSIBLE_ANSIBLE_LINT
+    - BASH_EXEC
+    - BASH_SHELLCHECK
+    - CLOUDFORMATION_CFN_LINT
+    - DOCKERFILE_HADOLINT
+    - KUBERNETES_HELM
+    - KUBERNETES_KUBECONFORM
+    - KUBERNETES_KUBESCAPE
+    - PYTHON_BANDIT
+    - REPOSITORY_CHECKOV
+    - REPOSITORY_DEVSKIM
+    - REPOSITORY_DUSTILOCK
+    - REPOSITORY_GITLEAKS
+    - REPOSITORY_GRYPE
+    - REPOSITORY_KICS
+    - REPOSITORY_KINGFISHER
+    - REPOSITORY_SECRETLINT
+    - REPOSITORY_SEMGREP
+    - REPOSITORY_SYFT
+    - REPOSITORY_TRIVY
+    - REPOSITORY_TRIVY_SBOM
+    - REPOSITORY_TRUFFLEHOG
+    - TERRAFORM_TERRAGRUNT
+    - TERRAFORM_TERRASCAN
+    - TERRAFORM_TFLINT
+
+# Custom linters - all supported installation types
+# Organized by category for easier navigation
+# Note: version_command is used for test.sh generation
+custom_linters:
+  # ============================================================
+  # ACTION LINTERS
+  # ============================================================
+  ACTION_ACTIONLINT:
+    type: docker_binary
+    source_image: rhysd/actionlint
+    default_version: "1.7.10"
+    binary_path: /usr/local/bin/actionlint
+    target_path: /usr/bin/actionlint
+    version_command: "actionlint --version"
+    description: "GitHub Actions workflow linter"
+
+  # ============================================================
+  # BASH LINTERS
+  # ============================================================
+  BASH_SHELLCHECK:
+    type: docker_binary
+    source_image: koalaman/shellcheck
+    default_version: "v0.11.0"
+    binary_path: /bin/shellcheck
+    target_path: /usr/bin/shellcheck
+    version_command: "shellcheck --version"
+    description: "Shell script static analysis"
+
+  BASH_SHFMT:
+    type: docker_binary
+    source_image: mvdan/shfmt
+    default_version: "v3.12.0-alpine"
+    binary_path: /bin/shfmt
+    target_path: /usr/bin/shfmt
+    version_command: "shfmt --version"
+    description: "Shell script formatter"
+
+  BASH_EXEC:
+    version_command: "bash --version"
+    description: "Bash script executor"
+
+  # ============================================================
+  # COPYPASTE DETECTION
+  # ============================================================
+  COPYPASTE_JSCPD:
+    type: npm
+    package: jscpd
+    default_version: "4.0.5"
+    version_command: "jscpd --version"
+    description: "Copy/paste detector"
+
+  # ============================================================
+  # DOCKERFILE LINTERS
+  # ============================================================
+  DOCKERFILE_HADOLINT:
+    type: docker_binary
+    source_image: hadolint/hadolint
+    default_version: "v2.12.0-alpine"
+    binary_path: /bin/hadolint
+    target_path: /usr/bin/hadolint
+    version_command: "hadolint --version"
+    description: "Dockerfile best practices linter"
+
+  # ============================================================
+  # ENV LINTERS
+  # ============================================================
+  ENV_DOTENV_LINTER:
+    type: cargo
+    package: dotenv-linter
+    default_version: "3.3.0"
+    version_command: "dotenv-linter --version"
+    description: ".env file linter"
+
+  # ============================================================
+  # GO LINTERS
+  # ============================================================
+  GO_GOLANGCI_LINT:
+    type: go
+    package: github.com/golangci/golangci-lint/cmd/golangci-lint
+    default_version: "1.64.8"
+    version_command: "golangci-lint version"
+    description: "Fast Go linters runner"
+
+  GO_REVIVE:
+    type: go
+    package: github.com/mgechev/revive
+    default_version: "1.13.0"
+    version_command: "revive -version"
+    description: "Fast, configurable Go linter"
+
+  # ============================================================
+  # GROOVY LINTERS
+  # ============================================================
+  GROOVY_NPM_GROOVY_LINT:
+    type: npm
+    package: npm-groovy-lint
+    default_version: "14.6.0"
+    version_command: "npm-groovy-lint --version"
+    description: "Groovy/Jenkinsfile linter"
+
+  # ============================================================
+  # JAVASCRIPT/TYPESCRIPT LINTERS
+  # ============================================================
+  JAVASCRIPT_ES:
+    type: npm
+    package: eslint
+    default_version: "8.57.1"
+    version_command: "eslint --version"
+    description: "JavaScript/TypeScript linter"
+
+  JAVASCRIPT_STANDARD:
+    type: npm
+    package: standard
+    default_version: "17.1.2"
+    version_command: "standard --version"
+    description: "JavaScript Standard Style"
+
+  JAVASCRIPT_PRETTIER:
+    type: npm
+    package: prettier
+    default_version: "3.7.4"
+    version_command: "prettier --version"
+    description: "Opinionated code formatter"
+
+  TYPESCRIPT_ES:
+    type: npm
+    package: eslint
+    default_version: "8.57.1"
+    version_command: "eslint --version"
+    description: "TypeScript linter (via ESLint)"
+
+  # ============================================================
+  # JSON LINTERS
+  # ============================================================
+  JSON_JSONLINT:
+    type: npm
+    package: jsonlint
+    default_version: "1.6.3"
+    version_command: "jsonlint --version"
+    description: "JSON syntax validator"
+
+  JSON_PRETTIER:
+    type: npm
+    package: prettier
+    default_version: "3.7.4"
+    version_command: "prettier --version"
+    description: "JSON formatter"
+
+  JSON_V8R:
+    type: npm
+    package: v8r
+    default_version: "4.2.0"
+    version_command: "v8r --version"
+    description: "JSON/YAML schema validator"
+
+  # ============================================================
+  # MARKDOWN LINTERS
+  # ============================================================
+  MARKDOWN_MARKDOWNLINT:
+    type: npm
+    package: markdownlint-cli
+    default_version: "0.44.0"
+    version_command: "markdownlint --version"
+    description: "Markdown linting"
+
+  MARKDOWN_REMARK_LINT:
+    type: npm
+    package: remark-cli
+    default_version: "12.0.1"
+    version_command: "remark --version"
+    description: "Markdown processor"
+
+  # ============================================================
+  # PYTHON LINTERS
+  # ============================================================
+  PYTHON_PYLINT:
+    type: pip
+    package: pylint
+    default_version: "4.0.4"
+    version_command: "pylint --version"
+    description: "Python static analyzer"
+
+  PYTHON_BLACK:
+    type: pip
+    package: black
+    default_version: "25.12.0"
+    version_command: "black --version"
+    description: "Python code formatter"
+
+  PYTHON_FLAKE8:
+    type: pip
+    package: flake8
+    default_version: "7.3.0"
+    version_command: "flake8 --version"
+    description: "Python style checker"
+
+  PYTHON_ISORT:
+    type: pip
+    package: isort
+    default_version: "7.0.0"
+    version_command: "isort --version"
+    description: "Python import sorter"
+
+  PYTHON_BANDIT:
+    type: pip
+    package: bandit
+    default_version: "1.9.3"
+    version_command: "bandit --version"
+    description: "Python security linter"
+
+  PYTHON_MYPY:
+    type: pip
+    package: mypy
+    default_version: "1.19.1"
+    version_command: "mypy --version"
+    description: "Python static type checker"
+
+  PYTHON_PYRIGHT:
+    type: npm
+    package: pyright
+    default_version: "1.1.408"
+    version_command: "pyright --version"
+    description: "Python static type checker"
+
+  PYTHON_RUFF:
+    type: pip
+    package: ruff
+    default_version: "0.14.13"
+    version_command: "ruff --version"
+    description: "Fast Python linter and formatter"
+
+  # ============================================================
+  # REPOSITORY/SECURITY LINTERS
+  # ============================================================
+  REPOSITORY_CHECKOV:
+    type: pip
+    package: checkov
+    default_version: "3.2.400"
+    version_command: "checkov --version"
+    description: "Infrastructure as Code scanner"
+
+  REPOSITORY_DEVSKIM:
+    version_command: "devskim --version"
+    description: "Microsoft DevSkim security linter"
+
+  REPOSITORY_DUSTILOCK:
+    version_command: "dustilock --version"
+    description: "Dependency lock file checker"
+
+  REPOSITORY_GIT_DIFF:
+    version_command: "git --version"
+    description: "Git diff checker"
+
+  REPOSITORY_GITLEAKS:
+    type: docker_binary
+    source_image: zricethezav/gitleaks
+    default_version: "v8.27.5"
+    binary_path: /usr/bin/gitleaks
+    target_path: /usr/bin/gitleaks
+    version_command: "gitleaks version"
+    description: "Git secrets scanner"
+
+  REPOSITORY_GRYPE:
+    version_command: "grype version"
+    description: "Container vulnerability scanner"
+
+  REPOSITORY_KINGFISHER:
+    version_command: "kingfisher --version"
+    description: "MongoDB security scanner"
+
+  REPOSITORY_KICS:
+    type: docker_binary
+    source_image: checkmarx/kics
+    default_version: "v2.2.1"
+    binary_path: /app/bin/kics
+    target_path: /usr/bin/kics
+    version_command: "kics version"
+    description: "Infrastructure as Code scanner"
+
+  REPOSITORY_LS_LINT:
+    type: npm
+    package: "@ls-lint/ls-lint"
+    default_version: "2.3.0"
+    version_command: "ls-lint --version"
+    description: "File/directory name linter"
+
+  REPOSITORY_SECRETLINT:
+    type: npm
+    package: secretlint
+    default_version: "11.2.5"
+    version_command: "secretlint --version"
+    description: "Secret detection tool"
+
+  REPOSITORY_SEMGREP:
+    type: pip
+    package: semgrep
+    default_version: "1.123.0"
+    version_command: "semgrep --version"
+    description: "Static analysis tool"
+
+  REPOSITORY_SYFT:
+    version_command: "syft version"
+    description: "SBOM generator"
+
+  REPOSITORY_TRIVY:
+    type: docker_binary
+    source_image: aquasec/trivy
+    default_version: "0.68.2"
+    binary_path: /usr/local/bin/trivy
+    target_path: /usr/bin/trivy
+    version_command: "trivy --version"
+    description: "Vulnerability scanner"
+
+  REPOSITORY_TRIVY_SBOM:
+    version_command: "trivy --version"
+    description: "Trivy SBOM scanner"
+
+  REPOSITORY_TRUFFLEHOG:
+    type: docker_binary
+    source_image: trufflesecurity/trufflehog
+    default_version: "3.95.1"
+    binary_path: /usr/bin/trufflehog
+    target_path: /usr/bin/trufflehog
+    version_command: "trufflehog --version"
+    description: "Secrets detection"
+
+  # ============================================================
+  # SPELL/LINK CHECKERS
+  # ============================================================
+  SPELL_CSPELL:
+    type: npm
+    package: cspell
+    default_version: "8.17.0"
+    version_command: "cspell --version"
+    description: "Code spell checker"
+
+  SPELL_CODESPELL:
+    type: pip
+    package: codespell
+    default_version: "2.4.1"
+    version_command: "codespell --version"
+    description: "Code spell checker"
+
+  SPELL_LYCHEE:
+    type: docker_binary
+    source_image: lycheeverse/lychee
+    default_version: "sha-db63437-alpine"
+    binary_path: /usr/local/bin/lychee
+    target_path: /usr/bin/lychee
+    version_command: "lychee --version"
+    description: "Fast link checker"
+
+  SPELL_PROSELINT:
+    type: pip
+    package: proselint
+    default_version: "0.14.0"
+    version_command: "proselint --version"
+    description: "Prose linter"
+
+  SPELL_VALE:
+    version_command: "vale --version"
+    description: "Prose linter"
+
+  # ============================================================
+  # TERRAFORM LINTERS
+  # ============================================================
+  TERRAFORM_TFLINT:
+    type: docker_binary
+    source_image: ghcr.io/terraform-linters/tflint
+    default_version: "v0.60.0"
+    binary_path: /usr/local/bin/tflint
+    target_path: /usr/bin/tflint
+    version_command: "tflint --version"
+    description: "Terraform linter"
+
+  TERRAFORM_TERRASCAN:
+    type: docker_binary
+    source_image: tenable/terrascan
+    default_version: "1.19.9"
+    binary_path: /go/bin/terrascan
+    target_path: /usr/bin/terrascan
+    version_command: "terrascan version"
+    description: "Terraform security scanner"
+
+  TERRAFORM_TERRAGRUNT:
+    version_command: "terragrunt --version"
+    description: "Terraform wrapper"
+
+  TERRAFORM_TERRAFORM_FMT:
+    version_command: "terraform version"
+    description: "Terraform formatter"
+
+  # ============================================================
+  # XML LINTERS
+  # ============================================================
+  XML_XMLLINT:
+    version_command: "xmllint --version"
+    description: "XML linter"
+
+  # ============================================================
+  # YAML LINTERS
+  # ============================================================
+  YAML_YAMLLINT:
+    type: pip
+    package: yamllint
+    default_version: "1.37.1"
+    version_command: "yamllint --version"
+    description: "YAML linter"
+
+  YAML_PRETTIER:
+    type: npm
+    package: prettier
+    default_version: "3.7.4"
+    version_command: "prettier --version"
+    description: "YAML formatter"
+
+  YAML_V8R:
+    type: npm
+    package: v8r
+    default_version: "4.2.0"
+    version_command: "v8r --version"
+    description: "YAML schema validator"
+
+  # ============================================================
+  # CSS LINTERS
+  # ============================================================
+  CSS_STYLELINT:
+    type: npm
+    package: stylelint
+    default_version: "16.22.0"
+    version_command: "stylelint --version"
+    description: "CSS linter"
+
+  # ============================================================
+  # HTML LINTERS
+  # ============================================================
+  HTML_HTMLHINT:
+    type: npm
+    package: htmlhint
+    default_version: "1.1.4"
+    version_command: "htmlhint --version"
+    description: "HTML linter"
+
+  HTML_DJLINT:
+    type: pip
+    package: djlint
+    default_version: "1.38.4"
+    version_command: "djlint --version"
+    description: "Django/Jinja template linter"
+
+  # ============================================================
+  # JAVA LINTERS
+  # ============================================================
+  JAVA_CHECKSTYLE:
+    type: docker_binary
+    source_image: ghcr.io/checkstyle/checkstyle
+    default_version: "10.25.0"
+    binary_path: /usr/local/bin/checkstyle
+    target_path: /usr/bin/checkstyle
+    version_command: "checkstyle --version"
+    description: "Java style checker"
+
+  # ============================================================
+  # KOTLIN LINTERS
+  # ============================================================
+  KOTLIN_KTLINT:
+    type: docker_binary
+    source_image: pinterest/ktlint
+    default_version: "1.5.0"
+    binary_path: /usr/local/bin/ktlint
+    target_path: /usr/bin/ktlint
+    version_command: "ktlint --version"
+    description: "Kotlin linter"
+
+  # ============================================================
+  # KUBERNETES LINTERS
+  # ============================================================
+  KUBERNETES_KUBECONFORM:
+    type: docker_binary
+    source_image: ghcr.io/yannh/kubeconform
+    default_version: "v0.7.0"
+    binary_path: /kubeconform
+    target_path: /usr/bin/kubeconform
+    version_command: "kubeconform -v"
+    description: "Kubernetes manifest validator"
+
+  KUBERNETES_HELM:
+    type: docker_binary
+    source_image: alpine/helm
+    default_version: "3.17.3"
+    binary_path: /usr/bin/helm
+    target_path: /usr/bin/helm
+    version_command: "helm version"
+    description: "Helm chart linter"
+
+  # ============================================================
+  # ANSIBLE LINTERS
+  # ============================================================
+  ANSIBLE_ANSIBLE_LINT:
+    type: pip
+    package: ansible-lint
+    default_version: "25.6.1"
+    version_command: "ansible-lint --version"
+    description: "Ansible playbook linter"
+
+  # ============================================================
+  # CLOUDFORMATION LINTERS
+  # ============================================================
+  CLOUDFORMATION_CFN_LINT:
+    type: pip
+    package: cfn-lint
+    default_version: "1.38.0"
+    version_command: "cfn-lint --version"
+    description: "CloudFormation linter"
+
+  # ============================================================
+  # API LINTERS
+  # ============================================================
+  API_SPECTRAL:
+    type: npm
+    package: "@stoplight/spectral-cli"
+    default_version: "6.17.0"
+    version_command: "spectral --version"
+    description: "OpenAPI/AsyncAPI linter"
+
+  # ============================================================
+  # RUST LINTERS
+  # ============================================================
+  RUST_CLIPPY:
+    type: cargo
+    package: clippy
+    default_version: "0.1.83"
+    version_command: "cargo clippy --version"
+    description: "Rust linter"
+
+  # ============================================================
+  # GRAPHQL LINTERS
+  # ============================================================
+  GRAPHQL_GRAPHQL_SCHEMA_LINTER:
+    type: npm
+    package: graphql-schema-linter
+    default_version: "3.0.1"
+    version_command: "graphql-schema-linter --version"
+    description: "GraphQL schema linter"
+
+  # ============================================================
+  # SQL LINTERS
+  # ============================================================
+  SQL_SQLFLUFF:
+    type: pip
+    package: sqlfluff
+    default_version: "3.4.1"
+    version_command: "sqlfluff --version"
+    description: "SQL linter and formatter"
+
+  SQL_SQL_LINT:
+    type: npm
+    package: sql-lint
+    default_version: "1.0.0"
+    version_command: "sql-lint --version"
+    description: "SQL linter"

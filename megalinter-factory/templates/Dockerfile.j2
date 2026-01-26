@@ -1,0 +1,67 @@
+# Custom MegaLinter flavor: {{ flavor.name }}
+# {{ flavor.description }}
+#
+# DO NOT EDIT - Generated from flavor.yaml by megalinter-factory/generate.py
+#
+# Included linters ({{ all_linters | length }}):
+# - {{ all_linters | join(', ') }}
+{% if docker_binary_linters %}
+
+# Source images for linters not in {{ flavor.base_flavor }}
+{% for linter in docker_binary_linters -%}
+FROM {{ linter.source_image }}:{{ linter.version }}{{ '@' + linter.digest if linter.digest else '' }} AS {{ linter.name }}
+{% endfor %}
+{%- endif %}
+
+# Base: {{ flavor.base_flavor }} flavor from MegaLinter
+FROM oxsecurity/megalinter-{{ flavor.base_flavor }}:{{ flavor.upstream_version }}{{ '@' + flavor.upstream_digest if flavor.upstream_digest else '' }}
+{% if docker_binary_linters %}
+
+# Add binary linters from source images
+{% for linter in docker_binary_linters -%}
+COPY --link --from={{ linter.name }} {{ linter.binary_path }} {{ linter.target_path }}
+{% endfor %}
+{%- endif %}
+{% if npm_linters %}
+
+# Add npm-based linters (node already available in MegaLinter)
+{% for linter in npm_linters -%}
+ARG {{ linter.name | upper }}_VERSION={{ linter.version }}
+{% endfor -%}
+RUN npm install -g{% for linter in npm_linters %} {{ linter.package }}@${{ '{' }}{{ linter.name | upper }}_VERSION{{ '}' }}{% endfor %} \
+    && npm cache clean --force \
+    && rm -rf /root/.npm/_cacache
+{%- endif %}
+{%- if pip_linters %}
+
+# Add pip-based linters
+{% for linter in pip_linters -%}
+ARG {{ linter.name | upper }}_VERSION={{ linter.version }}
+{% endfor -%}
+RUN pip install --no-cache-dir{% for linter in pip_linters %} {{ linter.package }}==${{ '{' }}{{ linter.name | upper }}_VERSION{{ '}' }}{% endfor %}
+{%- endif %}
+{%- if go_linters %}
+
+# Add go-based linters
+{% for linter in go_linters -%}
+ARG {{ linter.name | upper }}_VERSION={{ linter.version }}
+RUN go install {{ linter.package }}@v${{ '{' }}{{ linter.name | upper }}_VERSION{{ '}' }}
+{% endfor %}
+{%- endif %}
+{%- if cargo_linters %}
+
+# Add cargo-based linters
+{% for linter in cargo_linters -%}
+ARG {{ linter.name | upper }}_VERSION={{ linter.version }}
+RUN cargo install {{ linter.package }} --version ${{ '{' }}{{ linter.name | upper }}_VERSION{{ '}' }}
+{% endfor %}
+{%- endif %}
+{%- if flavor.extra_dockerfile %}
+
+# Custom Dockerfile additions
+{{ flavor.extra_dockerfile }}
+{% endif %}
+
+# Set flavor to 'all' to bypass MegaLinter's flavor validation
+# (custom flavor names like '{{ flavor.name }}' aren't recognized by MegaLinter)
+ENV MEGALINTER_FLAVOR=all
