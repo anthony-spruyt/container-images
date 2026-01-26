@@ -101,7 +101,11 @@ If NO linters were provided, use AskUserQuestion to help the user select linters
 
 The generator will automatically use `ci_light` as the base flavor (it's the lightest). The user can override this by editing `upstream_image` after creation.
 
-## Step 5: Generate flavor.yaml
+## Step 5: Generate Configuration Files
+
+Create the directory and both required configuration files.
+
+### 5a: Create flavor.yaml
 
 Create `megalinter-<name>/flavor.yaml` with this simple structure:
 
@@ -134,11 +138,29 @@ custom_linters:
 docker buildx imagetools inspect oxsecurity/megalinter-ci_light:v9.3.0 --format '{{json .Manifest}}' | jq -r '.digest'
 ```
 
+### 5b: Create metadata.yaml
+
+Create `megalinter-<name>/metadata.yaml` for CI versioning:
+
+```yaml
+---
+# Custom MegaLinter flavor: <name>
+# <description>
+#
+# Version is managed independently of upstream - update manually for major changes.
+# auto_patch: true enables automatic patch version increments on rebuild.
+
+version: "v1.0"
+auto_patch: true
+```
+
 ## Step 6: Report Success
 
 Inform the user:
 
-1. The flavor.yaml has been created at `megalinter-<name>/flavor.yaml`
+1. Configuration files created:
+   - `megalinter-<name>/flavor.yaml` - flavor configuration
+   - `megalinter-<name>/metadata.yaml` - CI versioning
 2. Linter versions will be extracted from MegaLinter at build time
 3. Next steps:
    - Commit the changes
