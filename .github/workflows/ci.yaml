@@ -167,7 +167,7 @@ jobs:
       # Custom MegaLinter flavor with 11 linters optimized for container repos
       # MEGALINTER_FLAVOR=all bypasses flavor validation (custom flavors aren't recognized)
       - name: Run MegaLinter
-        uses: docker://ghcr.io/anthony-spruyt/megalinter-container-images@sha256:00ffb2ab1cb87e7eb479bc5c66923b0980c8663c16b4a65ac53bd7295307cb01
+        uses: docker://ghcr.io/anthony-spruyt/megalinter-container-images@sha256:d2f7c68f1c9c23cb1f993727dba1d20418e7849a7624f8033e136ab2fd86839c
         env:
           MEGALINTER_FLAVOR: all
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
