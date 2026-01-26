@@ -64,8 +64,8 @@ When copying a template for a new image, update:
 
 ## Build Triggers
 
-- **Pull requests**: Tests run on PRs when Dockerfile/test.sh/assets/metadata.yaml change
-- **Push to main**: Auto-builds on Dockerfile/metadata.yaml changes
+- **Pull requests**: Tests run on PRs when Dockerfile/test.sh/assets/metadata.yaml/flavor.yaml change
+- **Push to main**: Auto-builds on Dockerfile/metadata.yaml/flavor.yaml changes
 - **workflow_dispatch**: Manual trigger with `image` and `version` inputs (used by n8n)
 
 ## Commits
@@ -90,3 +90,49 @@ Examples:
 ## Linters (configured in .mega-linter.yml)
 
 ACTION_ACTIONLINT, BASH_SHELLCHECK, BASH_SHFMT, DOCKERFILE_HADOLINT, JSON_JSONLINT, MARKDOWN_MARKDOWNLINT, REPOSITORY_GITLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY, SPELL_LYCHEE, YAML_YAMLLINT
+
+## MegaLinter Flavor Factory
+
+Create custom MegaLinter flavors by defining a `flavor.yaml` configuration. CI generates Dockerfile at build time.
+
+### Creating a New MegaLinter Flavor
+
+1. Create directory: `megalinter-<name>/`
+2. Create `flavor.yaml` with Renovate annotations for version tracking:
+
+```yaml
+name: my-flavor
+description: "Custom MegaLinter for my use case"
+upstream: oxsecurity/megalinter
+# renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
+upstream_version: "v9.3.0"
+base_flavor: ci_light
+
+custom_linters:
+  - linter_key: ACTION_ACTIONLINT
+    type: docker_binary
+    source_image: rhysd/actionlint
+    # renovate: datasource=docker depName=rhysd/actionlint
+    version: "1.7.10"
+```
+
+3. Commit and push - CI generates all files and builds automatically
+
+### Version Updates
+
+Renovate detects updates via `# renovate:` annotations in `flavor.yaml` and creates PRs automatically.
+
+### Local Development
+
+```bash
+pip install pyyaml jinja2
+python megalinter-factory/generate.py megalinter-<name>/
+```
+
+Generated files (`Dockerfile`, `test.sh`) are gitignored - CI regenerates at build time.
+
+### Factory Files
+
+- `megalinter-factory/generate.py` - Generator script
+- `megalinter-factory/templates/` - Jinja2 templates
+- `megalinter-factory/linter-sources.yaml` - Linter catalog (50+ linters)

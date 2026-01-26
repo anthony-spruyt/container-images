@@ -55,6 +55,18 @@
       datasourceTemplate: "{{#if datasource}}{{{datasource}}}{{else}}github-releases{{/if}}",
       versioningTemplate: "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}",
     },
+    {
+      customType: "regex",
+      description: [
+        "Process renovate-annotated flavor.yaml files for MegaLinter flavors.",
+      ],
+      managerFilePatterns: ["/flavor\\.yaml$/"],
+      matchStrings: [
+        '#\\s*renovate:\\s*datasource=(?<datasource>\\S+)\\s+depName=(?<depName>\\S+)(?:\\s+versioning=(?<versioning>\\S+))?\\n\\s*(?:upstream_)?version:\\s*"(?<currentValue>[^"]+)"',
+      ],
+      datasourceTemplate: "{{#if datasource}}{{{datasource}}}{{else}}docker{{/if}}",
+      versioningTemplate: "{{#if versioning}}{{{versioning}}}{{else}}docker{{/if}}",
+    },
   ],
   packageRules: [
     {
@@ -94,6 +106,11 @@
     {
       matchManagers: ["npm"],
       labels: ["renovate/npm"],
+    },
+    {
+      matchManagers: ["custom.regex"],
+      matchFileNames: ["**/flavor.yaml"],
+      labels: ["renovate/megalinter-flavor"],
     },
     {
       matchUpdateTypes: ["minor", "patch"],

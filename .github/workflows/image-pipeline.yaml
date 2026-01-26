@@ -215,6 +215,16 @@ jobs:
             echo "path=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Generate flavor files
+        env:
+          IMAGE_NAME: ${{ inputs.image }}
+        run: |
+          if [ -f "$IMAGE_NAME/flavor.yaml" ]; then
+            echo "::notice::Found flavor.yaml, generating Dockerfile and test.sh"
+            pip install -q pyyaml jinja2
+            python megalinter-factory/generate.py "$IMAGE_NAME"
+          fi
+
       - name: Verify Dockerfile exists
         env:
           CONTEXT_PATH: ${{ steps.context.outputs.path }}

@@ -23,7 +23,10 @@
       "Skill(hookify:writing-rules)",
       "Skill(hookify:writing-rules:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(docker pull:*)"
+      "Bash(docker pull:*)",
+      "Bash(chmod:*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)"
     ]
   }
 }

@@ -1,0 +1,59 @@
+# MegaLinter Flavor Factory Configuration
+# Source of truth for megalinter-container-images flavor
+#
+# To regenerate Dockerfile, test.sh, and metadata.yaml:
+#   python megalinter-factory/generate.py megalinter-container-images/
+---
+name: container-images
+description: "MegaLinter for container/infrastructure repositories"
+
+# Upstream MegaLinter repo for version tracking
+upstream: oxsecurity/megalinter
+
+# Version of the base MegaLinter flavor (used in FROM statement)
+# renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
+upstream_version: "v9.3.0"
+upstream_digest: "sha256:a71e62c83e3b2d52316e7322b9168e1588e9bcf454dbf9b21fc71b0954786e5e"
+
+# Which official MegaLinter flavor to extend
+# ci_light includes: shellcheck, shfmt, hadolint, yamllint, jsonlint,
+#                    gitleaks, secretlint, trivy
+base_flavor: ci_light
+
+# Additional linters not in base flavor
+custom_linters:
+  # GitHub Actions workflow linter
+  - name: actionlint
+    linter_key: ACTION_ACTIONLINT
+    type: docker_binary
+    source_image: rhysd/actionlint
+    # renovate: datasource=docker depName=rhysd/actionlint
+    version: "1.7.10"
+    digest: "sha256:ef8299f97635c4c30e2298f48f30763ab782a4ad2c95b744649439a039421e36"
+    binary_path: /usr/local/bin/actionlint
+    target_path: /usr/bin/actionlint
+    version_command: "actionlint --version"
+    description: "GitHub Actions workflow linter"
+
+  # Fast link checker
+  - name: lychee
+    linter_key: SPELL_LYCHEE
+    type: docker_binary
+    source_image: lycheeverse/lychee
+    # renovate: datasource=docker depName=lycheeverse/lychee
+    version: "sha-db63437-alpine"
+    digest: "sha256:50726dbf2af609acc8adc8ce09ee1248af7753108ae29c09849c8cc86a957a34"
+    binary_path: /usr/local/bin/lychee
+    target_path: /usr/bin/lychee
+    version_command: "lychee --version"
+    description: "Fast link checker"
+
+  # Markdown linting
+  - name: markdownlint
+    linter_key: MARKDOWN_MARKDOWNLINT
+    type: npm
+    package: markdownlint-cli
+    # renovate: datasource=npm depName=markdownlint-cli
+    version: "0.44.0"
+    version_command: "markdownlint --version"
+    description: "Markdown linting"

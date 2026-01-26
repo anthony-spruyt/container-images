@@ -10,3 +10,8 @@ node_modules/
 # Python
 __pycache__/
 *.py[cod]
+
+# Generated MegaLinter flavor files (regenerated at build time from flavor.yaml)
+megalinter-*/Dockerfile
+megalinter-*/test.sh
+megalinter-*/metadata.yaml
