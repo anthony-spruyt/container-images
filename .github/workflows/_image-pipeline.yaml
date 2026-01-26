@@ -45,6 +45,13 @@ env:
   REGISTRY: ghcr.io
   OWNER: ${{ github.repository_owner }}
 
+# Prevent race condition: only one build per image at a time
+# With cancel-in-progress: false, the next queued build waits for the current one
+# When it starts, check-release will see any releases created by the previous build
+concurrency:
+  group: release-${{ inputs.image }}
+  cancel-in-progress: false
+
 jobs:
   check-release:
     name: Check Release
