@@ -1,13 +1,13 @@
 # MegaLinter Flavor Factory Configuration
-# Source of truth for megalinter-container-images flavor
+# Source of truth for megalinter-claude-config flavor
 #
 # To regenerate Dockerfile and test.sh:
-#   python megalinter-factory/generate.py megalinter-container-images/
+#   python megalinter-factory/generate.py megalinter-claude-config/
 #
 # Linter versions are automatically extracted from MegaLinter at build time.
 ---
-name: container-images
-description: "MegaLinter for container/infrastructure repositories"
+name: claude-config
+description: "MegaLinter flavor for Claude Code configuration repositories"
 
 # Upstream MegaLinter base image (Renovate tracks this)
 # renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
@@ -21,5 +21,6 @@ upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:a71e62c83e3b2d5231
 #   REPOSITORY_GITLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY
 custom_linters:
   - ACTION_ACTIONLINT
-  - SPELL_LYCHEE
   - MARKDOWN_MARKDOWNLINT
+  - PYTHON_PYLINT
+  - SPELL_LYCHEE
