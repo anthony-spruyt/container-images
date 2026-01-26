@@ -62,7 +62,26 @@ Use this for custom images with no upstream source:
 
 Custom MegaLinter flavors extend official flavors with additional linters. The `megalinter-factory/` directory contains tooling to generate flavor files from a simple configuration.
 
-### Quick Start
+### Using Claude Code (Recommended)
+
+The `/create-megalinter-flavor` command automates flavor creation with automatic base flavor selection:
+
+```bash
+# With specific linters
+/create-megalinter-flavor my-ci ACTION_ACTIONLINT,MARKDOWN_MARKDOWNLINT,BASH_SHELLCHECK
+
+# Interactive mode (prompts for linter selection)
+/create-megalinter-flavor my-ci
+```
+
+The command will:
+
+1. Validate the flavor name and check for conflicts
+2. Look up linter configurations from the catalog
+3. Auto-select the optimal base flavor (minimizing custom installs)
+4. Generate `megalinter-<name>/flavor.yaml` with Renovate annotations
+
+### Manual Setup
 
 1. Create a directory for your flavor:
 
