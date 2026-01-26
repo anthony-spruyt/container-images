@@ -1,46 +1,21 @@
 # MegaLinter Flavor Factory Configuration
 # Source of truth for megalinter-container-images flavor
 #
-# To regenerate Dockerfile, test.sh, and metadata.yaml:
+# To regenerate Dockerfile and test.sh:
 #   python megalinter-factory/generate.py megalinter-container-images/
+#
+# Linter versions are automatically extracted from MegaLinter at build time.
 ---
 name: container-images
 description: "MegaLinter for container/infrastructure repositories"
 
-# Upstream MegaLinter base image (combined version+digest for Renovate)
+# Upstream MegaLinter base image (Renovate tracks this)
 # renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
 upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:a71e62c83e3b2d52316e7322b9168e1588e9bcf454dbf9b21fc71b0954786e5e"
 
 # Additional linters not in base flavor
+# Just list linter keys - versions come from MegaLinter automatically
 custom_linters:
-  # GitHub Actions workflow linter
-  - name: actionlint
-    linter_key: ACTION_ACTIONLINT
-    type: docker_binary
-    # renovate: datasource=docker depName=rhysd/actionlint
-    image: "rhysd/actionlint:1.7.10@sha256:ef8299f97635c4c30e2298f48f30763ab782a4ad2c95b744649439a039421e36"
-    binary_path: /usr/local/bin/actionlint
-    target_path: /usr/bin/actionlint
-    version_command: "actionlint --version"
-    description: "GitHub Actions workflow linter"
-
-  # Fast link checker
-  - name: lychee
-    linter_key: SPELL_LYCHEE
-    type: docker_binary
-    # renovate: datasource=docker depName=lycheeverse/lychee
-    image: "lycheeverse/lychee:sha-db63437-alpine@sha256:50726dbf2af609acc8adc8ce09ee1248af7753108ae29c09849c8cc86a957a34"
-    binary_path: /usr/local/bin/lychee
-    target_path: /usr/bin/lychee
-    version_command: "lychee --version"
-    description: "Fast link checker"
-
-  # Markdown linting
-  - name: markdownlint
-    linter_key: MARKDOWN_MARKDOWNLINT
-    type: npm
-    package: markdownlint-cli
-    # renovate: datasource=npm depName=markdownlint-cli
-    version: "0.47.0"
-    version_command: "markdownlint --version"
-    description: "Markdown linting"
+  - ACTION_ACTIONLINT
+  - SPELL_LYCHEE
+  - MARKDOWN_MARKDOWNLINT

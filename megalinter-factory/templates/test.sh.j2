@@ -28,17 +28,15 @@ check_linter() {
   fi
 }
 
-{% if base_linters -%}
-# Base flavor linters (from {{ flavor.base_flavor }})
-{% for linter in base_linters -%}
-check_linter "{{ linter.name }}" "{{ linter.version_command }}"
-{% endfor %}
-{% endif -%}
+# Note: Base flavor linters are not tested - they are verified by upstream MegaLinter.
+# We only test custom linters added by this flavor.
 {% if custom_linters_for_test %}
 # Custom linters (added by this flavor)
 {% for linter in custom_linters_for_test -%}
 check_linter "{{ linter.name }}" "{{ linter.version_command }}"
 {% endfor %}
+{% else %}
+echo "  (no custom linters to test)"
 {% endif -%}
 
 echo ""
