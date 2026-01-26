@@ -14,6 +14,8 @@ on:
       - "**/metadata.yaml"
       - "**/flavor.yaml"
       - "**/assets/**"
+      # MegaLinter factory (triggers all flavor rebuilds)
+      - "megalinter-factory/**"
       # CI scripts (trigger script tests)
       - ".github/scripts/**"
       - ".github/workflows/image-pipeline.yaml"
@@ -92,13 +94,25 @@ jobs:
 
           elif [ "$EVENT_NAME" = "pull_request" ]; then
             # PR: compare against base branch
-            # Filter to only include images whose directories still exist (excludes deletions)
-            CHANGED=$(git diff --name-only origin/main...HEAD | \
+            DIFF_FILES=$(git diff --name-only origin/main...HEAD)
+
+            # Collect changed images from direct file changes
+            DIRECT_CHANGES=$(echo "$DIFF_FILES" | \
               grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|test\.sh|assets/|metadata\.yaml|flavor\.yaml)' | \
               cut -d'/' -f1 | sort -u | \
-              while read -r img; do [ -d "$img" ] && echo "$img"; done | \
-              jq -R -s -c 'split("\n") | map(select(length > 0))')
-            SCRIPTS=$(detect_scripts "git diff --name-only origin/main...HEAD")
+              while read -r img; do [ -d "$img" ] && echo "$img"; done)
+
+            # If megalinter-factory changed, add all flavor directories
+            if echo "$DIFF_FILES" | grep -qE '^megalinter-factory/'; then
+              echo "MegaLinter factory changed - adding all flavors to build"
+              FLAVOR_DIRS=$(find . -maxdepth 2 -name 'flavor.yaml' -printf '%h\n' | sed 's|^\./||')
+              ALL_IMAGES=$(printf '%s\n%s' "$DIRECT_CHANGES" "$FLAVOR_DIRS" | sort -u | grep -v '^$')
+            else
+              ALL_IMAGES="$DIRECT_CHANGES"
+            fi
+
+            CHANGED=$(echo "$ALL_IMAGES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+            SCRIPTS=$(detect_scripts "echo \"$DIFF_FILES\"")
 
             echo "images=${CHANGED:-[]}" >> "$GITHUB_OUTPUT"
             echo "scripts=$SCRIPTS" >> "$GITHUB_OUTPUT"
@@ -106,13 +120,25 @@ jobs:
 
           else
             # Push to main: compare against previous commit
-            # Filter to only include images whose directories still exist (excludes deletions)
-            CHANGED=$(git diff --name-only HEAD~1 HEAD | \
+            DIFF_FILES=$(git diff --name-only HEAD~1 HEAD)
+
+            # Collect changed images from direct file changes
+            DIRECT_CHANGES=$(echo "$DIFF_FILES" | \
               grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|metadata\.yaml|flavor\.yaml|assets/)' | \
               cut -d'/' -f1 | sort -u | \
-              while read -r img; do [ -d "$img" ] && echo "$img"; done | \
-              jq -R -s -c 'split("\n") | map(select(length > 0))')
-            SCRIPTS=$(detect_scripts "git diff --name-only HEAD~1 HEAD")
+              while read -r img; do [ -d "$img" ] && echo "$img"; done)
+
+            # If megalinter-factory changed, add all flavor directories
+            if echo "$DIFF_FILES" | grep -qE '^megalinter-factory/'; then
+              echo "MegaLinter factory changed - adding all flavors to build"
+              FLAVOR_DIRS=$(find . -maxdepth 2 -name 'flavor.yaml' -printf '%h\n' | sed 's|^\./||')
+              ALL_IMAGES=$(printf '%s\n%s' "$DIRECT_CHANGES" "$FLAVOR_DIRS" | sort -u | grep -v '^$')
+            else
+              ALL_IMAGES="$DIRECT_CHANGES"
+            fi
+
+            CHANGED=$(echo "$ALL_IMAGES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+            SCRIPTS=$(detect_scripts "echo \"$DIFF_FILES\"")
 
             echo "images=${CHANGED:-[]}" >> "$GITHUB_OUTPUT"
             echo "scripts=$SCRIPTS" >> "$GITHUB_OUTPUT"
