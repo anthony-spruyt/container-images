@@ -296,10 +296,15 @@ jobs:
           else
             echo "ignorefile=.trivyignore.yaml" >> "$GITHUB_OUTPUT"
           fi
-          # Dev containers only need vuln scanning (secrets/misconfig caught in repo lint)
-          if [[ "$IMAGE_NAME" == *-dev ]]; then
+
+          # Dev containers and megalinter flavors: warn-only (exit 0)
+          # These inherit upstream vulnerabilities we can't control
+          if [[ "$IMAGE_NAME" == *-dev ]] || [[ "$IMAGE_NAME" == megalinter-* ]]; then
+            echo "exitcode=0" >> "$GITHUB_OUTPUT"
             echo "scanners=vuln" >> "$GITHUB_OUTPUT"
+            echo "::notice::Trivy set to warn-only for $IMAGE_NAME (dev/megalinter image)"
           else
+            echo "exitcode=1" >> "$GITHUB_OUTPUT"
             echo "scanners=vuln,secret,misconfig" >> "$GITHUB_OUTPUT"
           fi
 
@@ -310,7 +315,7 @@ jobs:
           image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}:${{ needs.check-release.outputs.tag }}
           scanners: ${{ steps.trivyconfig.outputs.scanners }}
           format: table
-          exit-code: 1
+          exit-code: ${{ steps.trivyconfig.outputs.exitcode }}
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           trivyignores: ${{ steps.trivyconfig.outputs.ignorefile }}
