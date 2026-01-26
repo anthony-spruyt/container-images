@@ -182,6 +182,13 @@ def resolve_linters(
                 "package", extracted.get("package")
             )
 
+        elif resolved["type"] == "script":
+            # Script-based linters have raw dockerfile instructions
+            resolved["dockerfile"] = extracted.get("dockerfile", [])
+
+        # APK dependencies apply to all linter types
+        resolved["apk_packages"] = extracted.get("apk_packages", [])
+
         custom_linters.append(resolved)
 
     # Build all linters list
@@ -232,6 +239,14 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:
     pip_linters = [l for l in custom_linters if l["type"] == "pip"]
     go_linters = [l for l in custom_linters if l["type"] == "go"]
     cargo_linters = [l for l in custom_linters if l["type"] == "cargo"]
+    gem_linters = [l for l in custom_linters if l["type"] == "gem"]
+    # Script and dockerfile types both use raw dockerfile instructions
+    script_linters = [l for l in custom_linters if l["type"] in ("script", "dockerfile")]
+
+    # Collect all APK dependencies from custom linters (deduplicated)
+    all_apk_packages = sorted(set(
+        pkg for linter in custom_linters for pkg in linter.get("apk_packages", [])
+    ))
 
     # Set up Jinja2 environment
     env = Environment(loader=FileSystemLoader(templates_dir), keep_trailing_newline=True)
@@ -247,6 +262,9 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:
         "pip_linters": pip_linters,
         "go_linters": go_linters,
         "cargo_linters": cargo_linters,
+        "gem_linters": gem_linters,
+        "script_linters": script_linters,
+        "apk_packages": all_apk_packages,
     }
 
     # Generate Dockerfile
