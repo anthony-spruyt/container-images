@@ -9,12 +9,20 @@
 
 # Source images for linters not in {{ flavor.base_flavor }}
 {% for linter in docker_binary_linters -%}
+{% if linter.image -%}
+FROM {{ linter.image }} AS {{ linter.name }}
+{% else -%}
 FROM {{ linter.source_image }}:{{ linter.version }}{{ '@' + linter.digest if linter.digest else '' }} AS {{ linter.name }}
+{% endif -%}
 {% endfor %}
 {%- endif %}
 
 # Base: {{ flavor.base_flavor }} flavor from MegaLinter
-FROM oxsecurity/megalinter-{{ flavor.base_flavor }}:{{ flavor.upstream_version }}{{ '@' + flavor.upstream_digest if flavor.upstream_digest else '' }}
+{% if flavor.upstream_image -%}
+FROM {{ flavor.upstream_image }}
+{% else -%}
+FROM oxsecurity/megalinter-{{ flavor.base_flavor }}:{{ flavor.upstream_tag }}{{ '@' + flavor.upstream_digest if flavor.upstream_digest else '' }}
+{% endif -%}
 {% if docker_binary_linters %}
 
 # Add binary linters from source images

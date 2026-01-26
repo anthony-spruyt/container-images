@@ -94,25 +94,31 @@ The command will:
    ```yaml
    name: my-flavor
    description: "MegaLinter for my use case"
-   upstream: oxsecurity/megalinter
-   upstream_version: "v9.3.0"
-   base_flavor: ci_light # Options: ci_light, python, javascript, terraform, go, documentation, security
+
+   # renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
+   upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:..."
 
    custom_linters:
-     # Binary from Docker image
+     # Binary from Docker image (version+digest combined for atomic updates)
      - linter_key: ACTION_ACTIONLINT
        type: docker_binary
-       version: "1.7.7"
-       digest: "sha256:..." # Optional: pin to specific digest
+       # renovate: datasource=docker depName=rhysd/actionlint
+       image: "rhysd/actionlint:1.7.10@sha256:..."
+       binary_path: /usr/local/bin/actionlint
+       target_path: /usr/bin/actionlint
 
      # NPM package
      - linter_key: MARKDOWN_MARKDOWNLINT
        type: npm
+       package: markdownlint-cli
+       # renovate: datasource=npm depName=markdownlint-cli
        version: "0.44.0"
 
      # Pip package
      - linter_key: PYTHON_BANDIT
        type: pip
+       package: bandit
+       # renovate: datasource=pypi depName=bandit
        version: "1.7.10"
    ```
 
@@ -134,11 +140,11 @@ See `megalinter-factory/linter-sources.yaml` for the complete catalog of availab
 
 ### Version Updates
 
-Renovate automatically detects version updates in `flavor.yaml` via annotations:
+Renovate automatically detects version updates in `flavor.yaml` via annotations. The combined `image:tag@digest` format ensures version and digest are updated atomically:
 
 ```yaml
 # renovate: datasource=docker depName=rhysd/actionlint
-version: "1.7.10"
+image: "rhysd/actionlint:1.7.10@sha256:..."
 ```
 
 When Renovate creates a PR updating `flavor.yaml`, CI regenerates the Dockerfile and builds.

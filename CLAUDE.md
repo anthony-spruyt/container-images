@@ -98,17 +98,17 @@ Create custom MegaLinter flavors by defining a `flavor.yaml` configuration. CI g
 ```yaml
 name: my-flavor
 description: "Custom MegaLinter for my use case"
-upstream: oxsecurity/megalinter
+
 # renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
-upstream_version: "v9.3.0"
-base_flavor: ci_light
+upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:..."
 
 custom_linters:
   - linter_key: ACTION_ACTIONLINT
     type: docker_binary
-    source_image: rhysd/actionlint
     # renovate: datasource=docker depName=rhysd/actionlint
-    version: "1.7.10"
+    image: "rhysd/actionlint:1.7.10@sha256:..."
+    binary_path: /usr/local/bin/actionlint
+    target_path: /usr/bin/actionlint
 ```
 
 3. Commit and push - CI generates all files and builds automatically

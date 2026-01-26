@@ -1037,6 +1037,7 @@ custom_linters:
   ACTION_ACTIONLINT:
     type: docker_binary
     source_image: rhysd/actionlint
+    # renovate: datasource=docker depName=rhysd/actionlint
     default_version: "1.7.10"
     binary_path: /usr/local/bin/actionlint
     target_path: /usr/bin/actionlint
@@ -1049,6 +1050,7 @@ custom_linters:
   BASH_SHELLCHECK:
     type: docker_binary
     source_image: koalaman/shellcheck
+    # renovate: datasource=docker depName=koalaman/shellcheck
     default_version: "v0.11.0"
     binary_path: /bin/shellcheck
     target_path: /usr/bin/shellcheck
@@ -1058,6 +1060,7 @@ custom_linters:
   BASH_SHFMT:
     type: docker_binary
     source_image: mvdan/shfmt
+    # renovate: datasource=docker depName=mvdan/shfmt versioning=docker
     default_version: "v3.12.0-alpine"
     binary_path: /bin/shfmt
     target_path: /usr/bin/shfmt
@@ -1074,6 +1077,7 @@ custom_linters:
   COPYPASTE_JSCPD:
     type: npm
     package: jscpd
+    # renovate: datasource=npm depName=jscpd
     default_version: "4.0.5"
     version_command: "jscpd --version"
     description: "Copy/paste detector"
@@ -1084,6 +1088,7 @@ custom_linters:
   DOCKERFILE_HADOLINT:
     type: docker_binary
     source_image: hadolint/hadolint
+    # renovate: datasource=docker depName=hadolint/hadolint versioning=docker
     default_version: "v2.12.0-alpine"
     binary_path: /bin/hadolint
     target_path: /usr/bin/hadolint
@@ -1096,6 +1101,7 @@ custom_linters:
   ENV_DOTENV_LINTER:
     type: cargo
     package: dotenv-linter
+    # renovate: datasource=crate depName=dotenv-linter
     default_version: "3.3.0"
     version_command: "dotenv-linter --version"
     description: ".env file linter"
@@ -1106,6 +1112,7 @@ custom_linters:
   GO_GOLANGCI_LINT:
     type: go
     package: github.com/golangci/golangci-lint/cmd/golangci-lint
+    # renovate: datasource=github-tags depName=golangci/golangci-lint
     default_version: "1.64.8"
     version_command: "golangci-lint version"
     description: "Fast Go linters runner"
@@ -1113,6 +1120,7 @@ custom_linters:
   GO_REVIVE:
     type: go
     package: github.com/mgechev/revive
+    # renovate: datasource=github-tags depName=mgechev/revive
     default_version: "1.13.0"
     version_command: "revive -version"
     description: "Fast, configurable Go linter"
@@ -1123,6 +1131,7 @@ custom_linters:
   GROOVY_NPM_GROOVY_LINT:
     type: npm
     package: npm-groovy-lint
+    # renovate: datasource=npm depName=npm-groovy-lint
     default_version: "14.6.0"
     version_command: "npm-groovy-lint --version"
     description: "Groovy/Jenkinsfile linter"
@@ -1133,6 +1142,7 @@ custom_linters:
   JAVASCRIPT_ES:
     type: npm
     package: eslint
+    # renovate: datasource=npm depName=eslint
     default_version: "8.57.1"
     version_command: "eslint --version"
     description: "JavaScript/TypeScript linter"
@@ -1140,6 +1150,7 @@ custom_linters:
   JAVASCRIPT_STANDARD:
     type: npm
     package: standard
+    # renovate: datasource=npm depName=standard
     default_version: "17.1.2"
     version_command: "standard --version"
     description: "JavaScript Standard Style"
@@ -1147,6 +1158,7 @@ custom_linters:
   JAVASCRIPT_PRETTIER:
     type: npm
     package: prettier
+    # renovate: datasource=npm depName=prettier
     default_version: "3.7.4"
     version_command: "prettier --version"
     description: "Opinionated code formatter"
@@ -1154,6 +1166,7 @@ custom_linters:
   TYPESCRIPT_ES:
     type: npm
     package: eslint
+    # renovate: datasource=npm depName=eslint
     default_version: "8.57.1"
     version_command: "eslint --version"
     description: "TypeScript linter (via ESLint)"
@@ -1164,6 +1177,7 @@ custom_linters:
   JSON_JSONLINT:
     type: npm
     package: jsonlint
+    # renovate: datasource=npm depName=jsonlint
     default_version: "1.6.3"
     version_command: "jsonlint --version"
     description: "JSON syntax validator"
@@ -1171,6 +1185,7 @@ custom_linters:
   JSON_PRETTIER:
     type: npm
     package: prettier
+    # renovate: datasource=npm depName=prettier
     default_version: "3.7.4"
     version_command: "prettier --version"
     description: "JSON formatter"
@@ -1178,6 +1193,7 @@ custom_linters:
   JSON_V8R:
     type: npm
     package: v8r
+    # renovate: datasource=npm depName=v8r
     default_version: "4.2.0"
     version_command: "v8r --version"
     description: "JSON/YAML schema validator"
@@ -1188,6 +1204,7 @@ custom_linters:
   MARKDOWN_MARKDOWNLINT:
     type: npm
     package: markdownlint-cli
+    # renovate: datasource=npm depName=markdownlint-cli
     default_version: "0.44.0"
     version_command: "markdownlint --version"
     description: "Markdown linting"
@@ -1195,6 +1212,7 @@ custom_linters:
   MARKDOWN_REMARK_LINT:
     type: npm
     package: remark-cli
+    # renovate: datasource=npm depName=remark-cli
     default_version: "12.0.1"
     version_command: "remark --version"
     description: "Markdown processor"
@@ -1205,6 +1223,7 @@ custom_linters:
   PYTHON_PYLINT:
     type: pip
     package: pylint
+    # renovate: datasource=pypi depName=pylint
     default_version: "4.0.4"
     version_command: "pylint --version"
     description: "Python static analyzer"
@@ -1212,6 +1231,7 @@ custom_linters:
   PYTHON_BLACK:
     type: pip
     package: black
+    # renovate: datasource=pypi depName=black
     default_version: "25.12.0"
     version_command: "black --version"
     description: "Python code formatter"
@@ -1219,6 +1239,7 @@ custom_linters:
   PYTHON_FLAKE8:
     type: pip
     package: flake8
+    # renovate: datasource=pypi depName=flake8
     default_version: "7.3.0"
     version_command: "flake8 --version"
     description: "Python style checker"
@@ -1226,6 +1247,7 @@ custom_linters:
   PYTHON_ISORT:
     type: pip
     package: isort
+    # renovate: datasource=pypi depName=isort
     default_version: "7.0.0"
     version_command: "isort --version"
     description: "Python import sorter"
@@ -1233,6 +1255,7 @@ custom_linters:
   PYTHON_BANDIT:
     type: pip
     package: bandit
+    # renovate: datasource=pypi depName=bandit
     default_version: "1.9.3"
     version_command: "bandit --version"
     description: "Python security linter"
@@ -1240,6 +1263,7 @@ custom_linters:
   PYTHON_MYPY:
     type: pip
     package: mypy
+    # renovate: datasource=pypi depName=mypy
     default_version: "1.19.1"
     version_command: "mypy --version"
     description: "Python static type checker"
@@ -1247,6 +1271,7 @@ custom_linters:
   PYTHON_PYRIGHT:
     type: npm
     package: pyright
+    # renovate: datasource=npm depName=pyright
     default_version: "1.1.408"
     version_command: "pyright --version"
     description: "Python static type checker"
@@ -1254,6 +1279,7 @@ custom_linters:
   PYTHON_RUFF:
     type: pip
     package: ruff
+    # renovate: datasource=pypi depName=ruff
     default_version: "0.14.13"
     version_command: "ruff --version"
     description: "Fast Python linter and formatter"
@@ -1264,6 +1290,7 @@ custom_linters:
   REPOSITORY_CHECKOV:
     type: pip
     package: checkov
+    # renovate: datasource=pypi depName=checkov
     default_version: "3.2.400"
     version_command: "checkov --version"
     description: "Infrastructure as Code scanner"
@@ -1283,6 +1310,7 @@ custom_linters:
   REPOSITORY_GITLEAKS:
     type: docker_binary
     source_image: zricethezav/gitleaks
+    # renovate: datasource=docker depName=zricethezav/gitleaks
     default_version: "v8.27.5"
     binary_path: /usr/bin/gitleaks
     target_path: /usr/bin/gitleaks
@@ -1300,6 +1328,7 @@ custom_linters:
   REPOSITORY_KICS:
     type: docker_binary
     source_image: checkmarx/kics
+    # renovate: datasource=docker depName=checkmarx/kics
     default_version: "v2.2.1"
     binary_path: /app/bin/kics
     target_path: /usr/bin/kics
@@ -1309,6 +1338,7 @@ custom_linters:
   REPOSITORY_LS_LINT:
     type: npm
     package: "@ls-lint/ls-lint"
+    # renovate: datasource=npm depName=@ls-lint/ls-lint
     default_version: "2.3.0"
     version_command: "ls-lint --version"
     description: "File/directory name linter"
@@ -1316,6 +1346,7 @@ custom_linters:
   REPOSITORY_SECRETLINT:
     type: npm
     package: secretlint
+    # renovate: datasource=npm depName=secretlint
     default_version: "11.2.5"
     version_command: "secretlint --version"
     description: "Secret detection tool"
@@ -1323,6 +1354,7 @@ custom_linters:
   REPOSITORY_SEMGREP:
     type: pip
     package: semgrep
+    # renovate: datasource=pypi depName=semgrep
     default_version: "1.123.0"
     version_command: "semgrep --version"
     description: "Static analysis tool"
@@ -1334,6 +1366,7 @@ custom_linters:
   REPOSITORY_TRIVY:
     type: docker_binary
     source_image: aquasec/trivy
+    # renovate: datasource=docker depName=aquasec/trivy
     default_version: "0.68.2"
     binary_path: /usr/local/bin/trivy
     target_path: /usr/bin/trivy
@@ -1347,6 +1380,7 @@ custom_linters:
   REPOSITORY_TRUFFLEHOG:
     type: docker_binary
     source_image: trufflesecurity/trufflehog
+    # renovate: datasource=docker depName=trufflesecurity/trufflehog
     default_version: "3.95.1"
     binary_path: /usr/bin/trufflehog
     target_path: /usr/bin/trufflehog
@@ -1359,6 +1393,7 @@ custom_linters:
   SPELL_CSPELL:
     type: npm
     package: cspell
+    # renovate: datasource=npm depName=cspell
     default_version: "8.17.0"
     version_command: "cspell --version"
     description: "Code spell checker"
@@ -1366,6 +1401,7 @@ custom_linters:
   SPELL_CODESPELL:
     type: pip
     package: codespell
+    # renovate: datasource=pypi depName=codespell
     default_version: "2.4.1"
     version_command: "codespell --version"
     description: "Code spell checker"
@@ -1373,6 +1409,7 @@ custom_linters:
   SPELL_LYCHEE:
     type: docker_binary
     source_image: lycheeverse/lychee
+    # renovate: datasource=docker depName=lycheeverse/lychee versioning=loose
     default_version: "sha-db63437-alpine"
     binary_path: /usr/local/bin/lychee
     target_path: /usr/bin/lychee
@@ -1382,6 +1419,7 @@ custom_linters:
   SPELL_PROSELINT:
     type: pip
     package: proselint
+    # renovate: datasource=pypi depName=proselint
     default_version: "0.14.0"
     version_command: "proselint --version"
     description: "Prose linter"
@@ -1396,6 +1434,7 @@ custom_linters:
   TERRAFORM_TFLINT:
     type: docker_binary
     source_image: ghcr.io/terraform-linters/tflint
+    # renovate: datasource=docker depName=ghcr.io/terraform-linters/tflint
     default_version: "v0.60.0"
     binary_path: /usr/local/bin/tflint
     target_path: /usr/bin/tflint
@@ -1405,6 +1444,7 @@ custom_linters:
   TERRAFORM_TERRASCAN:
     type: docker_binary
     source_image: tenable/terrascan
+    # renovate: datasource=docker depName=tenable/terrascan
     default_version: "1.19.9"
     binary_path: /go/bin/terrascan
     target_path: /usr/bin/terrascan
@@ -1432,6 +1472,7 @@ custom_linters:
   YAML_YAMLLINT:
     type: pip
     package: yamllint
+    # renovate: datasource=pypi depName=yamllint
     default_version: "1.37.1"
     version_command: "yamllint --version"
     description: "YAML linter"
@@ -1439,6 +1480,7 @@ custom_linters:
   YAML_PRETTIER:
     type: npm
     package: prettier
+    # renovate: datasource=npm depName=prettier
     default_version: "3.7.4"
     version_command: "prettier --version"
     description: "YAML formatter"
@@ -1446,6 +1488,7 @@ custom_linters:
   YAML_V8R:
     type: npm
     package: v8r
+    # renovate: datasource=npm depName=v8r
     default_version: "4.2.0"
     version_command: "v8r --version"
     description: "YAML schema validator"
@@ -1456,6 +1499,7 @@ custom_linters:
   CSS_STYLELINT:
     type: npm
     package: stylelint
+    # renovate: datasource=npm depName=stylelint
     default_version: "16.22.0"
     version_command: "stylelint --version"
     description: "CSS linter"
@@ -1466,6 +1510,7 @@ custom_linters:
   HTML_HTMLHINT:
     type: npm
     package: htmlhint
+    # renovate: datasource=npm depName=htmlhint
     default_version: "1.1.4"
     version_command: "htmlhint --version"
     description: "HTML linter"
@@ -1473,6 +1518,7 @@ custom_linters:
   HTML_DJLINT:
     type: pip
     package: djlint
+    # renovate: datasource=pypi depName=djlint
     default_version: "1.38.4"
     version_command: "djlint --version"
     description: "Django/Jinja template linter"
@@ -1483,6 +1529,7 @@ custom_linters:
   JAVA_CHECKSTYLE:
     type: docker_binary
     source_image: ghcr.io/checkstyle/checkstyle
+    # renovate: datasource=docker depName=ghcr.io/checkstyle/checkstyle
     default_version: "10.25.0"
     binary_path: /usr/local/bin/checkstyle
     target_path: /usr/bin/checkstyle
@@ -1495,6 +1542,7 @@ custom_linters:
   KOTLIN_KTLINT:
     type: docker_binary
     source_image: pinterest/ktlint
+    # renovate: datasource=docker depName=pinterest/ktlint
     default_version: "1.5.0"
     binary_path: /usr/local/bin/ktlint
     target_path: /usr/bin/ktlint
@@ -1507,6 +1555,7 @@ custom_linters:
   KUBERNETES_KUBECONFORM:
     type: docker_binary
     source_image: ghcr.io/yannh/kubeconform
+    # renovate: datasource=docker depName=ghcr.io/yannh/kubeconform
     default_version: "v0.7.0"
     binary_path: /kubeconform
     target_path: /usr/bin/kubeconform
@@ -1516,6 +1565,7 @@ custom_linters:
   KUBERNETES_HELM:
     type: docker_binary
     source_image: alpine/helm
+    # renovate: datasource=docker depName=alpine/helm
     default_version: "3.17.3"
     binary_path: /usr/bin/helm
     target_path: /usr/bin/helm
@@ -1528,6 +1578,7 @@ custom_linters:
   ANSIBLE_ANSIBLE_LINT:
     type: pip
     package: ansible-lint
+    # renovate: datasource=pypi depName=ansible-lint
     default_version: "25.6.1"
     version_command: "ansible-lint --version"
     description: "Ansible playbook linter"
@@ -1538,6 +1589,7 @@ custom_linters:
   CLOUDFORMATION_CFN_LINT:
     type: pip
     package: cfn-lint
+    # renovate: datasource=pypi depName=cfn-lint
     default_version: "1.38.0"
     version_command: "cfn-lint --version"
     description: "CloudFormation linter"
@@ -1548,6 +1600,7 @@ custom_linters:
   API_SPECTRAL:
     type: npm
     package: "@stoplight/spectral-cli"
+    # renovate: datasource=npm depName=@stoplight/spectral-cli
     default_version: "6.17.0"
     version_command: "spectral --version"
     description: "OpenAPI/AsyncAPI linter"
@@ -1558,6 +1611,7 @@ custom_linters:
   RUST_CLIPPY:
     type: cargo
     package: clippy
+    # renovate: datasource=crate depName=clippy
     default_version: "0.1.83"
     version_command: "cargo clippy --version"
     description: "Rust linter"
@@ -1568,6 +1622,7 @@ custom_linters:
   GRAPHQL_GRAPHQL_SCHEMA_LINTER:
     type: npm
     package: graphql-schema-linter
+    # renovate: datasource=npm depName=graphql-schema-linter
     default_version: "3.0.1"
     version_command: "graphql-schema-linter --version"
     description: "GraphQL schema linter"
@@ -1578,6 +1633,7 @@ custom_linters:
   SQL_SQLFLUFF:
     type: pip
     package: sqlfluff
+    # renovate: datasource=pypi depName=sqlfluff
     default_version: "3.4.1"
     version_command: "sqlfluff --version"
     description: "SQL linter and formatter"
@@ -1585,6 +1641,7 @@ custom_linters:
   SQL_TSQLLINT:
     type: npm
     package: tsqllint
+    # renovate: datasource=npm depName=tsqllint
     default_version: "1.15.3"
     version_command: "tsqllint --version"
     description: "T-SQL linter"
@@ -1614,6 +1671,7 @@ custom_linters:
   C_CPPLINT:
     type: pip
     package: cpplint
+    # renovate: datasource=pypi depName=cpplint
     default_version: "2.0.0"
     version_command: "cpplint --version"
     description: "C/C++ style checker"
@@ -1629,6 +1687,7 @@ custom_linters:
   CPP_CPPLINT:
     type: pip
     package: cpplint
+    # renovate: datasource=pypi depName=cpplint
     default_version: "2.0.0"
     version_command: "cpplint --version"
     description: "C++ style checker"
@@ -1650,6 +1709,7 @@ custom_linters:
   COFFEE_COFFEELINT:
     type: npm
     package: coffeelint
+    # renovate: datasource=npm depName=coffeelint
     default_version: "2.1.0"
     version_command: "coffeelint --version"
     description: "CoffeeScript linter"
@@ -1682,6 +1742,7 @@ custom_linters:
   EDITORCONFIG_EDITORCONFIG_CHECKER:
     type: go
     package: github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker
+    # renovate: datasource=github-tags depName=editorconfig-checker/editorconfig-checker
     default_version: "3.0.3"
     version_command: "editorconfig-checker --version"
     description: "EditorConfig compliance checker"
@@ -1692,6 +1753,7 @@ custom_linters:
   GHERKIN_GHERKIN_LINT:
     type: npm
     package: gherkin-lint
+    # renovate: datasource=npm depName=gherkin-lint
     default_version: "4.2.4"
     version_command: "gherkin-lint --version"
     description: "Gherkin/Cucumber linter"
@@ -1709,6 +1771,7 @@ custom_linters:
   JSON_ESLINT_PLUGIN_JSONC:
     type: npm
     package: eslint-plugin-jsonc
+    # renovate: datasource=npm depName=eslint-plugin-jsonc
     default_version: "2.20.0"
     version_command: "eslint --version"
     description: "JSON/JSONC linter via ESLint"
@@ -1716,6 +1779,7 @@ custom_linters:
   JSON_NPM_PACKAGE_JSON_LINT:
     type: npm
     package: npm-package-json-lint
+    # renovate: datasource=npm depName=npm-package-json-lint
     default_version: "8.0.0"
     version_command: "npmPkgJsonLint --version"
     description: "package.json linter"
@@ -1726,6 +1790,7 @@ custom_linters:
   JSX_ESLINT:
     type: npm
     package: eslint
+    # renovate: datasource=npm depName=eslint
     default_version: "8.57.1"
     version_command: "eslint --version"
     description: "JSX linter via ESLint"
@@ -1733,6 +1798,7 @@ custom_linters:
   TSX_ESLINT:
     type: npm
     package: eslint
+    # renovate: datasource=npm depName=eslint
     default_version: "8.57.1"
     version_command: "eslint --version"
     description: "TSX linter via ESLint"
@@ -1755,6 +1821,7 @@ custom_linters:
   KUBERNETES_KUBESCAPE:
     type: docker_binary
     source_image: kubescape/kubescape
+    # renovate: datasource=docker depName=kubescape/kubescape
     default_version: "v3.0.25"
     binary_path: /usr/bin/kubescape
     target_path: /usr/bin/kubescape
@@ -1778,6 +1845,7 @@ custom_linters:
   LUA_SELENE:
     type: cargo
     package: selene
+    # renovate: datasource=crate depName=selene
     default_version: "0.28.0"
     version_command: "selene --version"
     description: "Lua static analyzer"
@@ -1785,6 +1853,7 @@ custom_linters:
   LUA_STYLUA:
     type: cargo
     package: stylua
+    # renovate: datasource=crate depName=stylua
     default_version: "2.0.2"
     version_command: "stylua --version"
     description: "Lua code formatter"
@@ -1795,6 +1864,7 @@ custom_linters:
   MAKEFILE_CHECKMAKE:
     type: go
     package: github.com/mrtazz/checkmake
+    # renovate: datasource=github-tags depName=mrtazz/checkmake
     default_version: "0.2.2"
     version_command: "checkmake --version"
     description: "Makefile linter"
@@ -1805,6 +1875,7 @@ custom_linters:
   MARKDOWN_MARKDOWN_LINK_CHECK:
     type: npm
     package: markdown-link-check
+    # renovate: datasource=npm depName=markdown-link-check
     default_version: "3.13.6"
     version_command: "markdown-link-check --version"
     description: "Markdown link checker"
@@ -1812,6 +1883,7 @@ custom_linters:
   MARKDOWN_MARKDOWN_TABLE_FORMATTER:
     type: npm
     package: markdown-table-formatter
+    # renovate: datasource=npm depName=markdown-table-formatter
     default_version: "1.6.0"
     version_command: "markdown-table-formatter --version"
     description: "Markdown table formatter"
@@ -1819,6 +1891,7 @@ custom_linters:
   MARKDOWN_RUMDL:
     type: cargo
     package: rumdl
+    # renovate: datasource=crate depName=rumdl
     default_version: "0.2.0"
     version_command: "rumdl --version"
     description: "Fast Markdown linter"
@@ -1870,6 +1943,7 @@ custom_linters:
   PROTOBUF_PROTOLINT:
     type: go
     package: github.com/yoheimuta/protolint/cmd/protolint
+    # renovate: datasource=github-tags depName=yoheimuta/protolint
     default_version: "0.54.0"
     version_command: "protolint version"
     description: "Protocol buffer linter"
@@ -1880,6 +1954,7 @@ custom_linters:
   PUPPET_PUPPET_LINT:
     type: gem
     package: puppet-lint
+    # renovate: datasource=rubygems depName=puppet-lint
     default_version: "4.2.4"
     version_command: "puppet-lint --version"
     description: "Puppet manifest linter"
@@ -1890,6 +1965,7 @@ custom_linters:
   PYTHON_RUFF_FORMAT:
     type: pip
     package: ruff
+    # renovate: datasource=pypi depName=ruff
     default_version: "0.14.13"
     version_command: "ruff --version"
     description: "Python code formatter (Ruff)"
@@ -1914,6 +1990,7 @@ custom_linters:
   ROBOTFRAMEWORK_ROBOCOP:
     type: pip
     package: robotframework-robocop
+    # renovate: datasource=pypi depName=robotframework-robocop
     default_version: "5.7.0"
     version_command: "robocop --version"
     description: "Robot Framework linter"
@@ -1924,6 +2001,7 @@ custom_linters:
   RST_RST_LINT:
     type: pip
     package: restructuredtext-lint
+    # renovate: datasource=pypi depName=restructuredtext-lint
     default_version: "1.4.0"
     version_command: "rst-lint --version"
     description: "reStructuredText linter"
@@ -1931,6 +2009,7 @@ custom_linters:
   RST_RSTCHECK:
     type: pip
     package: rstcheck
+    # renovate: datasource=pypi depName=rstcheck
     default_version: "6.2.4"
     version_command: "rstcheck --version"
     description: "reStructuredText checker"
@@ -1938,6 +2017,7 @@ custom_linters:
   RST_RSTFMT:
     type: pip
     package: rstfmt
+    # renovate: datasource=pypi depName=rstfmt
     default_version: "0.0.14"
     version_command: "rstfmt --version"
     description: "reStructuredText formatter"
@@ -1948,6 +2028,7 @@ custom_linters:
   RUBY_RUBOCOP:
     type: gem
     package: rubocop
+    # renovate: datasource=rubygems depName=rubocop
     default_version: "1.72.2"
     version_command: "rubocop --version"
     description: "Ruby linter"
@@ -1996,6 +2077,7 @@ custom_linters:
   SNAKEMAKE_LINT:
     type: pip
     package: snakemake
+    # renovate: datasource=pypi depName=snakemake
     default_version: "8.31.2"
     version_command: "snakemake --version"
     description: "Snakemake workflow linter"
@@ -2003,6 +2085,7 @@ custom_linters:
   SNAKEMAKE_SNAKEFMT:
     type: pip
     package: snakefmt
+    # renovate: datasource=pypi depName=snakefmt
     default_version: "0.10.2"
     version_command: "snakefmt --version"
     description: "Snakemake code formatter"
@@ -2020,6 +2103,7 @@ custom_linters:
   TEKTON_TEKTON_LINT:
     type: npm
     package: tekton-lint
+    # renovate: datasource=npm depName=tekton-lint
     default_version: "1.1.0"
     version_command: "tekton-lint --version"
     description: "Tekton pipeline linter"
@@ -2030,6 +2114,7 @@ custom_linters:
   TYPESCRIPT_PRETTIER:
     type: npm
     package: prettier
+    # renovate: datasource=npm depName=prettier
     default_version: "3.7.4"
     version_command: "prettier --version"
     description: "TypeScript formatter"
@@ -2037,6 +2122,7 @@ custom_linters:
   TYPESCRIPT_STANDARD:
     type: npm
     package: ts-standard
+    # renovate: datasource=npm depName=ts-standard
     default_version: "12.0.2"
     version_command: "ts-standard --version"
     description: "TypeScript Standard Style"
