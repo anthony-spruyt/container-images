@@ -23,7 +23,7 @@ docker run \
   -e REPORT_OUTPUT_FOLDER="/tmp/lint/.output" \
   -v "$REPO_ROOT:/tmp/lint" \
   --rm \
-  ghcr.io/anthony-spruyt/megalinter-container-images@sha256:575587d9caf54235888e3749734aec1ef094bdbd876dd0e0c88f443114a415ee # v9.3.0
+  ghcr.io/anthony-spruyt/megalinter-container-images@sha256:a96ce561aec6be236738b812fc3aad5ff20d15e648404ca19408b092d37d7e75 # v9.3.0
 
 # Capture MegaLinter exit code
 LINT_EXIT_CODE=$?
