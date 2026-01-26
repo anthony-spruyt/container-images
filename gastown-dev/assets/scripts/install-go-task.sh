@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # renovate: datasource=github-releases depName=go-task/task
-TASK_VERSION="v3.47.0"
+TASK_VERSION="v3.48.0"
 
 # Download from GitHub releases (more reliable than taskfile.dev)
 curl -sSfL "https://github.com/go-task/task/releases/download/${TASK_VERSION}/task_linux_amd64.tar.gz" -o /tmp/task.tar.gz
