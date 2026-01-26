@@ -1,0 +1,50 @@
+---
+name: Rebuild MegaLinter Flavors
+
+# Weekly rebuild to pick up new linter versions from MegaLinter
+# Linter versions are extracted dynamically at build time from MegaLinter descriptors
+on:
+  schedule:
+    - cron: "0 4 * * 0" # Weekly on Sunday at 4 AM UTC
+  workflow_dispatch: # Manual trigger
+
+permissions:
+  contents: write # Release creation
+  packages: write # Push to GHCR
+  id-token: write # OIDC for attestations
+  attestations: write # Build provenance
+
+jobs:
+  find-flavors:
+    name: Find MegaLinter Flavors
+    runs-on: ubuntu-latest
+    outputs:
+      flavors: ${{ steps.find.outputs.flavors }}
+    steps:
+      # SHA pin: actions/checkout@v4.3.1
+      - name: Checkout
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Find flavor directories
+        id: find
+        run: |
+          # Find all directories containing flavor.yaml
+          FLAVORS=$(find . -maxdepth 2 -name 'flavor.yaml' -printf '%h\n' | \
+            sed 's|^\./||' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "Found flavors: $FLAVORS"
+          echo "flavors=$FLAVORS" >> "$GITHUB_OUTPUT"
+
+  rebuild:
+    name: Rebuild ${{ matrix.flavor }}
+    needs: find-flavors
+    if: needs.find-flavors.outputs.flavors != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: ${{ fromJson(needs.find-flavors.outputs.flavors) }}
+    uses: ./.github/workflows/_image-pipeline.yaml
+    secrets: inherit
+    with:
+      image: ${{ matrix.flavor }}
+      push: true
+      create-release: true

@@ -136,15 +136,17 @@ The command will:
 
 ### Available Linters
 
-See `megalinter-factory/linter-sources.yaml` for the complete catalog of available linters with their installation methods and default versions.
+Linter information is extracted directly from MegaLinter's descriptors at build time. The generator automatically fetches the latest versions from <https://github.com/oxsecurity/megalinter/tree/main/megalinter/descriptors>.
 
 ### Version Updates
 
-Renovate automatically detects version updates in `flavor.yaml` via annotations. The combined `image:tag@digest` format ensures version and digest are updated atomically:
+Linter versions are automatically extracted from MegaLinter at build time - no manual tracking needed. The weekly scheduled rebuild workflow picks up any new linter versions.
+
+For the base image, Renovate tracks the upstream MegaLinter version:
 
 ```yaml
-# renovate: datasource=docker depName=rhysd/actionlint
-image: "rhysd/actionlint:1.7.10@sha256:..."
+# renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
+upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:..."
 ```
 
 When Renovate creates a PR updating `flavor.yaml`, CI regenerates the Dockerfile and builds.

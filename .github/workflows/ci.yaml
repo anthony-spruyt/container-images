@@ -18,7 +18,7 @@ on:
       - "megalinter-factory/**"
       # CI scripts (trigger script tests)
       - ".github/scripts/**"
-      - ".github/workflows/image-pipeline.yaml"
+      - ".github/workflows/_image-pipeline.yaml"
       - "test-images/**"
   workflow_dispatch:
     inputs:
@@ -71,7 +71,7 @@ jobs:
           # Detect CI script changes (for test-ci-scripts job)
           detect_scripts() {
             local diff_cmd="$1"
-            if $diff_cmd | grep -qE '^\.github/scripts/|^\.github/workflows/image-pipeline\.yaml|^test-images/'; then
+            if $diff_cmd | grep -qE '^\.github/scripts/|^\.github/workflows/_image-pipeline\.yaml|^test-images/'; then
               echo "true"
             else
               echo "false"
@@ -205,7 +205,7 @@ jobs:
       fail-fast: false
       matrix:
         image: ${{ fromJson(needs.detect-changes.outputs.images) }}
-    uses: ./.github/workflows/image-pipeline.yaml
+    uses: ./.github/workflows/_image-pipeline.yaml
     secrets: inherit
     with:
       image: ${{ matrix.image }}

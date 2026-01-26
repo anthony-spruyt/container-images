@@ -93,7 +93,7 @@ Create custom MegaLinter flavors by defining a `flavor.yaml` configuration. CI g
 ### Creating a New MegaLinter Flavor
 
 1. Create directory: `megalinter-<name>/`
-2. Create `flavor.yaml` with Renovate annotations for version tracking:
+2. Create `flavor.yaml` - just list the linter keys you want:
 
 ```yaml
 name: my-flavor
@@ -102,20 +102,20 @@ description: "Custom MegaLinter for my use case"
 # renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
 upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:..."
 
+# Just list linter keys - versions extracted from MegaLinter automatically
 custom_linters:
-  - linter_key: ACTION_ACTIONLINT
-    type: docker_binary
-    # renovate: datasource=docker depName=rhysd/actionlint
-    image: "rhysd/actionlint:1.7.10@sha256:..."
-    binary_path: /usr/local/bin/actionlint
-    target_path: /usr/bin/actionlint
+  - ACTION_ACTIONLINT
+  - SPELL_LYCHEE
+  - MARKDOWN_MARKDOWNLINT
 ```
 
 3. Commit and push - CI generates all files and builds automatically
 
 ### Version Updates
 
-Renovate detects updates via `# renovate:` annotations in `flavor.yaml` and creates PRs automatically.
+- **Base image**: Renovate tracks via `# renovate:` annotation in `flavor.yaml`
+- **Linter versions**: Extracted from MegaLinter at build time - zero maintenance
+- **Weekly rebuild**: Scheduled workflow rebuilds all flavors to pick up new versions
 
 ### Local Development
 
@@ -129,5 +129,5 @@ Generated files (`Dockerfile`, `test.sh`) are gitignored - CI regenerates at bui
 ### Factory Files
 
 - `megalinter-factory/generate.py` - Generator script
+- `megalinter-factory/megalinter_extractor.py` - Extracts linter info from MegaLinter
 - `megalinter-factory/templates/` - Jinja2 templates
-- `megalinter-factory/linter-sources.yaml` - Linter catalog (50+ linters)
