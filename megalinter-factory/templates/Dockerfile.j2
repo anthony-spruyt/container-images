@@ -23,6 +23,11 @@ FROM {{ flavor.upstream_image }}
 {% else -%}
 FROM oxsecurity/megalinter-{{ flavor.base_flavor }}:{{ flavor.upstream_tag }}{{ '@' + flavor.upstream_digest if flavor.upstream_digest else '' }}
 {% endif -%}
+{% if apk_packages %}
+
+# Install Alpine package dependencies for custom linters
+RUN apk add --no-cache {{ apk_packages | join(' ') }}
+{%- endif %}
 {% if docker_binary_linters %}
 
 # Add binary linters from source images
@@ -60,8 +65,25 @@ RUN go install {{ linter.package }}@v${{ '{' }}{{ linter.name | upper }}_VERSION
 
 # Add cargo-based linters
 {% for linter in cargo_linters -%}
+RUN cargo install {{ linter.package }}
+{% endfor %}
+{%- endif %}
+{%- if gem_linters %}
+
+# Add gem-based linters (ruby already available in MegaLinter)
+{% for linter in gem_linters -%}
 ARG {{ linter.name | upper }}_VERSION={{ linter.version }}
-RUN cargo install {{ linter.package }} --version ${{ '{' }}{{ linter.name | upper }}_VERSION{{ '}' }}
+{% endfor -%}
+RUN gem install --no-document{% for linter in gem_linters %} {{ linter.package }}:${{ '{' }}{{ linter.name | upper }}_VERSION{{ '}' }}{% endfor %}
+{%- endif %}
+{%- if script_linters %}
+
+# Add script-installed linters (using upstream MegaLinter dockerfile instructions)
+{% for linter in script_linters -%}
+# {{ linter.linter_key }}
+{% for line in linter.dockerfile -%}
+{{ line }}
+{% endfor %}
 {% endfor %}
 {%- endif %}
 {%- if flavor.extra_dockerfile %}

@@ -117,7 +117,7 @@ def parse_dockerfile_instructions(
 
             # FROM rhysd/actionlint:${ACTION_ACTIONLINT_VERSION} AS actionlint
             if match := re.match(
-                r"FROM\s+([^:\s]+):(\S+)\s+AS\s+(\w+)", single_line, re.IGNORECASE
+                r"FROM\s+([^:\s]+):(\S+)\s+AS\s+([\w-]+)", single_line, re.IGNORECASE
             ):
                 stage_name = match.group(3).lower()
                 stages[stage_name] = {
@@ -127,7 +127,7 @@ def parse_dockerfile_instructions(
 
             # COPY --link --from=actionlint /usr/local/bin/actionlint /usr/bin/actionlint
             if match := re.search(
-                r"COPY\s+.*--from=(\w+)\s+(\S+)\s+(\S+)", single_line, re.IGNORECASE
+                r"COPY\s+.*--from=([\w-]+)\s+(\S+)\s+(\S+)", single_line, re.IGNORECASE
             ):
                 stage_name = match.group(1).lower()
                 # Match COPY that corresponds to this linter
@@ -148,8 +148,8 @@ def parse_dockerfile_instructions(
     if matched_stage:
         result["image"] = matched_stage["image"]
         version_ref = matched_stage["version_ref"]
-        # Resolve version variable
-        if var_match := re.match(r"\$\{?(\w+)\}?", version_ref):
+        # Resolve version variable (may have prefix like "v" before ${VAR})
+        if var_match := re.search(r"\$\{?(\w+)\}?", version_ref):
             var_name = var_match.group(1)
             if var_name in args:
                 result["version"] = args[var_name]
@@ -200,6 +200,7 @@ def extract_linter_info(descriptors_dir: Path) -> dict:
                 "cli_version_arg_name": linter.get("cli_version_arg_name", "--version"),
                 "version_command": None,
                 "type": None,
+                "apk_packages": install.get("apk", []),  # Alpine package dependencies
             }
 
             # Build version command
@@ -273,6 +274,77 @@ def extract_linter_info(descriptors_dir: Path) -> dict:
                                 linter_info["version"] = match.group(1)
                                 break
 
+            # Handle cargo installation (only if not already set)
+            if "cargo" in install and linter_info["type"] is None:
+                cargo_packages = install["cargo"]
+                if cargo_packages:
+                    package = cargo_packages[0]
+                    linter_info["type"] = "cargo"
+                    linter_info["package"] = package
+                    # Cargo linters typically don't have versioned installs in MegaLinter
+                    # They use the version from rustup/cargo
+
+            # Handle gem installation (only if not already set)
+            if "gem" in install and linter_info["type"] is None:
+                gem_packages = install["gem"]
+                if gem_packages:
+                    # Handle formats like "rubocop:${GEM_RUBOCOP_VERSION}"
+                    raw_package = gem_packages[0]
+                    # Split on : or @ to get package name
+                    if ":${" in raw_package:
+                        package = raw_package.split(":${")[0]
+                    elif "@${" in raw_package:
+                        package = raw_package.split("@${")[0]
+                    else:
+                        package = raw_package.split(":")[0] if ":" in raw_package else raw_package
+
+                    linter_info["type"] = "gem"
+                    linter_info["package"] = package
+                    if dockerfile:
+                        for line in dockerfile:
+                            if match := re.search(
+                                r"ARG\s+GEM_[\w_]+_VERSION=(\S+)", str(line)
+                            ):
+                                linter_info["version"] = match.group(1)
+                                break
+
+            # Handle script-based installation (wget/curl install scripts)
+            # This catches linters like Trivy that use RUN wget ... | sh
+            if dockerfile and linter_info["type"] is None:
+                dockerfile_text = "\n".join(str(line) for line in dockerfile)
+                # Check if there's a RUN with wget or curl (script installation)
+                if re.search(r"RUN\s+.*(?:wget|curl).*(?:install|\.sh)", dockerfile_text, re.IGNORECASE):
+                    # Look for version ARG - try multiple patterns
+                    version = None
+                    # Pattern 1: {LINTER_KEY}_VERSION (e.g., REPOSITORY_TRIVY_VERSION)
+                    if match := re.search(rf"ARG\s+{re.escape(linter_key)}_VERSION=(\S+)", dockerfile_text):
+                        version = match.group(1)
+                    # Pattern 2: {LINTER_NAME}_VERSION (e.g., DOTENV_LINTER_VERSION)
+                    elif match := re.search(rf"ARG\s+{re.escape(linter_name)}_VERSION=(\S+)", dockerfile_text):
+                        version = match.group(1)
+                    # Pattern 3: Any *_VERSION that looks relevant
+                    elif match := re.search(r"ARG\s+[\w_]+_VERSION=(\S+)", dockerfile_text):
+                        version = match.group(1)
+
+                    if version:
+                        linter_info["type"] = "script"
+                        linter_info["version"] = version
+                        linter_info["dockerfile"] = dockerfile
+
+            # Handle APK-only installation (no other install method)
+            # These are linters installed purely via Alpine packages
+            if linter_info["type"] is None and linter_info["apk_packages"]:
+                linter_info["type"] = "apk"
+
+            # Handle generic dockerfile instructions (RUN commands that don't fit other patterns)
+            # This catches linters like bash-exec that have simple RUN commands
+            if linter_info["type"] is None and dockerfile:
+                dockerfile_text = "\n".join(str(line) for line in dockerfile)
+                # Check for RUN commands (but not FROM which would be docker_binary)
+                if re.search(r"^\s*RUN\s+", dockerfile_text, re.MULTILINE):
+                    linter_info["type"] = "dockerfile"
+                    linter_info["dockerfile"] = dockerfile
+
             # Store linter info if we have a type
             if linter_info["type"]:
                 linters[linter_key] = linter_info
@@ -290,53 +362,53 @@ def extract_base_flavor_linters(descriptors_dir: Path) -> dict[str, list[str]]:
     Returns:
         Dictionary mapping flavor names to lists of linter keys
     """
-    # Read the all_flavors.json or infer from linter disabled_in_flavor fields
-    flavor_linters = {}
+    common_flavors = [
+        "ci_light",
+        "cupcake",
+        "documentation",
+        "dotnet",
+        "dotnetweb",
+        "go",
+        "java",
+        "javascript",
+        "php",
+        "python",
+        "ruby",
+        "rust",
+        "salesforce",
+        "security",
+        "swift",
+        "terraform",
+        "formatters",
+        "c_cpp",
+    ]
+
+    # Initialize flavor lists
+    flavor_linters: dict[str, list[str]] = {flavor: [] for flavor in common_flavors}
 
     for desc_file in descriptors_dir.glob("*.megalinter-descriptor.yml"):
         desc = yaml.safe_load(desc_file.read_text())
         descriptor_id = desc.get("descriptor_id", "").upper()
 
+        # Get descriptor-level flavors (applies to all linters unless overridden)
+        descriptor_flavors = set(desc.get("descriptor_flavors", []))
+
         for linter in desc.get("linters", []):
-            linter_name = linter.get("linter_name", "").upper()
+            linter_name = linter.get("linter_name", "").upper().replace("-", "_")
             linter_key = f"{descriptor_id}_{linter_name}"
 
-            # Linters can specify which flavors they're disabled in
-            disabled_in = set(linter.get("disabled_in_flavor", []))
-            # Or which flavors they're enabled in (descriptor level)
-            install_details = linter.get("install", {})
-            only_in_flavors = install_details.get("only_in_flavor", [])
+            # Linter-level descriptor_flavors overrides descriptor-level if present
+            linter_flavors = linter.get("descriptor_flavors")
+            if linter_flavors is not None:
+                effective_flavors = set(linter_flavors)
+            else:
+                effective_flavors = descriptor_flavors
 
-            # For simplicity, we'll track common flavors
-            common_flavors = [
-                "ci_light",
-                "cupcake",
-                "documentation",
-                "dotnet",
-                "dotnetweb",
-                "go",
-                "java",
-                "javascript",
-                "php",
-                "python",
-                "ruby",
-                "rust",
-                "salesforce",
-                "security",
-                "swift",
-                "terraform",
-                "formatters",
-                "c_cpp",
-            ]
-
+            # Check if linter is in each flavor
+            # Note: "all_flavors" is a flavor name (the full MegaLinter), not "all flavors"
             for flavor in common_flavors:
-                if flavor not in flavor_linters:
-                    flavor_linters[flavor] = []
-
-                # Add linter to flavor if not disabled
-                if flavor not in disabled_in:
-                    if not only_in_flavors or flavor in only_in_flavors:
-                        flavor_linters[flavor].append(linter_key)
+                if flavor in effective_flavors:
+                    flavor_linters[flavor].append(linter_key)
 
     return flavor_linters
 
@@ -368,8 +440,16 @@ if __name__ == "__main__":
     for key, info in sorted(data["linters"].items()):
         if info["type"] == "docker_binary":
             print(f"  {key}: {info['source_image']}:{info['version']}")
-        elif info["type"] in ("npm", "pip"):
+        elif info["type"] in ("npm", "pip", "gem"):
             print(f"  {key}: {info['type']} {info['package']}@{info.get('version', 'latest')}")
+        elif info["type"] == "cargo":
+            print(f"  {key}: cargo {info['package']}")
+        elif info["type"] == "script":
+            print(f"  {key}: script v{info.get('version', 'unknown')}")
+        elif info["type"] == "apk":
+            print(f"  {key}: apk {info.get('apk_packages', [])}")
+        elif info["type"] == "dockerfile":
+            print(f"  {key}: dockerfile")
 
     print(f"\nBase flavors: {list(data['base_flavor_linters'].keys())}")
     print(f"ci_light has {len(data['base_flavor_linters'].get('ci_light', []))} linters")
