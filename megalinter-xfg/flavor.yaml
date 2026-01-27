@@ -1,0 +1,25 @@
+# MegaLinter Flavor Factory Configuration
+# Source of truth for megalinter-xfg flavor
+#
+# To regenerate Dockerfile and test.sh:
+#   python megalinter-factory/generate.py megalinter-xfg/
+#
+# Linter versions are automatically extracted from MegaLinter at build time.
+---
+name: xfg
+description: "MegaLinter flavor for xfg - TypeScript/JavaScript with security scanning"
+
+# Upstream MegaLinter base image (Renovate tracks this)
+# renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
+upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:a71e62c83e3b2d52316e7322b9168e1588e9bcf454dbf9b21fc71b0954786e5e"
+
+# Additional linters not in base flavor
+# Just list linter keys - versions come from MegaLinter automatically
+custom_linters:
+  - ACTION_ACTIONLINT
+  - JAVASCRIPT_ESLINT
+  - JAVASCRIPT_PRETTIER
+  - MARKDOWN_MARKDOWNLINT
+  - SPELL_LYCHEE
+  - TYPESCRIPT_ESLINT
+  - TYPESCRIPT_PRETTIER
