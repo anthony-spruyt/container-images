@@ -50,12 +50,8 @@ env:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
-    steps:
-      - run: "exit 0"
-
-    # uses: "anthony-spruyt/repo-operator/.github/workflows/_lint.yaml@main"
-    # secrets: "inherit"
+    uses: "anthony-spruyt/repo-operator/.github/workflows/_lint.yaml@main"
+    secrets: "inherit"
 
   detect-changes:
     name: Detect Changes
