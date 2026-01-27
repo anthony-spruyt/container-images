@@ -63,6 +63,15 @@ For upstream sources that Renovate cannot monitor (e.g., Alpine packages), use n
 - **Push to main**: Auto-builds on Dockerfile/metadata.yaml/flavor.yaml changes
 - **workflow_dispatch**: Manual trigger with `image` and `version` inputs
 
+## Container Retention
+
+Old container images are automatically cleaned up weekly:
+
+- Images older than 4 weeks are deleted
+- 5 most recent versions always kept
+- Targets: `gastown-dev`, `megalinter-*`
+- Workflow: `.github/workflows/container-retention.yaml`
+
 ## Commits
 
 Use [Conventional Commits](https://www.conventionalcommits.org/):
