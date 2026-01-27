@@ -13,11 +13,13 @@ on:
 jobs:
   cleanup-containers:
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     steps:
       - uses: snok/container-retention-policy@v3.0.1
         with:
           account: anthony-spruyt
-          token: ${{ secrets.CONTAINER_RETENTION_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           image-names: "gastown-dev megalinter-*"
           cut-off: 4w
           keep-n-most-recent: 5
@@ -25,6 +27,8 @@ jobs:
 
   cleanup-releases:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Delete old releases and tags
         env:
