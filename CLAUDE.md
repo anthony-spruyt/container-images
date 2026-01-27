@@ -65,9 +65,10 @@ For upstream sources that Renovate cannot monitor (e.g., Alpine packages), use n
 
 ## Container Retention
 
-Old container images are automatically cleaned up weekly:
+Old container images and releases are automatically cleaned up weekly:
 
 - Images older than 4 weeks are deleted
+- GitHub releases and tags older than 4 weeks are deleted
 - 5 most recent versions always kept
 - Targets: `gastown-dev`, `megalinter-*`
 - Workflow: `.github/workflows/container-retention.yaml`

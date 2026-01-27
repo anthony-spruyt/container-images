@@ -11,7 +11,7 @@ on:
         default: true
 
 jobs:
-  cleanup:
+  cleanup-containers:
     runs-on: ubuntu-latest
     steps:
       - uses: snok/container-retention-policy@v3.0.1
@@ -22,3 +22,52 @@ jobs:
           cut-off: 4w
           keep-n-most-recent: 5
           dry-run: ${{ inputs.dry_run || 'false' }}
+
+  cleanup-releases:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete old releases and tags
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: |
+          CUTOFF_DATE=$(date -d '4 weeks ago' +%s)
+          KEEP_N=5
+
+          for PREFIX in gastown-dev megalinter-; do
+            echo "Processing releases with prefix: $PREFIX"
+
+            # Get all releases for this prefix, sorted by date (newest first)
+            RELEASES=$(gh release list --repo ${{ github.repository }} --limit 1000 \
+              --json tagName,createdAt \
+              --jq ".[] | select(.tagName | startswith(\"$PREFIX\"))")
+
+            # Count and track for keeping N most recent
+            COUNT=0
+
+            echo "$RELEASES" | jq -c '.' | while read -r RELEASE; do
+              TAG=$(echo "$RELEASE" | jq -r '.tagName')
+              CREATED=$(echo "$RELEASE" | jq -r '.createdAt')
+              CREATED_TS=$(date -d "$CREATED" +%s)
+
+              COUNT=$((COUNT + 1))
+
+              # Keep N most recent regardless of age
+              if [ "$COUNT" -le "$KEEP_N" ]; then
+                echo "Keeping (recent): $TAG"
+                continue
+              fi
+
+              # Delete if older than cutoff
+              if [ "$CREATED_TS" -lt "$CUTOFF_DATE" ]; then
+                if [ "$DRY_RUN" = "true" ]; then
+                  echo "Would delete: $TAG (created: $CREATED)"
+                else
+                  echo "Deleting: $TAG (created: $CREATED)"
+                  gh release delete "$TAG" --repo ${{ github.repository }} --cleanup-tag --yes
+                fi
+              else
+                echo "Keeping (not old enough): $TAG"
+              fi
+            done
+          done
