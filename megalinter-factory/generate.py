@@ -182,6 +182,9 @@ def resolve_linters(
             resolved["package"] = linter_config.get(
                 "package", extracted.get("package")
             )
+            # For npm linters, include all required packages (not just primary)
+            if resolved["type"] == "npm":
+                resolved["npm_packages"] = extracted.get("npm_packages", [resolved["package"]])
 
         elif resolved["type"] == "script":
             # Script-based linters have raw dockerfile instructions
@@ -201,7 +204,7 @@ def resolve_linters(
     return all_linters, base_linters, custom_linters
 
 
-def generate_files(flavor_dir: Path, factory_dir: Path) -> None:
+def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disable=too-many-locals
     """Generate Dockerfile, test.sh, and metadata.yaml from flavor.yaml."""
     flavor_yaml_path = flavor_dir / "flavor.yaml"
     templates_dir = factory_dir / "templates"
@@ -249,6 +252,23 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:
         pkg for linter in custom_linters for pkg in linter.get("apk_packages", [])
     ))
 
+    # Collect and deduplicate all npm packages across all npm linters
+    # Track which packages have versions (primary packages) vs those without
+    npm_versioned_packages = {}  # package -> (linter_name, version)
+    npm_unversioned_packages = set()
+    for linter in npm_linters:
+        packages = linter.get("npm_packages", [linter["package"]])
+        for i, pkg in enumerate(packages):
+            if i == 0:
+                # Primary package gets the version
+                npm_versioned_packages[pkg] = (linter["name"], linter["version"])
+            else:
+                # Secondary packages are unversioned (unless already versioned)
+                if pkg not in npm_versioned_packages:
+                    npm_unversioned_packages.add(pkg)
+    # Remove any unversioned that are also in versioned
+    npm_unversioned_packages -= set(npm_versioned_packages.keys())
+
     # Set up Jinja2 environment
     env = Environment(loader=FileSystemLoader(templates_dir), keep_trailing_newline=True)
 
@@ -260,6 +280,8 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:
         "custom_linters_for_test": custom_linters,
         "docker_binary_linters": docker_binary_linters,
         "npm_linters": npm_linters,
+        "npm_versioned_packages": npm_versioned_packages,
+        "npm_unversioned_packages": sorted(npm_unversioned_packages),
         "pip_linters": pip_linters,
         "go_linters": go_linters,
         "cargo_linters": cargo_linters,

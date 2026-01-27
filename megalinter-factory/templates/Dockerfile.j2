@@ -38,10 +38,16 @@ COPY --link --from={{ linter.name }} {{ linter.binary_path }} {{ linter.target_p
 {% if npm_linters %}
 
 # Add npm-based linters (node already available in MegaLinter)
-{% for linter in npm_linters -%}
-ARG {{ linter.name | upper }}_VERSION={{ linter.version }}
+{% for pkg, info in npm_versioned_packages.items() -%}
+ARG {{ info[0] | upper }}_VERSION={{ info[1] }}
 {% endfor -%}
-RUN npm install -g{% for linter in npm_linters %} {{ linter.package }}@${{ '{' }}{{ linter.name | upper }}_VERSION{{ '}' }}{% endfor %} \
+RUN npm install -g \
+{%- for pkg, info in npm_versioned_packages.items() %}
+    {{ pkg }}@${{ '{' }}{{ info[0] | upper }}_VERSION{{ '}' }} \
+{%- endfor %}
+{%- for pkg in npm_unversioned_packages %}
+    {{ pkg }} \
+{%- endfor %}
     && npm cache clean --force \
     && rm -rf /root/.npm/_cacache
 {%- endif %}

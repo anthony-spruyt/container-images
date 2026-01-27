@@ -166,7 +166,7 @@ def parse_dockerfile_instructions(
     return result
 
 
-def extract_linter_info(descriptors_dir: Path) -> dict:
+def extract_linter_info(descriptors_dir: Path) -> dict:  # pylint: disable=too-many-locals
     """
     Extract all linter info from MegaLinter descriptors.
 
@@ -224,22 +224,28 @@ def extract_linter_info(descriptors_dir: Path) -> dict:
             if "npm" in install and linter_info["type"] is None:
                 npm_packages = install["npm"]
                 if npm_packages:
-                    # Extract package name - handle formats like:
+                    # Extract ALL package names - handle formats like:
                     # - "markdownlint-cli@${NPM_MARKDOWNLINT_CLI_VERSION}"
                     # - "@stoplight/spectral-cli@${NPM_SPECTRAL_VERSION}"
-                    raw_package = npm_packages[0]
-                    # Split on @$ to get package name (handles scoped packages)
-                    if "@${" in raw_package:
-                        package = raw_package.split("@${")[0]
-                    elif raw_package.startswith("@") and raw_package.count("@") == 2:
-                        # Scoped package like @scope/pkg@version
-                        parts = raw_package.rsplit("@", 1)
-                        package = parts[0]
-                    else:
-                        package = raw_package.split("@")[0] if "@" in raw_package else raw_package
+                    # - "@typescript-eslint/parser" (no version)
+                    all_packages = []
+                    for raw_package in npm_packages:
+                        # Split on @$ to get package name (handles scoped packages)
+                        if "@${" in raw_package:
+                            package = raw_package.split("@${")[0]
+                        elif raw_package.startswith("@") and raw_package.count("@") == 2:
+                            # Scoped package like @scope/pkg@version
+                            parts = raw_package.rsplit("@", 1)
+                            package = parts[0]
+                        elif "@" in raw_package:
+                            package = raw_package.split("@")[0]
+                        else:
+                            package = raw_package
+                        all_packages.append(package)
 
                     linter_info["type"] = "npm"
-                    linter_info["package"] = package
+                    linter_info["package"] = all_packages[0]  # Primary package
+                    linter_info["npm_packages"] = all_packages  # All packages
                     # Find version from dockerfile ARGs
                     if dockerfile:
                         for line in dockerfile:
