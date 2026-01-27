@@ -182,12 +182,14 @@ def extract_linter_info(descriptors_dir: Path) -> dict:
         desc = yaml.safe_load(desc_file.read_text())
 
         for linter in desc.get("linters", []):
-            # Build linter key: DESCRIPTOR_LINTERNAME (e.g., ACTION_ACTIONLINT)
+            # Use the 'name' field as the linter key - this is the actual key MegaLinter uses
+            # e.g., JAVASCRIPT_ES, TYPESCRIPT_ES, ACTION_ACTIONLINT
+            # Falls back to constructing from descriptor_id + linter_name if 'name' not present
             descriptor_id = desc.get("descriptor_id", "").upper()
             linter_name_raw = linter.get("linter_name", "")
             # Normalize: replace hyphens with underscores for consistency
             linter_name = linter_name_raw.upper().replace("-", "_")
-            linter_key = f"{descriptor_id}_{linter_name}"
+            linter_key = linter.get("name", f"{descriptor_id}_{linter_name}")
 
             install = linter.get("install", {})
             dockerfile = install.get("dockerfile", [])
@@ -397,8 +399,9 @@ def extract_base_flavor_linters(descriptors_dir: Path) -> dict[str, list[str]]:
         descriptor_flavors = set(desc.get("descriptor_flavors", []))
 
         for linter in desc.get("linters", []):
+            # Use the 'name' field as the linter key (same as extract_linter_info)
             linter_name = linter.get("linter_name", "").upper().replace("-", "_")
-            linter_key = f"{descriptor_id}_{linter_name}"
+            linter_key = linter.get("name", f"{descriptor_id}_{linter_name}")
 
             # Linter-level descriptor_flavors overrides descriptor-level if present
             linter_flavors = linter.get("descriptor_flavors")

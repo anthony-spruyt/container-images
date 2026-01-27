@@ -17,9 +17,9 @@ upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:a71e62c83e3b2d5231
 # Just list linter keys - versions come from MegaLinter automatically
 custom_linters:
   - ACTION_ACTIONLINT
-  - JAVASCRIPT_ESLINT
+  - JAVASCRIPT_ES
   - JAVASCRIPT_PRETTIER
   - MARKDOWN_MARKDOWNLINT
   - SPELL_LYCHEE
-  - TYPESCRIPT_ESLINT
+  - TYPESCRIPT_ES
   - TYPESCRIPT_PRETTIER
