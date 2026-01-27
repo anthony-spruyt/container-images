@@ -22,5 +22,6 @@ upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:a71e62c83e3b2d5231
 #   DOCKERFILE_HADOLINT
 custom_linters:
   - ACTION_ACTIONLINT
-  - SPELL_LYCHEE
   - MARKDOWN_MARKDOWNLINT
+  - PYTHON_PYLINT
+  - SPELL_LYCHEE
