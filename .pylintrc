@@ -1,0 +1,23 @@
+[MAIN]
+# Minimum Python version
+py-version = 3.10
+
+[DESIGN]
+# Maximum number of local variables (default: 15)
+max-locals = 30
+
+# Maximum number of branches (default: 12)
+max-branches = 45
+
+# Maximum number of statements (default: 50)
+max-statements = 110
+
+# Maximum number of nested blocks (default: 5)
+max-nested-blocks = 8
+
+# Maximum number of return statements (default: 6)
+max-returns = 10
+
+[MESSAGES CONTROL]
+# E0401: jinja2 installed at runtime, not in lint environment
+disable = import-error
