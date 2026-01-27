@@ -13,6 +13,7 @@ Example:
 """
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 
@@ -24,7 +25,7 @@ from megalinter_extractor import get_megalinter_linters
 
 def load_yaml(path: Path) -> dict:
     """Load a YAML file and return its contents."""
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
 
@@ -337,7 +338,16 @@ def main() -> int:
     try:
         generate_files(flavor_dir, factory_dir)
         return 0
-    except Exception as e:
+    except FileNotFoundError as e:
+        print(f"Error: File not found: {e}", file=sys.stderr)
+        return 1
+    except yaml.YAMLError as e:
+        print(f"Error: Invalid YAML: {e}", file=sys.stderr)
+        return 1
+    except subprocess.CalledProcessError as e:
+        print(f"Error: Command failed: {e}", file=sys.stderr)
+        return 1
+    except (OSError, ValueError) as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
 

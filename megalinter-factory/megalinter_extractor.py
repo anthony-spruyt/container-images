@@ -12,6 +12,7 @@ Usage:
 """
 
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -36,8 +37,6 @@ def clone_megalinter(cache_dir: Path | None = None) -> Path:
 
     # Always do a fresh clone for build reproducibility
     if ml_dir.exists():
-        import shutil
-
         shutil.rmtree(ml_dir)
 
     subprocess.run(
@@ -204,20 +203,20 @@ def extract_linter_info(descriptors_dir: Path) -> dict:
             }
 
             # Build version command
-            cli_name = linter_name_raw or linter_key.split("_")[-1].lower()
+            cli_name = linter_name_raw or linter_key.rsplit("_", maxsplit=1)[-1].lower()
             version_arg = linter.get("cli_version_arg_name", "--version")
             linter_info["version_command"] = f"{cli_name} {version_arg}"
 
             # Handle dockerfile-based installation (docker_binary type)
             if dockerfile:
-                info = parse_dockerfile_instructions(dockerfile, linter_key)
-                if info["image"] and info["binary_path"]:
+                df_info = parse_dockerfile_instructions(dockerfile, linter_key)
+                if df_info["image"] and df_info["binary_path"]:
                     linter_info["type"] = "docker_binary"
-                    linter_info["source_image"] = info["image"]
-                    linter_info["version"] = info["version"]
-                    linter_info["binary_path"] = info["binary_path"]
-                    linter_info["target_path"] = info["target_path"]
-                    linter_info["stage_name"] = info["stage_name"]
+                    linter_info["source_image"] = df_info["image"]
+                    linter_info["version"] = df_info["version"]
+                    linter_info["binary_path"] = df_info["binary_path"]
+                    linter_info["target_path"] = df_info["target_path"]
+                    linter_info["stage_name"] = df_info["stage_name"]
 
             # Handle npm installation (only if not already docker_binary)
             if "npm" in install and linter_info["type"] is None:
@@ -313,17 +312,21 @@ def extract_linter_info(descriptors_dir: Path) -> dict:
             if dockerfile and linter_info["type"] is None:
                 dockerfile_text = "\n".join(str(line) for line in dockerfile)
                 # Check if there's a RUN with wget or curl (script installation)
-                if re.search(r"RUN\s+.*(?:wget|curl).*(?:install|\.sh)", dockerfile_text, re.IGNORECASE):
+                script_pattern = r"RUN\s+.*(?:wget|curl).*(?:install|\.sh)"
+                if re.search(script_pattern, dockerfile_text, re.IGNORECASE):
                     # Look for version ARG - try multiple patterns
                     version = None
                     # Pattern 1: {LINTER_KEY}_VERSION (e.g., REPOSITORY_TRIVY_VERSION)
-                    if match := re.search(rf"ARG\s+{re.escape(linter_key)}_VERSION=(\S+)", dockerfile_text):
+                    key_pattern = rf"ARG\s+{re.escape(linter_key)}_VERSION=(\S+)"
+                    if match := re.search(key_pattern, dockerfile_text):
                         version = match.group(1)
                     # Pattern 2: {LINTER_NAME}_VERSION (e.g., DOTENV_LINTER_VERSION)
-                    elif match := re.search(rf"ARG\s+{re.escape(linter_name)}_VERSION=(\S+)", dockerfile_text):
+                    name_pattern = rf"ARG\s+{re.escape(linter_name)}_VERSION=(\S+)"
+                    if not version and (match := re.search(name_pattern, dockerfile_text)):
                         version = match.group(1)
                     # Pattern 3: Any *_VERSION that looks relevant
-                    elif match := re.search(r"ARG\s+[\w_]+_VERSION=(\S+)", dockerfile_text):
+                    generic_pattern = r"ARG\s+[\w_]+_VERSION=(\S+)"
+                    if not version and (match := re.search(generic_pattern, dockerfile_text)):
                         version = match.group(1)
 
                     if version:

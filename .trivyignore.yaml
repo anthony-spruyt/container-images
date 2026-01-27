@@ -28,11 +28,11 @@ misconfigurations:
   # MegaLinter images run as root by design - they need to install packages and run linters
   - id: AVD-DS-0002
     paths:
-      - megalinter-container-images/Dockerfile
+      - megalinter-*/Dockerfile
   # MegaLinter runs once and exits - no healthcheck needed for batch processing tools
   - id: AVD-DS-0026
     paths:
-      - megalinter-container-images/Dockerfile
+      - megalinter-*/Dockerfile
   # Upstream source code checked out during CI - not our code
   - id: AVD-DS-0002
     paths:
