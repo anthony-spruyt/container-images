@@ -1,4 +1,5 @@
 ---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/github-workflow.json
 name: Rebuild MegaLinter Flavors
 
 # Weekly rebuild to pick up new linter versions from MegaLinter

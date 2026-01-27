@@ -15,7 +15,10 @@
       "name": "Daily Check",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [-720, 736]
+      "position": [
+        -720,
+        736
+      ]
     },
     {
       "parameters": {
@@ -32,7 +35,10 @@
       "name": "Get Dockerfile",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-512, 736]
+      "position": [
+        -512,
+        736
+      ]
     },
     {
       "parameters": {
@@ -42,7 +48,10 @@
       "name": "Parse Alpine Version",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-288, 736]
+      "position": [
+        -288,
+        736
+      ]
     },
     {
       "parameters": {
@@ -59,7 +68,10 @@
       "name": "Get Alpine APKBUILD",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-64, 736]
+      "position": [
+        -64,
+        736
+      ]
     },
     {
       "parameters": {
@@ -74,7 +86,10 @@
       "name": "Get GitHub Releases",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [160, 736]
+      "position": [
+        160,
+        736
+      ]
     },
     {
       "parameters": {
@@ -84,7 +99,10 @@
       "name": "Check New Version",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [384, 736]
+      "position": [
+        384,
+        736
+      ]
     },
     {
       "parameters": {
@@ -113,7 +131,10 @@
       "name": "Is New Version?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [608, 736]
+      "position": [
+        608,
+        736
+      ]
     },
     {
       "parameters": {
@@ -123,7 +144,10 @@
       "name": "Update State",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [816, 640]
+      "position": [
+        816,
+        640
+      ]
     },
     {
       "parameters": {
@@ -149,7 +173,10 @@
       "name": "Trigger Build Workflow",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1040, 640],
+      "position": [
+        1040,
+        640
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "CONFIGURE_ME",
@@ -168,7 +195,10 @@
       "name": "Send Notification",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [1264, 640],
+      "position": [
+        1264,
+        640
+      ],
       "credentials": {
         "smtp": {
           "id": "CONFIGURE_ME",
