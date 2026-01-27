@@ -18,7 +18,8 @@ upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:a71e62c83e3b2d5231
 #
 # Note: The following requested linters are already in ci_light base:
 #   BASH_SHELLCHECK, BASH_SHFMT, JSON_JSONLINT, YAML_YAMLLINT,
-#   REPOSITORY_GITLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY
+#   REPOSITORY_GITLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY,
+#   DOCKERFILE_HADOLINT
 custom_linters:
   - ACTION_ACTIONLINT
   - SPELL_LYCHEE

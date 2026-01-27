@@ -99,40 +99,12 @@ The command will:
    upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:..."
 
    custom_linters:
-     # Binary from Docker image (version+digest combined for atomic updates)
-     - linter_key: ACTION_ACTIONLINT
-       type: docker_binary
-       # renovate: datasource=docker depName=rhysd/actionlint
-       image: "rhysd/actionlint:1.7.10@sha256:..."
-       binary_path: /usr/local/bin/actionlint
-       target_path: /usr/bin/actionlint
-
-     # NPM package
-     - linter_key: MARKDOWN_MARKDOWNLINT
-       type: npm
-       package: markdownlint-cli
-       # renovate: datasource=npm depName=markdownlint-cli
-       version: "0.44.0"
-
-     # Pip package
-     - linter_key: PYTHON_BANDIT
-       type: pip
-       package: bandit
-       # renovate: datasource=pypi depName=bandit
-       version: "1.7.10"
+     - ACTION_ACTIONLINT
+     - MARKDOWN_MARKDOWNLINT
+     - PYTHON_BANDIT
    ```
 
 3. Commit `flavor.yaml` - CI generates Dockerfile, test.sh, and metadata.yaml, then builds automatically
-
-### Supported Linter Types
-
-| Type            | Description                   | Example                    |
-| --------------- | ----------------------------- | -------------------------- |
-| `docker_binary` | Copy binary from Docker image | actionlint, lychee         |
-| `npm`           | Install via npm               | markdownlint-cli, prettier |
-| `pip`           | Install via pip               | bandit, pylint             |
-| `go`            | Install via go install        | staticcheck                |
-| `cargo`         | Install via cargo install     | clippy                     |
 
 ### Available Linters
 
