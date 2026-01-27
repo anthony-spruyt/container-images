@@ -13,13 +13,12 @@ on:
 jobs:
   cleanup-containers:
     runs-on: ubuntu-latest
-    permissions:
-      packages: write
+    permissions: {}
     steps:
       - uses: snok/container-retention-policy@v3.0.1
         with:
           account: anthony-spruyt
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.CONTAINER_RETENTION_TOKEN }}
           image-names: "gastown-dev megalinter-*"
           cut-off: 4w
           keep-n-most-recent: 5
