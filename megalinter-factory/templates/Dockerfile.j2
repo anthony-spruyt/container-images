@@ -101,3 +101,8 @@ RUN gem install --no-document{% for linter in gem_linters %} {{ linter.package }
 # Set flavor to 'all' to bypass MegaLinter's flavor validation
 # (custom flavor names like '{{ flavor.name }}' aren't recognized by MegaLinter)
 ENV MEGALINTER_FLAVOR=all
+{% if npm_linters %}
+
+# Make globally installed npm packages discoverable by ESLint
+ENV NODE_PATH=/usr/lib/node_modules
+{%- endif %}
