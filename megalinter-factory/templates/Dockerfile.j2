@@ -104,5 +104,5 @@ ENV MEGALINTER_FLAVOR=all
 {% if npm_linters %}
 
 # Make globally installed npm packages discoverable by ESLint
-ENV NODE_PATH=/usr/lib/node_modules
+ENV NODE_PATH=/usr/local/lib/node_modules
 {%- endif %}
