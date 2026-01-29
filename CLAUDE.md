@@ -43,7 +43,7 @@ version: "1.0.0"
 ### That's It
 
 - **No workflow updates needed** - upstream validation uses each image's own `metadata.yaml`
-- **Dependabot auto-generated** - pre-commit hook updates `.github/dependabot.yml` automatically
+- **Renovate tracking** - add `# renovate:` annotations to `metadata.yaml` for automatic version updates
 
 ### Optional: Add CI Tests
 
@@ -92,9 +92,11 @@ Examples:
 - `docs(readme): update setup instructions`
 - `ci(lint): add trivy vulnerability scanning`
 
-## Linters (configured in .mega-linter.yml)
+## Linters
 
-ACTION_ACTIONLINT, BASH_SHELLCHECK, BASH_SHFMT, DOCKERFILE_HADOLINT, JSON_JSONLINT, MARKDOWN_MARKDOWNLINT, REPOSITORY_GITLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY, SPELL_LYCHEE, YAML_YAMLLINT
+Base (`.mega-linter-base.yml`): ACTION_ACTIONLINT, BASH_SHELLCHECK, BASH_SHFMT, JSON_JSONLINT, MARKDOWN_MARKDOWNLINT, REPOSITORY_GITLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY, SPELL_LYCHEE, YAML_YAMLLINT
+
+Project-specific (`.mega-linter.yml`): DOCKERFILE_HADOLINT, PYTHON_PYLINT
 
 ## MegaLinter Flavor Factory
 
