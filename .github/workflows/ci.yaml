@@ -38,11 +38,12 @@ on:
         default: true
 
 permissions:
-  contents: write
-  packages: write
-  id-token: write
   attestations: write
+  contents: write
+  id-token: write
+  packages: write
   pull-requests: write
+  security-events: "write"
   statuses: write
 
 env:
