@@ -70,13 +70,17 @@ create_release_with_retry() {
 get_previous_release() {
   local image="$1"
   local current_tag="$2"
+  local current_release="${image}-${current_tag}"
 
-  # List releases, filter by image prefix, exclude current version (with optional -rN suffix)
-  gh release list --limit 100 2>/dev/null |
-    grep -E "^${image}-" |
-    grep -v "^${image}-${current_tag}\(   \|-r[0-9]\)" |
-    head -1 |
-    awk '{print $1}' || true
+  # Use JSON output for reliable parsing
+  # Filter: starts with image prefix, excludes current version and its rebuild suffixes (-rN)
+  gh release list --json tagName --limit 100 2>/dev/null |
+    jq -r --arg prefix "${image}-" --arg current "$current_release" '
+      [.[] |
+        select(.tagName | startswith($prefix)) |
+        select((.tagName == $current) or (.tagName | test($current + "-r[0-9]+$")) | not)
+      ][0].tagName // empty
+    ' || true
 }
 
 # Generate commit log since previous release
