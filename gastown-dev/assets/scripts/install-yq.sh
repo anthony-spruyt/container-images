@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # renovate: depName=mikefarah/yq datasource=github-releases
-VERSION="v4.50.1"
+VERSION="v4.52.2"
 
 ARCH=$(uname -m)
 case "$ARCH" in
