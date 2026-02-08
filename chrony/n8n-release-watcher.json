@@ -11,13 +11,12 @@
           ]
         }
       },
-      "id": "819ebde0-198b-4014-aac3-fc5c1fca6997",
       "name": "Daily Check",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -720,
-        736
+        -688,
+        512
       ]
     },
     {
@@ -31,26 +30,24 @@
           }
         }
       },
-      "id": "e1ac4b93-1f0d-4e5e-935b-fc5ee7f5aeeb",
       "name": "Get Dockerfile",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -512,
-        736
+        -480,
+        512
       ]
     },
     {
       "parameters": {
         "jsCode": "// Parse Alpine version from Dockerfile\nconst dockerfile = $input.first().json.data;\nconst match = dockerfile.match(/FROM\\s+alpine:(\\d+\\.\\d+)/);\nconst alpineVersion = match ? match[1] : null;\n\nif (!alpineVersion) {\n  return [{ json: { error: 'Could not parse Alpine version from Dockerfile' } }];\n}\n\nreturn [{ json: { alpineVersion } }];"
       },
-      "id": "8de7a9a1-4b66-46bd-baa3-66ca2ab858c2",
       "name": "Parse Alpine Version",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -288,
-        736
+        -256,
+        512
       ]
     },
     {
@@ -64,44 +61,55 @@
           }
         }
       },
-      "id": "3ff6bfaf-6a33-403e-aba0-a03da73a464f",
       "name": "Get Alpine APKBUILD",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -64,
-        736
+        -32,
+        512
       ]
     },
     {
       "parameters": {
-        "url": "https://api.github.com/repos/anthony-spruyt/container-images/releases",
+        "jsCode": "// Parse chrony version from APKBUILD\nconst apkbuild = $input.first().json.data;\nconst alpineVersion = $('Parse Alpine Version').item.json.alpineVersion;\nconst pkgverMatch = apkbuild.match(/pkgver=([0-9.]+)/);\nconst pkgrelMatch = apkbuild.match(/pkgrel=([0-9]+)/);\n\nif (!pkgverMatch) {\n  return [{ json: { error: 'Could not parse pkgver from APKBUILD' } }];\n}\n\nconst pkgver = pkgverMatch[1];\nconst pkgrel = pkgrelMatch ? pkgrelMatch[1] : '0';\n\nreturn [{ json: { pkgver, pkgrel, fullVersion: `${pkgver}-r${pkgrel}`, alpineVersion } }];"
+      },
+      "name": "Parse APKBUILD",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/anthony-spruyt/container-images/git/matching-refs/tags/chrony-{{ $json.pkgver }}",
         "options": {
           "response": {
-            "response": {}
+            "response": {
+              "responseFormat": "text"
+            }
           }
         }
       },
-      "id": "5d6a6437-b236-4bad-b3bd-7d9d4eedb189",
-      "name": "Get GitHub Releases",
+      "name": "Check Matching Tags",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        160,
-        736
+        192,
+        512
       ]
     },
     {
       "parameters": {
-        "jsCode": "// Get Alpine version from earlier node\nconst alpineVersion = $('Parse Alpine Version').item.json.alpineVersion;\n\n// Parse chrony version from APKBUILD\nconst apkbuild = $('Get Alpine APKBUILD').item.json.data;\nconst pkgverMatch = apkbuild.match(/pkgver=([0-9.]+)/);\nconst pkgrelMatch = apkbuild.match(/pkgrel=([0-9]+)/);\n\nif (!pkgverMatch) {\n  return [{ json: { isNew: false, version: null, error: 'Could not parse pkgver from APKBUILD' } }];\n}\n\nconst pkgver = pkgverMatch[1];\nconst pkgrel = pkgrelMatch ? pkgrelMatch[1] : '0';\nconst version = `${pkgver}-r${pkgrel}`;\n\n// Check GitHub releases to see if this version was already built\n// Release tag format: chrony-{version} or chrony-{version}-rN (for retries)\n// Get ALL releases from input (n8n splits array responses into multiple items)\nconst releases = $input.all().map(item => item.json);\nconst releasePattern = new RegExp(`^chrony-${pkgver}(-r[0-9]+)?$`);\nconst existingRelease = releases.find(r => releasePattern.test(r.tag_name));\n\nconst isNew = !existingRelease;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: pkgver,\n    fullVersion: version,\n    pkgver: pkgver,\n    pkgrel: pkgrel,\n    existingRelease: existingRelease ? existingRelease.tag_name : null,\n    alpineVersion: alpineVersion\n  }\n}];"
+        "jsCode": "// Get version info from Parse APKBUILD node\nconst pkgver = $('Parse APKBUILD').item.json.pkgver;\nconst pkgrel = $('Parse APKBUILD').item.json.pkgrel;\nconst fullVersion = $('Parse APKBUILD').item.json.fullVersion;\nconst alpineVersion = $('Parse APKBUILD').item.json.alpineVersion;\n\n// Parse matching git refs from GitHub API (returned as text to handle empty arrays)\nconst responseText = $input.first().json.data;\nconst refs = JSON.parse(responseText);\n\n// Check if any matching ref corresponds to this pkgver\n// Matches chrony-{pkgver} and chrony-{pkgver}-rN (pkgrel variants)\nconst releasePattern = new RegExp(`^refs/tags/chrony-${pkgver}(-r[0-9]+)?$`);\nconst existingRef = refs.find(r => releasePattern.test(r.ref));\n\nconst isNew = !existingRef;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: pkgver,\n    fullVersion: fullVersion,\n    pkgver: pkgver,\n    pkgrel: pkgrel,\n    existingTag: existingRef ? existingRef.ref.replace('refs/tags/', '') : null,\n    alpineVersion: alpineVersion\n  }\n}];"
       },
-      "id": "4a5eaadd-8027-4212-8073-d31c0842bea8",
       "name": "Check New Version",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        384,
-        736
+        416,
+        512
       ]
     },
     {
@@ -127,26 +135,24 @@
         },
         "options": {}
       },
-      "id": "628efa82-06af-42c6-af03-d94f30354eaa",
       "name": "Is New Version?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        608,
-        736
+        640,
+        512
       ]
     },
     {
       "parameters": {
         "jsCode": "// Update static data with the new version (kept for backwards compatibility)\nconst staticData = $getWorkflowStaticData('global');\nconst version = $('Check New Version').item.json.fullVersion;\nstaticData.lastVersion_chrony = version;\n\nreturn [{\n  json: {\n    success: true,\n    version: version,\n    message: `Updated last version to ${version}`\n  }\n}];"
       },
-      "id": "8d7f0049-28e4-40b3-89ef-efd0d65c31ad",
       "name": "Update State",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        816,
-        640
+        848,
+        416
       ]
     },
     {
@@ -169,13 +175,12 @@
         "jsonBody": "={\n  \"ref\": \"main\",\n  \"inputs\": {\n    \"image\": \"chrony\",\n    \"version\": \"{{ $('Check New Version').item.json.version }}\",\n    \"dry_run\": \"false\"\n  }\n}",
         "options": {}
       },
-      "id": "e4256070-c45b-4ada-a6d0-253ff3b52875",
       "name": "Trigger Build Workflow",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1040,
-        640
+        1072,
+        416
       ],
       "credentials": {
         "httpHeaderAuth": {
@@ -191,13 +196,12 @@
         "subject": "=Chrony {{ $('Check New Version').item.json.fullVersion }} - Build triggered",
         "options": {}
       },
-      "id": "0f3f511d-7d8e-456f-9593-7dae980c8ee8",
       "name": "Send Notification",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        1264,
-        640
+        1296,
+        416
       ],
       "credentials": {
         "smtp": {
@@ -246,14 +250,25 @@
       "main": [
         [
           {
-            "node": "Get GitHub Releases",
+            "node": "Parse APKBUILD",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Get GitHub Releases": {
+    "Parse APKBUILD": {
+      "main": [
+        [
+          {
+            "node": "Check Matching Tags",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Matching Tags": {
       "main": [
         [
           {
