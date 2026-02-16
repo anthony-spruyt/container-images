@@ -1,7 +1,7 @@
 {
   "features": {
     "ghcr.io/devcontainers/features/node:1.7.1": {
-      "version": "24.13.0"
+      "version": "24.13.1"
     },
     "ghcr.io/devcontainers/features/python:1.8.0": {
       "version": "3.14.3",
