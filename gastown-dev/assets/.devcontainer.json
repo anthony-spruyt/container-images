@@ -8,7 +8,7 @@
       "installTools": false
     },
     "ghcr.io/devcontainers/features/go:1.3.2": {
-      "version": "1.25.7"
+      "version": "1.26.0"
     },
     "ghcr.io/devcontainers/features/terraform:1.4.2": {
       "version": "1.14.3"

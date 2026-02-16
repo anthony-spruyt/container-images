@@ -318,7 +318,7 @@ jobs:
 
       # SHA pin: aquasecurity/trivy-action@0.29.0
       - name: Scan for vulnerabilities
-        uses: aquasecurity/trivy-action@22438a435773de8c97dc0958cc0b823c45b064ac
+        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}:${{ needs.check-release.outputs.tag }}
           scanners: ${{ steps.trivyconfig.outputs.scanners }}
