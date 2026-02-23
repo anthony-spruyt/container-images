@@ -65,7 +65,6 @@ jobs:
       version: ${{ steps.metadata.outputs.version }}
       upstream: ${{ steps.metadata.outputs.upstream }}
     steps:
-      # SHA pin: actions/checkout@v4.3.1
       - name: Checkout
         uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
 
@@ -187,7 +186,6 @@ jobs:
       digest: ${{ steps.push.outputs.digest }}
       tag: ${{ needs.check-release.outputs.tag }}
     steps:
-      # SHA pin: actions/checkout@v4.3.1
       - name: Checkout
         uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
 
@@ -199,7 +197,6 @@ jobs:
           docker system prune -af
           df -h
 
-      # SHA pin: actions/checkout@v4.3.1
       - name: Checkout upstream source
         if: inputs.upstream != '' || needs.check-release.outputs.upstream != ''
         uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
@@ -242,11 +239,9 @@ jobs:
             exit 1
           fi
 
-      # SHA pin: docker/setup-buildx-action@v3.12.0
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@7c525be6cc8a882d5163ce04293cac18617c709f
 
-      # SHA pin: docker/login-action@v3.6.0
       - name: Log in to GitHub Container Registry
         if: inputs.push
         uses: docker/login-action@3227f5311cb93ffd14d13e65d8cc400d30f4dd8a
@@ -255,7 +250,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # SHA pin: docker/metadata-action@v5.10.0
       - name: Extract Docker metadata
         id: docker-metadata
         uses: docker/metadata-action@a60f0f62b5c12316066c8db464bfb2faafd7907b
@@ -266,7 +260,6 @@ jobs:
             type=raw,value=${{ needs.check-release.outputs.tag }},enable=${{ needs.check-release.outputs.tag != 'latest' }}
             type=sha,prefix=
 
-      # SHA pin: docker/build-push-action@v6.18.0
       - name: Build image
         id: build
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
@@ -316,7 +309,6 @@ jobs:
             echo "scanners=vuln,secret,misconfig" >> "$GITHUB_OUTPUT"
           fi
 
-      # SHA pin: aquasecurity/trivy-action@0.29.0
       - name: Scan for vulnerabilities
         uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518
         with:
@@ -375,7 +367,6 @@ jobs:
           sbom: true
           provenance: mode=max
 
-      # SHA pin: actions/attest-build-provenance@v2.4.0
       - name: Generate provenance attestation
         if: inputs.push
         uses: actions/attest-build-provenance@02a49bdc410a809733602220c6f6275925d6b578
