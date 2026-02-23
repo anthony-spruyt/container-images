@@ -22,7 +22,6 @@ jobs:
     outputs:
       flavors: ${{ steps.find.outputs.flavors }}
     steps:
-      # SHA pin: actions/checkout@v4.3.1
       - name: Checkout
         uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
 

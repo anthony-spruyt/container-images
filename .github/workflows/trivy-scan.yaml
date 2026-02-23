@@ -23,7 +23,6 @@ jobs:
     outputs:
       images: ${{ steps.discover.outputs.images }}
     steps:
-      # SHA pin: actions/checkout@v4.3.1
       - name: Checkout
         uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
 
@@ -59,7 +58,6 @@ jobs:
       matrix:
         image: ${{ fromJson(needs.discover-images.outputs.images) }}
     steps:
-      # SHA pin: actions/checkout@v4.3.1
       - name: Checkout
         uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
 
@@ -107,7 +105,6 @@ jobs:
             echo "Scanning production image: vuln,secret,misconfig"
           fi
 
-      # SHA pin: aquasecurity/trivy-action@0.29.0
       - name: Scan image for vulnerabilities
         if: steps.check-image.outputs.exists == 'true'
         uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518
