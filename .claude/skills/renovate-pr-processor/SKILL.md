@@ -38,21 +38,22 @@ If no PRs found, report "No open Renovate PRs" and exit.
 
 ### Phase 2: ANALYZE (parallel)
 
-Create a GitHub tracking issue for the batch run:
+Create a GitHub tracking issue for the batch run. Build the PR list from the discovered PRs before creating the issue:
 
 ```bash
+# Build the PR list (construct this dynamically from discovered PRs)
+# Format each PR as: - #<number> <title>
+# Sorted by risk order (patch → minor → major → unknown)
+
 gh issue create --repo anthony-spruyt/container-images \
   --title "chore(deps): batch renovate PR processing $(date +%Y-%m-%d)" \
   --label "chore" \
   --body "$(cat <<'ISSUE_EOF'
-## Summary
-Batch processing of open Renovate dependency update PRs.
+## PRs
 
-## Motivation
-Automate review and merge of dependency updates with breaking change analysis.
-
-## Chore Type
-Dependency management
+- #<number> <title>
+- #<number> <title>
+...
 
 ## Affected Area
 - Container images and CI/CD
