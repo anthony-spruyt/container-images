@@ -2,6 +2,20 @@
 
 Detailed patterns for detecting breaking changes in different dependency types found in this container-images repository.
 
+## Dependency Type Classification
+
+Classify each Renovate PR by matching its labels and changed files:
+
+| Label / File Pattern                         | Type              | Upstream Source                |
+| -------------------------------------------- | ----------------- | ------------------------------ |
+| `renovate/script` + `metadata.yaml` changed  | Upstream source   | GitHub repo from metadata.yaml |
+| `renovate/script` + `flavor.yaml` changed    | Docker base image | Container registry project     |
+| `renovate/github-actions` + workflow changed | GitHub Actions    | Action's GitHub repo           |
+| `renovate/script` + `.devcontainer/` changed | Script/tool dep   | Tool's GitHub repo             |
+| `renovate/devcontainer`                      | DevContainer dep  | Devcontainer feature repo      |
+| `.pre-commit-config.yaml` changed            | Pre-commit hook   | Hook's GitHub repo             |
+| None of the above                            | Other             | Best-effort GitHub search      |
+
 ## Upstream Source Updates
 
 ### Where Upstream Sources Live
@@ -196,6 +210,50 @@ repos:
 2. Read the hook's config file (e.g., `.yamllint.yml`, `.gitleaks.toml`)
 3. Pre-commit hook updates are almost always safe for patch/minor bumps
 4. Major bumps → check if config format or hook IDs changed
+
+## Upstream Changelog Fetch Strategies
+
+Follow research priority: Context7 → GitHub → WebFetch → WebSearch (last resort).
+
+**For upstream sources (metadata.yaml):**
+
+The upstream repo is in metadata.yaml's `upstream` field or renovate annotation.
+
+```bash
+gh release list --repo <upstream-repo> --limit 10
+gh release view <tag> --repo <upstream-repo>
+```
+
+**For Docker base images (flavor.yaml):**
+
+Find the project repo from the image name using the "Upstream Repo Discovery" mappings in each dep type section.
+
+```bash
+gh release list --repo <upstream-repo> --limit 10
+gh release view <tag> --repo <upstream-repo>
+```
+
+**For GitHub Actions:**
+
+Action repo is in the `uses:` field (e.g., `actions/checkout` → `actions/checkout`).
+
+```bash
+gh release list --repo <action-repo> --limit 10
+gh release view <tag> --repo <action-repo>
+```
+
+**Fallback — CHANGELOG.md:**
+
+```
+WebFetch: https://raw.githubusercontent.com/<org>/<repo>/main/CHANGELOG.md
+```
+
+**Context7 for well-known projects:**
+
+```
+resolve-library-id(libraryName: "<project>", query: "changelog breaking changes <version>")
+query-docs(libraryId: "<resolved-id>", query: "breaking changes migration <version>")
+```
 
 ## Changelog Parsing Heuristics
 
