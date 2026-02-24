@@ -75,22 +75,7 @@ Old container images and releases are automatically cleaned up weekly:
 
 ## Commits
 
-Use [Conventional Commits](https://www.conventionalcommits.org/):
-
-```text
-<type>(<scope>): <description>
-
-[optional body]
-```
-
-Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `ci`, `build`
-
-Examples:
-
-- `feat(firemerge): add new image configuration`
-- `fix(workflow): correct version validation regex`
-- `docs(readme): update setup instructions`
-- `ci(lint): add trivy vulnerability scanning`
+Never commit or push directly to the `main` branch. Always create a feature branch and open a PR unless explicitly told otherwise.
 
 ## Linters
 
