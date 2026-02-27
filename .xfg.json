@@ -35,6 +35,7 @@
         "trivy.yaml"
       ],
       "rulesets": [
+        "branch-signatures",
         "pr-rules",
         "push-protection",
         "tag-rules"
