@@ -11,7 +11,7 @@ description: "MegaLinter flavor for Claude Code configuration repositories"
 
 # Upstream MegaLinter base image (Renovate tracks this)
 # renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
-upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:a71e62c83e3b2d52316e7322b9168e1588e9bcf454dbf9b21fc71b0954786e5e"
+upstream_image: "oxsecurity/megalinter-ci_light:v9.4.0@sha256:54e221da51b3fb959dfd4fc5e21920e0a0fa339ba68e0e9162b894a01a52ed34"
 
 # Additional linters not in base flavor
 # Just list linter keys - versions come from MegaLinter automatically
