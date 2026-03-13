@@ -19,3 +19,6 @@ https://github.com/anthony-spruyt/container-images/actions/workflows/ci.yaml/bad
 
 # Ignore example URLs used in tests
 https://github.com/example/repo/.*
+
+# Network error: Too Many Requests
+https://github.com/rhysd/actionlint/blob/main/docs/config.md
