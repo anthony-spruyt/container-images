@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # renovate: datasource=github-releases depName=siderolabs/talos
-TALOSCTL_VERSION="v1.12.4"
+TALOSCTL_VERSION="v1.12.5"
 
 # Remove existing binary to force fresh download (version updates)
 rm -f /usr/local/bin/talosctl
