@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # renovate: depName=getsops/sops datasource=github-releases
-VERSION="v3.12.1"
+VERSION="v3.12.2"
 
 ARCH=$(uname -m)
 case "$ARCH" in
