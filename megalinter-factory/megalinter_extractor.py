@@ -147,11 +147,15 @@ def parse_dockerfile_instructions(
     if matched_stage:
         result["image"] = matched_stage["image"]
         version_ref = matched_stage["version_ref"]
-        # Resolve version variable (may have prefix like "v" before ${VAR})
+        # Resolve version variable, preserving any prefix (e.g., "v" before ${VAR})
         if var_match := re.search(r"\$\{?(\w+)\}?", version_ref):
             var_name = var_match.group(1)
             if var_name in args:
-                result["version"] = args[var_name]
+                result["version"] = re.sub(
+                    r"\$\{?" + re.escape(var_name) + r"\}?",
+                    args[var_name],
+                    version_ref,
+                )
         else:
             result["version"] = version_ref
 
