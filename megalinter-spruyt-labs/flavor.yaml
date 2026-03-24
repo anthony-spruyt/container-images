@@ -1,0 +1,27 @@
+# MegaLinter Flavor Factory Configuration
+# Source of truth for megalinter-spruyt-labs flavor
+#
+# To regenerate Dockerfile and test.sh:
+#   python megalinter-factory/generate.py megalinter-spruyt-labs/
+#
+# Linter versions are automatically extracted from MegaLinter at build time.
+---
+name: spruyt-labs
+description: "MegaLinter for spruyt-labs - Go, Terraform, and infrastructure repositories"
+
+# Upstream MegaLinter base image (Renovate tracks this)
+# renovate: datasource=docker depName=oxsecurity/megalinter-go
+upstream_image: "oxsecurity/megalinter-go:v9.4.0@sha256:077e56d063df9c5721ce4d8614a9250c222bb1ef14f7469a61e9297c93d0fa97"
+
+# Additional linters not in base flavor
+# Just list linter keys - versions come from MegaLinter automatically
+#
+# Note: The following requested linters are already in the go base:
+#   BASH_SHELLCHECK, BASH_SHFMT, JSON_JSONLINT, YAML_YAMLLINT,
+#   REPOSITORY_GITLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY,
+#   GO_GOLANGCI_LINT, GO_REVIVE
+custom_linters:
+  - ACTION_ACTIONLINT
+  - MARKDOWN_MARKDOWNLINT
+  - SPELL_LYCHEE
+  - TERRAFORM_TFLINT
