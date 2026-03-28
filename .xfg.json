@@ -17,6 +17,7 @@
         ".gitignore",
         ".gitleaks.toml",
         ".hadolint.yaml",
+        ".jsonlintrc",
         ".lycheeignore",
         ".markdownlint.json",
         ".markdownlintignore",
