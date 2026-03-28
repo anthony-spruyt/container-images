@@ -1,0 +1,27 @@
+# MegaLinter Flavor Factory Configuration
+# Source of truth for megalinter-sungather flavor
+#
+# To regenerate Dockerfile and test.sh:
+#   python megalinter-factory/generate.py megalinter-sungather/
+#
+# Linter versions are automatically extracted from MegaLinter at build time.
+---
+name: sungather
+description: "MegaLinter flavor for SunGather - Python application with Docker"
+
+# Upstream MegaLinter base image (Renovate tracks this)
+# renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
+upstream_image: "oxsecurity/megalinter-ci_light:v9.4.0@sha256:54e221da51b3fb959dfd4fc5e21920e0a0fa339ba68e0e9162b894a01a52ed34"
+
+# Additional linters not in base flavor
+# Just list linter keys - versions come from MegaLinter automatically
+#
+# Note: The following requested linters are already in ci_light base:
+#   BASH_SHELLCHECK, BASH_SHFMT, JSON_JSONLINT, YAML_YAMLLINT,
+#   REPOSITORY_GITLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY,
+#   DOCKERFILE_HADOLINT
+custom_linters:
+  - ACTION_ACTIONLINT
+  - MARKDOWN_MARKDOWNLINT
+  - PYTHON_PYLINT
+  - SPELL_LYCHEE
