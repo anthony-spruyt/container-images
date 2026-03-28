@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 import yaml
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from megalinter_extractor import get_megalinter_linters
 
@@ -270,7 +270,11 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disa
     npm_unversioned_packages -= set(npm_versioned_packages.keys())
 
     # Set up Jinja2 environment
-    env = Environment(loader=FileSystemLoader(templates_dir), keep_trailing_newline=True)
+    env = Environment(
+        loader=FileSystemLoader(templates_dir),
+        autoescape=select_autoescape(),
+        keep_trailing_newline=True,
+    )
 
     # Template context
     context = {
