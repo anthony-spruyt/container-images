@@ -13,11 +13,10 @@
 # Pin to specific digest for supply chain security (dependabot will update this)
 FROM alpine:3.23@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
 
-# Install chrony and timezone data
+# Install chrony and timezone data, upgrade base packages for security patches
 # Note: chrony package creates its own user/group, we'll replace them with UID/GID 1000
-# Cache bust: 2026-03-29 - pick up zlib 1.3.2-r0 (CVE-2026-22184)
-RUN apk add --no-cache chrony tzdata \
-    && rm -rf /var/cache/apk/* \
+RUN apk upgrade --no-cache \
+    && apk add --no-cache chrony tzdata \
     && deluser chrony 2>/dev/null || true \
     && delgroup chrony 2>/dev/null || true \
     && addgroup -g 1000 chrony \
