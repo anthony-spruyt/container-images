@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # renovate: depName=fluxcd/flux2 datasource=github-releases
-VERSION="v2.8.2"
+VERSION="v2.8.3"
 
 ARCH=$(uname -m)
 case "$ARCH" in
