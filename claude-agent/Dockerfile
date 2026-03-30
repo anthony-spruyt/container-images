@@ -21,7 +21,7 @@ ARG SAFE_CHAIN_VERSION="1.4.4"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
 
 # Set up safe-chain shims for node user before any npm/pip calls
-USER node
+USER 1000
 RUN safe-chain setup && safe-chain setup-ci
 ENV PATH="/home/node/.safe-chain/shims:${PATH}"
 
@@ -40,5 +40,5 @@ USER root
 COPY assets/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-USER node
+USER 1000
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
