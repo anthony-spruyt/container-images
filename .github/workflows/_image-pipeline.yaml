@@ -59,14 +59,24 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read # Read releases
+      packages: read # Verify image exists in registry
     outputs:
       should-build: ${{ steps.check.outputs.should-build }}
+      release-needed: ${{ steps.check.outputs.release-needed }}
+      image-exists: ${{ steps.check.outputs.image-exists }}
       tag: ${{ steps.metadata.outputs.tag }}
       version: ${{ steps.metadata.outputs.version }}
       upstream: ${{ steps.metadata.outputs.upstream }}
     steps:
       - name: Checkout
         uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Log in to GHCR (read-only)
+        uses: docker/login-action@a0d57b8e43b6ef1cca20559d68cec2227e63fccd
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Read metadata
         id: metadata
@@ -137,6 +147,8 @@ jobs:
           IMAGE_NAME: ${{ inputs.image }}
           TAG: ${{ steps.metadata.outputs.tag }}
           CREATE_RELEASE: ${{ inputs.create-release }}
+          REGISTRY: ${{ env.REGISTRY }}
+          OWNER: ${{ env.OWNER }}
         run: |
           # Always build for dry runs or when not creating releases
           if [ "$CREATE_RELEASE" != "true" ]; then
@@ -146,31 +158,68 @@ jobs:
           fi
 
           RELEASE_TAG="${IMAGE_NAME}-${TAG}"
+          IMAGE_REF="${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}"
 
-          # Check if release exists (exact match)
-          if gh release view "$RELEASE_TAG" &>/dev/null; then
-            echo "::notice::Release $RELEASE_TAG already exists, skipping build"
-            echo "should-build=false" >> "$GITHUB_OUTPUT"
+          # Helper: check if image exists in registry
+          verify_image_in_registry() {
+            if docker manifest inspect "$IMAGE_REF" > /dev/null 2>&1; then
+              echo "::notice::Image $IMAGE_REF exists in registry"
+              echo "image-exists=true" >> "$GITHUB_OUTPUT"
+              return 0
+            else
+              echo "::warning::Image $IMAGE_REF NOT found in registry"
+              echo "image-exists=false" >> "$GITHUB_OUTPUT"
+              return 1
+            fi
+          }
+
+          # Helper: check if a GitHub release exists for this tag
+          release_exists() {
+            if gh release view "$RELEASE_TAG" &>/dev/null; then
+              return 0
+            fi
+            # Check for releases with -rN suffix (immutable tag retries)
+            if gh release list --limit 100 2>/dev/null \
+              | grep -qE "[[:space:]]${RELEASE_TAG}(-r[0-9]+)?[[:space:]]"; then
+              return 0
+            fi
+            return 1
+          }
+
+          # Check if any tag or release exists
+          HAS_RELEASE=false
+          HAS_TAG=false
+
+          if release_exists; then
+            HAS_RELEASE=true
+            HAS_TAG=true
+          elif git ls-remote --tags origin "refs/tags/${RELEASE_TAG}*" 2>/dev/null | grep -q .; then
+            HAS_TAG=true
+          fi
+
+          # Nothing exists — fresh build
+          if [ "$HAS_TAG" = "false" ]; then
+            echo "::notice::Release $RELEASE_TAG does not exist, will build"
+            echo "should-build=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Check for releases with -rN suffix (immutable tag retries)
-          # gh release list format: TITLE<tab>TAG<tab>DATE - search for tag anywhere in line
-          if gh release list --limit 100 2>/dev/null | grep -qE "[[:space:]]${RELEASE_TAG}(-r[0-9]+)?[[:space:]]"; then
-            echo "::notice::Release matching $RELEASE_TAG found, skipping build"
-            echo "should-build=false" >> "$GITHUB_OUTPUT"
-            exit 0
+          # Tag/release exists — verify image is in registry
+          if verify_image_in_registry; then
+            # Image exists in registry
+            if [ "$HAS_RELEASE" = "true" ]; then
+              echo "::notice::Release and image both exist, skipping"
+              echo "should-build=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "::warning::Image exists but release is missing, will create release"
+              echo "should-build=false" >> "$GITHUB_OUTPUT"
+              echo "release-needed=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            # Image missing — rebuild
+            echo "::warning::Tag exists but image missing (burned version), will rebuild"
+            echo "should-build=true" >> "$GITHUB_OUTPUT"
           fi
-
-          # Check if git tag exists (with or without -rN suffix)
-          if git ls-remote --tags origin "refs/tags/${RELEASE_TAG}*" 2>/dev/null | grep -q .; then
-            echo "::notice::Git tag matching $RELEASE_TAG exists (immutable), skipping build"
-            echo "should-build=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "::notice::Release $RELEASE_TAG does not exist, will build"
-          echo "should-build=true" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build and Test
@@ -376,13 +425,69 @@ jobs:
           push-to-registry: true
 
       - name: Create GitHub Release
-        if: inputs.create-release && needs.check-release.outputs.tag != 'latest'
+        if: inputs.push && inputs.create-release && needs.check-release.outputs.tag != 'latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_NAME: ${{ inputs.image }}
           TAG: ${{ needs.check-release.outputs.tag }}
           DIGEST: ${{ steps.push.outputs.digest }}
           UPSTREAM: ${{ inputs.upstream || needs.check-release.outputs.upstream }}
+          REGISTRY: ${{ env.REGISTRY }}
+          OWNER: ${{ env.OWNER }}
+          SHA: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_ID: ${{ github.run_id }}
+          SERVER_URL: ${{ github.server_url }}
+          REPO: ${{ github.repository }}
+        run: .github/scripts/create-release.sh
+
+  create-release:
+    name: Create Missing Release
+    needs: check-release
+    if: >-
+      needs.check-release.outputs.should-build == 'false' &&
+      needs.check-release.outputs.release-needed == 'true' &&
+      needs.check-release.outputs.tag != 'latest'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Release creation
+      packages: read # Read image digest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Log in to GHCR (read-only)
+        uses: docker/login-action@a0d57b8e43b6ef1cca20559d68cec2227e63fccd
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get image digest
+        id: digest
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+          OWNER: ${{ env.OWNER }}
+          IMAGE_NAME: ${{ inputs.image }}
+          TAG: ${{ needs.check-release.outputs.tag }}
+        run: |
+          IMAGE_REF="${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}"
+          DIGEST=$(docker manifest inspect "$IMAGE_REF" -v 2>/dev/null \
+            | jq -r 'if type == "array" then .[0].Descriptor.digest else .Descriptor.digest end')
+          if [ -z "$DIGEST" ] || [ "$DIGEST" = "null" ]; then
+            echo "::error::Could not get digest for $IMAGE_REF"
+            exit 1
+          fi
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "::notice::Image digest: $DIGEST"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_NAME: ${{ inputs.image }}
+          TAG: ${{ needs.check-release.outputs.tag }}
+          DIGEST: ${{ steps.digest.outputs.digest }}
+          UPSTREAM: ${{ needs.check-release.outputs.upstream }}
           REGISTRY: ${{ env.REGISTRY }}
           OWNER: ${{ env.OWNER }}
           SHA: ${{ github.sha }}

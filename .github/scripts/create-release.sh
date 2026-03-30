@@ -22,16 +22,11 @@ set -euo pipefail
 # Source shared version handling functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=.github/scripts/version-handling.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/version-handling.sh"
 
 # Generate release tag
 generate_tags "$IMAGE_NAME" "$TAG"
-
-# Check if release already exists
-if gh release view "$RELEASE_TAG" &>/dev/null; then
-  echo "Release $RELEASE_TAG already exists, skipping"
-  exit 0
-fi
 
 # Function to create release with retry logic for immutable tags
 create_release_with_retry() {
@@ -106,6 +101,8 @@ generate_local_changelog() {
   fi
 }
 
+# --- Generate release notes ---
+
 # Set upstream display value
 if [ -n "$UPSTREAM" ]; then
   UPSTREAM_DISPLAY="[${UPSTREAM}](https://github.com/${UPSTREAM})"
@@ -117,14 +114,11 @@ fi
 PREV_RELEASE=$(get_previous_release "$IMAGE_NAME" "$TAG")
 
 if [ -n "$UPSTREAM" ]; then
-  # Upstream image: link to upstream release
   CHANGELOG="See [${UPSTREAM} release ${TAG}](https://github.com/${UPSTREAM}/releases/tag/${TAG})"
 else
-  # Local image: show commit history
   CHANGELOG=$(generate_local_changelog "$IMAGE_NAME" "$PREV_RELEASE")
 fi
 
-# Generate release notes
 cat <<EOF >/tmp/release-notes.md
 ## Container Image
 
@@ -150,6 +144,18 @@ ${CHANGELOG}
 - SBOM: Included in image
 - Provenance: Attested
 EOF
+
+# --- Create or update release ---
+
+# If release already exists, update it with new digest/notes
+if gh release view "$RELEASE_TAG" &>/dev/null; then
+  echo "::notice::Release $RELEASE_TAG already exists, updating with new digest"
+  gh release edit "$RELEASE_TAG" \
+    --title "${IMAGE_NAME} ${TAG}" \
+    --notes-file "/tmp/release-notes.md"
+  echo "Updated release: $RELEASE_TAG"
+  exit 0
+fi
 
 # Create release with retry logic for immutable tags
 create_release_with_retry "$RELEASE_TAG" "/tmp/release-notes.md" "${IMAGE_NAME} ${TAG}"
