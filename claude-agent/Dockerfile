@@ -31,8 +31,9 @@ ARG CLAUDE_VERSION="2.1.87"
 RUN curl -fsSL https://claude.ai/install.sh | bash -s -- "$CLAUDE_VERSION"
 ENV PATH="/home/node/.local/bin:${PATH}"
 
-# Working directory (node user owns it)
+# Working directory and MCP config
 WORKDIR /workspace
+COPY assets/mcp.json /workspace/.mcp.json
 RUN mkdir -p /home/node/.claude
 
 # Entrypoint
