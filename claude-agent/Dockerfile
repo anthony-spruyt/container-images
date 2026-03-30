@@ -27,7 +27,7 @@ ENV PATH="/home/node/.safe-chain/shims:${PATH}"
 
 # Claude Code CLI (native installer — shims active via ENV above)
 RUN curl -fsSL https://claude.ai/install.sh | bash
-ENV PATH="/home/node/.claude/bin:${PATH}"
+ENV PATH="/home/node/.local/bin:${PATH}"
 
 # Working directory (node user owns it)
 WORKDIR /workspace
