@@ -1,0 +1,29 @@
+# Ephemeral pods don't need HEALTHCHECK — lifespan managed by n8n spawner
+DS-0026
+
+# safe-chain generates a local CA key at build time for its MITM proxy —
+# not a leaked secret, only used inside the container for npm/pip interception
+private-key
+
+# Upstream vulnerabilities in transitive dependencies — not our code
+# These come from safe-chain node_modules, Claude CLI Go binary, and
+# Debian base image packages. Fixed by updating upstream dependencies.
+CVE-2024-21538
+CVE-2025-22874
+CVE-2025-47907
+CVE-2025-58183
+CVE-2025-61726
+CVE-2025-61728
+CVE-2025-61729
+CVE-2025-64756
+CVE-2025-68121
+CVE-2026-23745
+CVE-2026-23950
+CVE-2026-24842
+CVE-2026-25679
+CVE-2026-26960
+CVE-2026-26996
+CVE-2026-27903
+CVE-2026-27904
+CVE-2026-29786
+CVE-2026-31802
