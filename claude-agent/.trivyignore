@@ -1,0 +1,2 @@
+# Ephemeral pods don't need HEALTHCHECK — lifespan managed by n8n spawner
+DS-0026

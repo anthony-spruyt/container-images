@@ -17,7 +17,10 @@ kubectl get configmap claude-mcp-config -n "$NAMESPACE" \
 kubectl get configmap claude-settings -n "$NAMESPACE" \
   -o jsonpath='{.data.settings\.json}' > ~/.claude/settings.json
 
-# Remove kubectl — agent must use MCP for K8s operations
-rm -f "$(which kubectl)"
+# Remove kubectl from PATH — agent must use MCP for K8s operations
+# Can't rm from /usr/local/bin as non-root; shadow it with a no-op instead
+mkdir -p /home/node/.local/bin
+ln -sf /usr/bin/false /home/node/.local/bin/kubectl
+export PATH="/home/node/.local/bin:${PATH}"
 
 exec claude "$@"
