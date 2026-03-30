@@ -8,8 +8,8 @@ This image provides a minimal, secure runtime for Claude Code agents running as 
 
 ## Contents
 
-| Component | Purpose |
-|-----------|---------|
+| Component        | Purpose                                    |
+| ---------------- | ------------------------------------------ |
 | Node.js 20 | Claude Code CLI runtime |
 | Python 3 | Scripting support for agent tasks |
 | git | Repository operations |

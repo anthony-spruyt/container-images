@@ -12,10 +12,10 @@ export CLAUDE_CODE_OAUTH_TOKEN
 # MCP and settings config
 mkdir -p ~/.claude
 kubectl get configmap claude-mcp-config -n "$NAMESPACE" \
-  -o jsonpath='{.data.mcp\.json}' > /workspace/.mcp.json
+  -o jsonpath='{.data.mcp\.json}' >/workspace/.mcp.json
 
 kubectl get configmap claude-settings -n "$NAMESPACE" \
-  -o jsonpath='{.data.settings\.json}' > ~/.claude/settings.json
+  -o jsonpath='{.data.settings\.json}' >~/.claude/settings.json
 
 # Remove kubectl from PATH — agent must use MCP for K8s operations
 # Can't rm from /usr/local/bin as non-root; shadow it with a no-op instead
