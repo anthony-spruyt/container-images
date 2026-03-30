@@ -37,3 +37,7 @@ misconfigurations:
   - id: AVD-DS-0002
     paths:
       - "**/server/Dockerfile"
+  # Ephemeral agent pods — no healthcheck needed, lifespan managed by n8n spawner
+  - id: AVD-DS-0026
+    paths:
+      - claude-agent/Dockerfile
