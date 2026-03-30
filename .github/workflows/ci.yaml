@@ -53,6 +53,7 @@ env:
 
 jobs:
   lint:
+    if: github.event_name != 'push'
     uses: "anthony-spruyt/repo-operator/.github/workflows/_lint.yaml@main"
     secrets: "inherit"
 
