@@ -20,11 +20,14 @@ RUN curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kub
 ARG SAFE_CHAIN_VERSION="1.4.4"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
 
-# Claude Code CLI (native installer — install as node user)
+# Set up safe-chain shims for node user before any npm/pip calls
 USER node
-RUN safe-chain setup && safe-chain setup-ci \
-    && curl -fsSL https://claude.ai/install.sh | bash
-ENV PATH="/home/node/.safe-chain/shims:/home/node/.claude/bin:${PATH}"
+RUN safe-chain setup && safe-chain setup-ci
+ENV PATH="/home/node/.safe-chain/shims:${PATH}"
+
+# Claude Code CLI (native installer — shims active via ENV above)
+RUN curl -fsSL https://claude.ai/install.sh | bash
+ENV PATH="/home/node/.claude/bin:${PATH}"
 
 # Working directory (node user owns it)
 WORKDIR /workspace
