@@ -23,3 +23,6 @@ agent.sock
 # Generated MegaLinter flavor files (regenerated at build time from flavor.yaml)
 megalinter-*/Dockerfile
 megalinter-*/test.sh
+
+# Git worktrees
+.worktrees/

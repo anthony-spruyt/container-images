@@ -22,3 +22,6 @@ https://github.com/example/repo/.*
 
 # Network error: Too Many Requests
 https://github.com/rhysd/actionlint/blob/main/docs/config.md
+
+# Internal K8s service DNS URLs — not reachable from CI
+http://.*\.svc:\d+/.*

@@ -445,6 +445,8 @@ jobs:
     name: Create Missing Release
     needs: check-release
     if: >-
+      inputs.push &&
+      inputs.create-release &&
       needs.check-release.outputs.should-build == 'false' &&
       needs.check-release.outputs.release-needed == 'true' &&
       needs.check-release.outputs.tag != 'latest'
