@@ -45,3 +45,7 @@ misconfigurations:
   - id: AVD-DS-0026
     paths:
       - discord-mcp/Dockerfile
+  # Upstream Dockerfiles in node_modules — not our code
+  - id: AVD-DS-0002
+    paths:
+      - "**/node_modules/**"
