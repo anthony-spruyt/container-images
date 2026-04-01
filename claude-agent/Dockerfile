@@ -4,8 +4,8 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # System deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl git jq python3 python3-pip \
-    && rm -rf /var/lib/apt/lists/*
+  ca-certificates curl git jq python3 python3-pip \
+  && rm -rf /var/lib/apt/lists/*
 
 # Aikido safe-chain (installed globally, then set up for node user)
 # renovate: depName=@aikidosec/safe-chain datasource=npm
@@ -23,7 +23,5 @@ ARG CLAUDE_VERSION="2.1.87"
 RUN curl -fsSL https://claude.ai/install.sh | bash -s -- "$CLAUDE_VERSION"
 ENV PATH="/home/node/.local/bin:${PATH}"
 
-# Working directory and MCP config
+# Working directory
 WORKDIR /workspace
-COPY assets/mcp.json /workspace/.mcp.json
-RUN mkdir -p /home/node/.claude

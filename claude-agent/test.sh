@@ -19,12 +19,5 @@ done
 claude --version
 safe-chain --version
 
-# Verify MCP config is baked in
-if [ ! -f /workspace/.mcp.json ]; then
-  echo "FAIL: /workspace/.mcp.json not found"
-  exit 1
-fi
-echo "OK: .mcp.json present"
-
 echo "All tests passed."
 '
