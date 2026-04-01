@@ -21,4 +21,6 @@ ENTRYPOINT ["supergateway", \
   "--stdio", "java -jar /app/app.jar", \
   "--outputTransport", "streamableHttp", \
   "--port", "8080", \
-  "--healthEndpoint", "/healthz"]
+  "--healthEndpoint", "/healthz", \
+  "--protocolVersion", "2025-03-26", \
+  "--stateful"]
