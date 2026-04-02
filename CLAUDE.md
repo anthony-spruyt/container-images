@@ -11,7 +11,6 @@ Container images built from upstream sources or custom Dockerfiles, published to
 ```bash
 ./lint.sh                    # Run MegaLinter locally (exit code 0=pass, non-zero=issues found, results in .output/)
 pre-commit run --all-files   # Run pre-commit hooks manually
-./.github/apply-rulesets.sh  # Apply GitHub rulesets (run once after repo creation)
 ```
 
 ## Adding a New Image
@@ -40,6 +39,17 @@ Create `<image-name>/Dockerfile` and `<image-name>/metadata.yaml`:
 version: "1.0.0"
 ```
 
+### Option 3: Auto-patched version (no upstream)
+
+For images where CI should auto-increment the patch version on each build, specify only the base version and set `auto_patch: true`:
+
+```yaml
+version: "1.1"
+auto_patch: true
+```
+
+CI appends `.N` automatically (e.g., `1.1.0`, `1.1.1`, `1.1.2`). Do **not** include the patch segment in `version` — writing `"1.1.0"` with `auto_patch: true` would produce `1.1.0.0`.
+
 ### That's It
 
 - **No workflow updates needed** - upstream validation uses each image's own `metadata.yaml`
@@ -59,9 +69,9 @@ For upstream sources that Renovate cannot monitor (e.g., Alpine packages), use n
 
 ## Build Triggers
 
-- **Pull requests**: Tests run on PRs when Dockerfile/test.sh/assets/metadata.yaml/flavor.yaml change
-- **Push to main**: Auto-builds on Dockerfile/metadata.yaml/flavor.yaml changes
-- **workflow_dispatch**: Manual trigger with `image` and `version` inputs
+- **Pull requests**: CI runs on all PRs to main; change detection picks images with modified Dockerfile/test.sh/assets/metadata.yaml/flavor.yaml
+- **Push to main**: Auto-builds on Dockerfile/metadata.yaml/flavor.yaml/assets changes (also triggers on megalinter-factory or CI script changes)
+- **workflow_dispatch**: Manual trigger with `image`, `version`, and `dry_run` inputs
 
 ## Container Retention
 
@@ -128,3 +138,7 @@ Generated files (`Dockerfile`, `test.sh`) are gitignored - CI regenerates at bui
 - `megalinter-factory/generate.py` - Generator script
 - `megalinter-factory/megalinter_extractor.py` - Extracts linter info from MegaLinter
 - `megalinter-factory/templates/` - Jinja2 templates
+
+## Documentation Style
+
+- Use one representative example per concept — avoid enumerating all current instances to reduce maintenance churn
