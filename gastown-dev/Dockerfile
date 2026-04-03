@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends jq tmux \
 
 # Pre-install cosign for Python 3.14+ signature verification
 # renovate: datasource=github-releases depName=sigstore/cosign
-ARG COSIGN_VERSION="v3.0.4"
+ARG COSIGN_VERSION="v3.0.5"
 RUN ARCH=$(dpkg --print-architecture) \
     && curl -fsSL "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign_${COSIGN_VERSION#v}_${ARCH}.deb" -o /tmp/cosign.deb \
     && dpkg -i /tmp/cosign.deb \
