@@ -163,6 +163,15 @@ Tool versions are tracked in:
 
 **renovate:** The Renovate bot itself. Check for config schema changes (usually backward-compatible).
 
+### npm → GitHub Repo Mappings
+
+When an npm package name doesn't obviously map to its GitHub repo:
+
+| npm package | GitHub repo |
+|---|---|
+| `@aikidosec/safe-chain` | `AikidoSec/safe-chain` |
+| `@anthropic-ai/claude-code` | `anthropics/claude-code` |
+
 ### Impact Assessment for Script Deps
 
 1. Read the scripts that use the tool (`.devcontainer/initialize.sh`, etc.)
