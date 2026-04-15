@@ -107,7 +107,7 @@ jobs:
             DIRECT_CHANGES=$(echo "$DIFF_FILES" | \
               grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|test\.sh|assets/|metadata\.yaml|flavor\.yaml)' | \
               cut -d'/' -f1 | sort -u | \
-              while read -r img; do [ -d "$img" ] && echo "$img"; done)
+              while read -r img; do if [ -d "$img" ]; then echo "$img"; fi; done)
 
             # If megalinter-factory changed, add all flavor directories
             if echo "$DIFF_FILES" | grep -qE '^megalinter-factory/'; then
@@ -133,7 +133,7 @@ jobs:
             DIRECT_CHANGES=$(echo "$DIFF_FILES" | \
               grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|metadata\.yaml|flavor\.yaml|assets/)' | \
               cut -d'/' -f1 | sort -u | \
-              while read -r img; do [ -d "$img" ] && echo "$img"; done)
+              while read -r img; do if [ -d "$img" ]; then echo "$img"; fi; done)
 
             # If megalinter-factory changed, add all flavor directories
             if echo "$DIFF_FILES" | grep -qE '^megalinter-factory/'; then
