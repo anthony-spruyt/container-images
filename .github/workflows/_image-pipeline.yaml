@@ -237,6 +237,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Free up disk space
         run: |
@@ -457,6 +460,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Log in to GHCR (read-only)
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
