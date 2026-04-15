@@ -1,5 +1,0 @@
-# Upstream Dockerfiles in supergateway node_modules lack USER instruction — not our code
-DS-0002
-
-# Upstream vulnerability in supergateway transitive dependency (picomatch)
-CVE-2026-33671

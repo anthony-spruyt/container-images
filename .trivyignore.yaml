@@ -41,7 +41,3 @@ misconfigurations:
   - id: AVD-DS-0026
     paths:
       - claude-agent/Dockerfile
-  # Health check handled by Kubernetes liveness probe on /healthz
-  - id: AVD-DS-0026
-    paths:
-      - discord-mcp/Dockerfile
