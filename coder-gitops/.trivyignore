@@ -3,3 +3,10 @@
 CVE-2026-25679
 CVE-2026-32280
 CVE-2026-32282
+
+# Transitive Go deps compiled into upstream coder binary
+# Can't fix without a new coder release
+GHSA-77fj-vx54-gvh7
+CVE-2026-4660
+CVE-2026-24051
+CVE-2026-39883
