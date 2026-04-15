@@ -1,3 +1,0 @@
-# HEALTHCHECK not applicable: image is a CronJob entrypoint that runs to
-# completion; Kubernetes Job controller tracks success/failure.
-AVD-DS-0026
