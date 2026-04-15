@@ -1,6 +1,6 @@
 FROM saseq/discord-mcp:1.0.0@sha256:53042c5b48ad270b51f034f124a625c260b0cb935f708a38c54c22e3e31f9375 AS mcp-server
 
-FROM node:22-alpine@sha256:4d64b49e6c891c8fc821007cb1cdc6c0db7773110ac2c34bf2e6960adef62ed3
+FROM node:24-alpine@sha256:01743339035a5c3c11a373cd7c83aeab6ed1457b55da6a69e014a95ac4e4700b
 
 # Upgrade base packages for security patches and install Java runtime
 RUN apk upgrade --no-cache \
