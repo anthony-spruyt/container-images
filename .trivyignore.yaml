@@ -41,3 +41,7 @@ misconfigurations:
   - id: AVD-DS-0026
     paths:
       - claude-agent/Dockerfile
+  # CronJob entrypoint — runs to completion, Job controller tracks success/failure
+  - id: AVD-DS-0026
+    paths:
+      - ssh-key-rotation/Dockerfile

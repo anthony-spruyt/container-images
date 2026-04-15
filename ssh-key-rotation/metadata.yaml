@@ -1,0 +1,7 @@
+---
+# SSH Key Rotation - Coder workspace SSH key rotator
+# Custom image for spruyt-labs Coder ssh-key-rotation CronJob.
+# Runs under PSA restricted (non-root, read-only root filesystem).
+
+version: "1.0"
+auto_patch: true
