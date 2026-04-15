@@ -45,3 +45,7 @@ misconfigurations:
   - id: AVD-DS-0026
     paths:
       - ssh-key-rotation/Dockerfile
+  # Job/CronJob entrypoint — Coder template sync + token rotation, runs to completion
+  - id: AVD-DS-0026
+    paths:
+      - coder-gitops/Dockerfile
