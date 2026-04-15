@@ -44,10 +44,10 @@ kubectl patch secret "${SECRET_NAME}" -n "${SECRET_NAMESPACE}" \
 
 echo "Revoking prior tokens with prefix ${TOKEN_NAME_PREFIX}-"
 coder tokens list --output json |
-  jq -r ".[] | select(.token_name | startswith(\"${TOKEN_NAME_PREFIX}-\")) | select(.token_name != \"${NEW_NAME}\") | .token_name" |
-  while read -r OLD_NAME; do
-    echo "  removing: ${OLD_NAME}"
-    coder tokens remove "${OLD_NAME}" || echo "  WARN: failed to remove ${OLD_NAME}"
+  jq -r ".[] | select(.token_name | startswith(\"${TOKEN_NAME_PREFIX}-\")) | select(.token_name != \"${NEW_NAME}\") | \"\(.id) \(.token_name)\"" |
+  while read -r OLD_ID OLD_NAME; do
+    echo "  removing: ${OLD_NAME} (${OLD_ID})"
+    coder tokens remove "${OLD_ID}" || echo "  WARN: failed to remove ${OLD_NAME} (${OLD_ID})"
   done
 
 echo "=== Rotation complete ==="
