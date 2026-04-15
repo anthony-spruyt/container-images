@@ -41,7 +41,7 @@ RUN ARCH="$(apk --print-arch)" \
     && CODER_VER_NUM="${CODER_VERSION#v}" \
     && curl -fsSL -o /tmp/coder.tar.gz \
          "https://github.com/coder/coder/releases/download/${CODER_VERSION}/coder_${CODER_VER_NUM}_linux_${CODER_ARCH}.tar.gz" \
-    && tar -xzf /tmp/coder.tar.gz -C /tmp coder \
+    && tar -xzf /tmp/coder.tar.gz -C /tmp ./coder \
     && mv /tmp/coder /usr/local/bin/coder \
     && chmod 0755 /usr/local/bin/coder \
     && rm -f /tmp/coder.tar.gz
