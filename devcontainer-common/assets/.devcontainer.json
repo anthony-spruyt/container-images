@@ -1,0 +1,14 @@
+{
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1.1.0": {
+      "version": "2.89.0"
+    },
+    "ghcr.io/devcontainers/features/node:1.7.1": {
+      "version": "24.14.1"
+    },
+    "ghcr.io/devcontainers/features/python:1.8.0": {
+      "version": "3.12",
+      "installTools": false
+    }
+  }
+}
