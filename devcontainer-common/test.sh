@@ -9,7 +9,14 @@ docker run --rm "$IMAGE_REF" bash -c '
   node --version &&
   python3 --version &&
   pre-commit --version &&
-  gh --version
+  gh --version &&
+  echo "=== Podman ===" &&
+  command -v podman &&
+  echo "=== Safe-chain ===" &&
+  command -v safe-chain &&
+  echo "=== Scripts ===" &&
+  test -x /usr/local/bin/agent-run && echo "agent-run: OK" &&
+  test -x /usr/local/bin/devcontainer-post-create && echo "devcontainer-post-create: OK"
 '
 
 echo "All tests passed!"
