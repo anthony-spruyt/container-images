@@ -18,7 +18,7 @@ ARG PRE_COMMIT_VERSION="4.5.1"
 RUN export PIPX_HOME="/usr/local/py-utils" \
     && export PIPX_BIN_DIR="/usr/local/py-utils/bin" \
     && mkdir -p "$PIPX_HOME" "$PIPX_BIN_DIR" \
-    && pip install --no-cache-dir pipx \
+    && pip install --no-cache-dir pipx==1.11.1 \
     && pipx install "pre-commit==${PRE_COMMIT_VERSION}"
 
 HEALTHCHECK NONE
