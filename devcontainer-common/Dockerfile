@@ -21,4 +21,6 @@ RUN export PIPX_HOME="/usr/local/py-utils" \
     && pip install --no-cache-dir pipx \
     && pipx install "pre-commit==${PRE_COMMIT_VERSION}"
 
+HEALTHCHECK NONE
+
 USER vscode
