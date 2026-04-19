@@ -15,10 +15,12 @@ ENV PATH="/usr/local/py-utils/bin:/usr/local/share/nvm/current/bin:/usr/local/py
 
 # renovate: datasource=pypi depName=pre-commit
 ARG PRE_COMMIT_VERSION="4.5.1"
+# renovate: datasource=pypi depName=pipx
+ARG PIPX_VERSION="1.11.1"
 RUN export PIPX_HOME="/usr/local/py-utils" \
     && export PIPX_BIN_DIR="/usr/local/py-utils/bin" \
     && mkdir -p "$PIPX_HOME" "$PIPX_BIN_DIR" \
-    && pip install --no-cache-dir pipx==1.11.1 \
+    && pip install --no-cache-dir "pipx==${PIPX_VERSION}" \
     && pipx install "pre-commit==${PRE_COMMIT_VERSION}"
 
 HEALTHCHECK NONE
