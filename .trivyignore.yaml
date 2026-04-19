@@ -17,10 +17,6 @@ misconfigurations:
   - id: AVD-DS-0026
     paths:
       - test-images/**/Dockerfile
-  # HEALTHCHECK not applicable for interactive dev containers
-  - id: AVD-DS-0026
-    paths:
-      - gastown-dev/Dockerfile
   # Go source includes internal Dockerfiles that don't need USER - not our code
   - id: AVD-DS-0002
     paths:
@@ -29,23 +25,7 @@ misconfigurations:
   - id: AVD-DS-0002
     paths:
       - megalinter-*/Dockerfile
-  # MegaLinter runs once and exits - no healthcheck needed for batch processing tools
-  - id: AVD-DS-0026
-    paths:
-      - megalinter-*/Dockerfile
   # Upstream source code checked out during CI - not our code
   - id: AVD-DS-0002
     paths:
       - "**/server/Dockerfile"
-  # Ephemeral agent pods — no healthcheck needed, lifespan managed by n8n spawner
-  - id: AVD-DS-0026
-    paths:
-      - claude-agent/Dockerfile
-  # CronJob entrypoint — runs to completion, Job controller tracks success/failure
-  - id: AVD-DS-0026
-    paths:
-      - ssh-key-rotation/Dockerfile
-  # Job/CronJob entrypoint — Coder template sync + token rotation, runs to completion
-  - id: AVD-DS-0026
-    paths:
-      - coder-gitops/Dockerfile

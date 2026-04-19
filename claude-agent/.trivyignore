@@ -1,6 +1,3 @@
-# Ephemeral pods don't need HEALTHCHECK — lifespan managed by n8n spawner
-DS-0026
-
 # safe-chain generates a local CA key at build time for its MITM proxy —
 # not a leaked secret, only used inside the container for npm/pip interception
 private-key

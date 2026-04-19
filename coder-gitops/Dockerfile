@@ -5,6 +5,9 @@
 # Pin to specific digest for supply chain security (renovate updates this)
 FROM alpine:3.23@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
 
+# Job/CronJob — runs to completion, no health check applicable
+HEALTHCHECK NONE
+
 # renovate: datasource=github-releases depName=coder/coder
 ARG CODER_VERSION=v2.31.9
 
