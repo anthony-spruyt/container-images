@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # devcontainer-post-create: runtime setup for devcontainer-common based images.
-# Packages (podman, safe-chain, pre-commit, gh, node, python) are pre-installed.
+# Packages (podman, pre-commit, gh, node, python) are pre-installed.
 # This script handles runtime configuration that requires workspace context.
 #
 # Usage: devcontainer-post-create [workspace-dir]
@@ -30,7 +30,10 @@ sudo chmod a+rx /etc/containers /etc/containers/registries.conf.d /etc/container
 
 git ls-files -z '*.sh' | xargs -0 -r chmod +x 2>/dev/null || true
 
-echo "Setting up safe-chain..."
+# renovate: datasource=npm depName=@aikidosec/safe-chain
+SAFE_CHAIN_VERSION="1.4.9"
+echo "Installing safe-chain ${SAFE_CHAIN_VERSION}..."
+npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
 safe-chain setup
 safe-chain setup-ci
 export PATH="$HOME/.safe-chain/shims:$PATH"
