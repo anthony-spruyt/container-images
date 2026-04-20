@@ -49,3 +49,7 @@ misconfigurations:
   - id: AVD-DS-0026
     paths:
       - coder-gitops/Dockerfile
+  # Base image intentionally stays root — downstream Dockerfiles set USER vscode
+  - id: AVD-DS-0002
+    paths:
+      - devcontainer-common/Dockerfile
