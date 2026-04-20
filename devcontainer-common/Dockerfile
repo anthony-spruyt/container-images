@@ -17,18 +17,10 @@ COPY assets/scripts/ /tmp/scripts/
 ENV NVM_DIR="/usr/local/share/nvm"
 ENV PATH="/usr/local/py-utils/bin:/usr/local/share/nvm/current/bin:/usr/local/python/current/bin:$PATH"
 
-# renovate: datasource=npm depName=@aikidosec/safe-chain
-ARG SAFE_CHAIN_VERSION="1.4.9"
 RUN chmod +x /tmp/scripts/*.sh \
-    && SAFE_CHAIN_VERSION="${SAFE_CHAIN_VERSION}" /tmp/scripts/install-safe-chain.sh
-
-ENV PATH="/root/.safe-chain/shims:$PATH"
-
-# Run remaining install scripts (safe-chain shims protect npm/pip)
-RUN for script in /tmp/scripts/install-*.sh; do \
-      [ "$(basename "$script")" = "install-safe-chain.sh" ] && continue; \
-      echo "Running $script..." && "$script"; \
-    done
+    && for script in /tmp/scripts/install-*.sh; do \
+         echo "Running $script..." && "$script"; \
+       done
 
 # renovate: datasource=pypi depName=pre-commit
 ARG PRE_COMMIT_VERSION="4.5.1"
@@ -49,6 +41,3 @@ RUN chmod 755 /usr/local/bin/agent-run /usr/local/bin/devcontainer-post-create \
 HEALTHCHECK NONE
 
 USER vscode
-
-RUN safe-chain setup && safe-chain setup-ci
-ENV PATH="/home/vscode/.safe-chain/shims:$PATH"

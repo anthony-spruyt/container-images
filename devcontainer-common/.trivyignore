@@ -22,18 +22,6 @@ CVE-2026-33671
 CVE-2026-33810
 CVE-2026-35535
 
-# safe-chain local MITM CA key (generated at build time for supply-chain protection)
-private-key
-
-# Transitive npm deps in safe-chain (upstream)
-CVE-2026-25547
-CVE-2026-26996
-CVE-2026-33891
-CVE-2026-33894
-CVE-2026-33895
-CVE-2026-33896
-CVE-2026-4800
-
 # Go stdlib CVEs in gh-cli binary
 CVE-2023-39321
 CVE-2023-39322
