@@ -29,3 +29,19 @@ misconfigurations:
   - id: AVD-DS-0002
     paths:
       - "**/server/Dockerfile"
+  # Ephemeral agent pods — no healthcheck needed, lifespan managed by n8n spawner
+  - id: AVD-DS-0026
+    paths:
+      - claude-agent/Dockerfile
+  # CronJob entrypoint — runs to completion, Job controller tracks success/failure
+  - id: AVD-DS-0026
+    paths:
+      - ssh-key-rotation/Dockerfile
+  # Job/CronJob entrypoint — Coder template sync + token rotation, runs to completion
+  - id: AVD-DS-0026
+    paths:
+      - coder-gitops/Dockerfile
+  # Base image intentionally stays root — downstream Dockerfiles set USER vscode
+  - id: AVD-DS-0002
+    paths:
+      - devcontainer-common/Dockerfile
