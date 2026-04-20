@@ -39,5 +39,3 @@ RUN chmod 755 /usr/local/bin/agent-run /usr/local/bin/devcontainer-post-create \
     && rm -rf /tmp/scripts
 
 HEALTHCHECK NONE
-
-USER vscode
