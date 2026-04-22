@@ -21,7 +21,7 @@ jobs:
         with:
           account: user
           token: ${{ secrets.CONTAINER_RETENTION_TOKEN }}
-          image-names: "gastown-dev megalinter-*"
+          image-names: "megalinter-*"
           cut-off: 4w
           keep-n-most-recent: 5
           dry-run: ${{ inputs.dry_run || 'false' }}
@@ -45,7 +45,7 @@ jobs:
           CUTOFF_DATE=$(date -d '4 weeks ago' +%s)
           KEEP_N=5
 
-          for PREFIX in gastown-dev megalinter-; do
+          for PREFIX in megalinter-; do
             echo "Processing releases with prefix: $PREFIX"
 
             # Get all releases for this prefix, sorted by date (newest first)

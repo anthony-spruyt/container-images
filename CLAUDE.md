@@ -61,7 +61,7 @@ Create `<image-name>/test.sh` - runs after build, before Trivy scan. See `chrony
 
 ### Optional: Add Trivy Ignores
 
-Create `<image-name>/.trivyignore` for per-image vulnerability/secret ignores (plain text, one ID per line). Falls back to global `.trivyignore.yaml` if not present. See `gastown-dev/.trivyignore` for example.
+Create `<image-name>/.trivyignore` for per-image vulnerability/secret ignores (plain text, one ID per line). Falls back to global `.trivyignore.yaml` if not present.
 
 ### Optional: n8n Release Watcher (for non-standard sources)
 
@@ -80,7 +80,7 @@ Old container images and releases are automatically cleaned up weekly:
 - Images older than 4 weeks are deleted
 - GitHub releases and tags older than 4 weeks are deleted
 - 5 most recent versions always kept
-- Targets: `gastown-dev`, `megalinter-*`
+- Targets: `megalinter-*`
 - Workflow: `.github/workflows/container-retention.yaml`
 
 ## Commits
