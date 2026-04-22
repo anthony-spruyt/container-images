@@ -22,6 +22,10 @@ CVE-2026-33671
 CVE-2026-33810
 CVE-2026-35535
 
+# Go stdlib CVEs in upstream binaries
+CVE-2026-32281
+CVE-2026-32283
+
 # Go stdlib CVEs in gh-cli binary
 CVE-2023-39321
 CVE-2023-39322

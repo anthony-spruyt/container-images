@@ -3,3 +3,10 @@
 CVE-2026-25679
 CVE-2026-32280
 CVE-2026-32282
+
+# Go stdlib CVEs in upstream kubectl binary
+CVE-2026-32281
+CVE-2026-32283
+
+# Transitive Go dep in upstream kubectl binary
+CVE-2026-35469
