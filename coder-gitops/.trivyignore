@@ -11,3 +11,10 @@ CVE-2026-4660
 CVE-2026-24051
 CVE-2026-39883
 CVE-2026-40890
+
+# Go stdlib CVEs in upstream coder/kubectl binaries
+CVE-2026-32281
+CVE-2026-32283
+
+# Transitive Go dep in upstream coder binary
+CVE-2026-35469

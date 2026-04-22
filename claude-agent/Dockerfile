@@ -1,4 +1,4 @@
-FROM node:24-slim@sha256:b506e7321f176aae77317f99d67a24b272c1f09f1d10f1761f2773447d8da26c
+FROM node:24-slim@sha256:dad1a61d4421f0e72068d9f864c73c1e2a617e2cdb23edc777dbc6fe2c90e720
 
 # Ephemeral agent pod — lifespan managed by n8n spawner
 HEALTHCHECK NONE

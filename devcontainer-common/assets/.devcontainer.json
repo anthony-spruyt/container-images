@@ -1,12 +1,12 @@
 {
   "features": {
-    "ghcr.io/devcontainers/features/github-cli:1.1.0": {
+    "ghcr.io/devcontainers/features/github-cli:1.1.0@sha256:d22f50b70ed75339b4eed1ba9ecde3a1791f90e88d37936517e3bace0bbad671": {
       "version": "2.89.0"
     },
-    "ghcr.io/devcontainers/features/node:1.7.1": {
+    "ghcr.io/devcontainers/features/node:1.7.1@sha256:8c0de46939b61958041700ee89e3493f3b2e4131a06dc46b4d9423427d06e5f6": {
       "version": "24.14.1"
     },
-    "ghcr.io/devcontainers/features/python:1.8.0": {
+    "ghcr.io/devcontainers/features/python:1.8.0@sha256:fbcad6955caeecc5ad3f7886baf652e25cba5225a6c4c2287c536de2e5607511": {
       "version": "3.12",
       "installTools": false
     }
