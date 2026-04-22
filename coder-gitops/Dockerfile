@@ -3,13 +3,13 @@
 # non-root (UID 1000), read-only rootfs, all caps dropped.
 #
 # Pin to specific digest for supply chain security (renovate updates this)
-FROM alpine:3.23@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
+FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11
 
 # Job/CronJob — runs to completion, no health check applicable
 HEALTHCHECK NONE
 
 # renovate: datasource=github-releases depName=coder/coder
-ARG CODER_VERSION=v2.31.9
+ARG CODER_VERSION=v2.32.0
 
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
 ARG KUBECTL_VERSION=v1.35.3
