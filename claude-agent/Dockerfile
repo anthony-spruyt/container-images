@@ -7,7 +7,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # System deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  ca-certificates curl git jq python3 python3-pip \
+  ca-certificates curl git openssh-client jq python3 python3-pip \
   && rm -rf /var/lib/apt/lists/*
 
 # Aikido safe-chain (installed globally, then set up for node user)
