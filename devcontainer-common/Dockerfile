@@ -32,6 +32,14 @@ RUN export PIPX_HOME="/usr/local/py-utils" \
     && pip install --no-cache-dir "pipx==${PIPX_VERSION}" \
     && pipx install "pre-commit==${PRE_COMMIT_VERSION}"
 
+# renovate: datasource=pypi depName=mdformat
+ARG MDFORMAT_VERSION="1.0.0"
+# renovate: datasource=pypi depName=mdformat-gfm
+ARG MDFORMAT_GFM_VERSION="1.0.0"
+RUN pip install --no-cache-dir \
+    "mdformat==${MDFORMAT_VERSION}" \
+    "mdformat-gfm==${MDFORMAT_GFM_VERSION}"
+
 # Policy-enforcing podman wrapper + runtime post-create script
 COPY assets/agent-run /usr/local/bin/agent-run
 COPY assets/post-create.sh /usr/local/bin/devcontainer-post-create
