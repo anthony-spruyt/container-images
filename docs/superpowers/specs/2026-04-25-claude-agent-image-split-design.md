@@ -44,8 +44,6 @@ Installed in every image:
 
 **Contents:** Shared core only. No additional tools.
 
-**Contents:** Shared core only. No additional tools.
-
 **Directory:** `claude-agent-read/` (new, alongside existing `claude-agent/`)
 
 ### claude-agent-write
@@ -67,21 +65,24 @@ Installed in every image:
 
 **Contents:** Shared core plus:
 
-| Tool         | Purpose                           |
-| ------------ | --------------------------------- |
-| kubectl      | Kubernetes API operations         |
-| kustomize    | Kustomize manifests               |
-| helm         | Chart management                  |
-| helmfile     | Declarative helm chart management |
-| helm plugins | Additional helm functionality     |
-| cilium       | Cilium CNI operations             |
-| hubble       | Network observability             |
-| talosctl     | Talos Linux node management       |
-| talhelper    | Talos configuration helper        |
-| flux         | GitOps toolkit                    |
-| velero       | Backup inspection                 |
-| cnpg plugin  | CloudNativePG operations          |
-| falcoctl     | Falco security runtime            |
+| Tool                   | Version | Source                             | Renovate                              |
+| ---------------------- | ------- | ---------------------------------- | ------------------------------------- |
+| kubectl                | v1.35.4 | `kubernetes/kubernetes`            | `github-releases`                     |
+| kustomize              | v5.8.0  | `kubernetes-sigs/kustomize`        | `github-releases` (custom versioning) |
+| helm                   | v4.1.4  | `helm/helm`                        | `github-releases`                     |
+| helmfile               | v1.4.4  | `helmfile/helmfile`                | `github-releases`                     |
+| helm-diff plugin       | pinned  | `databus23/helm-diff`              | `github-releases`                     |
+| helm-schema-gen plugin | pinned  | `knechtionscoding/helm-schema-gen` | `github-releases`                     |
+| cilium                 | v0.19.2 | `cilium/cilium-cli`                | `github-releases`                     |
+| hubble                 | v1.18.6 | `cilium/hubble`                    | `github-releases`                     |
+| talosctl               | pinned  | `siderolabs/talos`                 | `github-releases`                     |
+| talhelper              | pinned  | `budimanjojo/talhelper`            | `github-releases`                     |
+| flux                   | pinned  | `fluxcd/flux2`                     | `github-releases`                     |
+| velero                 | v1.18.0 | `vmware-tanzu/velero`              | `github-releases`                     |
+| cnpg plugin            | pinned  | `cloudnative-pg/cloudnative-pg`    | `github-releases`                     |
+| falcoctl               | v0.12.2 | `falcosecurity/falcoctl`           | `github-releases`                     |
+
+Note: tools marked "pinned" are currently installed via latest-fetching scripts in spruyt-labs. Dockerfile will pin explicit versions with Renovate annotations for reproducibility.
 
 **Directory:** `claude-agent-sre/` (new)
 
