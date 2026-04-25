@@ -45,7 +45,7 @@ ENV PATH="/home/node/.safe-chain/shims:${PATH}"
 
 # pre-commit
 # renovate: depName=pre-commit datasource=pypi
-ARG PRECOMMIT_VERSION="4.2.0"
+ARG PRECOMMIT_VERSION="4.6.0"
 RUN pip install --no-cache-dir --break-system-packages pre-commit=="${PRECOMMIT_VERSION}"
 ENV PATH="/home/node/.local/bin:${PATH}"
 
