@@ -37,6 +37,7 @@ RUN rm -rf /tmp/Python-* \
 # renovate: depName=node datasource=node versioning=node
 ARG NODE_VERSION="24.15.0"
 RUN ARCH="$(dpkg --print-architecture)" \
+  && case "${ARCH}" in amd64) ARCH=x64;; arm64) ARCH=arm64;; *) echo "unsupported: ${ARCH}"; exit 1;; esac \
   && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${ARCH}.tar.xz" \
   | tar -xJ --strip-components=1 -C /usr/local
 
