@@ -78,13 +78,6 @@ RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL "https://github.com/siderolabs/talos/releases/download/${TALOSCTL_VERSION}/talosctl-linux-${ARCH}" -o /usr/local/bin/talosctl \
   && chmod +x /usr/local/bin/talosctl
 
-# talhelper
-# renovate: depName=budimanjojo/talhelper datasource=github-releases
-ARG TALHELPER_VERSION="v3.0.32"
-RUN ARCH="$(dpkg --print-architecture)" \
-  && curl -fsSL "https://github.com/budimanjojo/talhelper/releases/download/${TALHELPER_VERSION}/talhelper_linux_${ARCH}.tar.gz" \
-  | tar -xz -C /usr/local/bin talhelper
-
 # flux
 # renovate: depName=fluxcd/flux2 datasource=github-releases
 ARG FLUX_VERSION="v2.6.1"

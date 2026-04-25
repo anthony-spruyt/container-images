@@ -27,7 +27,6 @@ Runtime image for Claude Code agents that investigate Kubernetes cluster state i
 | cilium            | Cilium CNI operations         |
 | hubble            | Network observability         |
 | talosctl          | Talos Linux node management   |
-| talhelper         | Talos configuration helper    |
 | flux              | GitOps toolkit                |
 | velero            | Backup inspection             |
 | cnpg plugin       | CloudNativePG operations      |
