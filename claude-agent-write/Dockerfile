@@ -6,7 +6,7 @@ HEALTHCHECK NONE
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# System deps (build deps for Python, cleaned up after install)
+# System deps + Python build deps (cleaned up after compile)
 RUN apt-get update && apt-get install -y --no-install-recommends \
   ca-certificates curl git openssh-client jq xz-utils \
   build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
@@ -17,19 +17,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # renovate: depName=python/cpython datasource=github-releases extractVersion=^v(?<version>.+)$
 ARG PYTHON_VERSION="3.13.13"
 RUN curl -fsSL "https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz" \
-  | tar -xz -C /tmp \
-  && cd "/tmp/Python-${PYTHON_VERSION}" \
-  && ./configure --prefix=/usr/local --enable-optimizations --with-ensurepip=install 2>&1 | tail -5 \
+  | tar -xz -C /tmp
+WORKDIR /tmp/Python-${PYTHON_VERSION}
+RUN ./configure --prefix=/usr/local --enable-optimizations --with-ensurepip=install 2>&1 | tail -5 \
   && make -j"$(nproc)" 2>&1 | tail -5 \
   && make install \
-  && cd / && rm -rf "/tmp/Python-${PYTHON_VERSION}" \
   && ln -sf /usr/local/bin/python3 /usr/local/bin/python \
   && ln -sf /usr/local/bin/pip3 /usr/local/bin/pip
+WORKDIR /
 
-# Remove build deps to shrink image
-RUN apt-get purge -y --auto-remove \
-  build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
-  libsqlite3-dev libncurses-dev libffi-dev liblzma-dev \
+# Remove Python build artifacts and deps
+RUN rm -rf /tmp/Python-* \
+  && apt-get purge -y --auto-remove \
+    build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
+    libsqlite3-dev libncurses-dev libffi-dev liblzma-dev \
   && rm -rf /var/lib/apt/lists/*
 
 # Node.js (prebuilt binary tarball — Renovate tracks via node-version datasource)
@@ -65,11 +66,10 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 # Aikido safe-chain (installed globally, then set up for node user)
 # renovate: depName=@aikidosec/safe-chain datasource=npm
 ARG SAFE_CHAIN_VERSION="1.4.9"
-RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
-
-# Non-root user matching node image convention
-RUN useradd -m -u 1000 -s /bin/bash node
+RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}" \
+  && useradd -m -u 1000 -s /bin/bash node
 USER 1000
+
 RUN safe-chain setup && safe-chain setup-ci
 ENV PATH="/home/node/.safe-chain/shims:${PATH}"
 
