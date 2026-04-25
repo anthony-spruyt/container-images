@@ -17,7 +17,7 @@ Each workload has different tooling requirements. A single image either bloats w
 Three independent images, all built from `node:24-slim`. No cross-image dependencies. No build ordering.
 
 ```text
-node:24-slim ──┬── claude-agent         (read)
+node:24-slim ──┬── claude-agent-read    (read)
                ├── claude-agent-write   (write)
                └── claude-agent-sre     (investigate)
 ```
@@ -38,20 +38,15 @@ Installed in every image:
 
 ## Image Specifications
 
-### claude-agent (read)
+### claude-agent-read
 
 **Purpose:** Read-only agent for PR review, Renovate triage, issue refinement.
 
 **Contents:** Shared core only. No additional tools.
 
-**Changes from current image:**
+**Contents:** Shared core only. No additional tools.
 
-- Add `gh` CLI
-- Add `ripgrep`
-- Update `test.sh` to verify new binaries
-- Update `README.md`
-
-**Directory:** `claude-agent/` (existing)
+**Directory:** `claude-agent-read/` (new, alongside existing `claude-agent/`)
 
 ### claude-agent-write
 
@@ -111,18 +106,16 @@ Each image directory contains:
 
 ## Metadata
 
-### claude-agent
+### claude-agent-read, claude-agent-write, and claude-agent-sre
 
-Keep current version scheme (`version: "1.1"`, `auto_patch: true`).
-
-### claude-agent-write and claude-agent-sre
-
-New images start at:
+All start at:
 
 ```yaml
 version: "1.0"
 auto_patch: true
 ```
+
+The existing `claude-agent` image remains unchanged and will be retired after migration to the new images.
 
 ## Integration
 
