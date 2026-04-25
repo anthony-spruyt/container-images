@@ -1,23 +1,20 @@
-# renovate: depName=python datasource=docker
-FROM python:3.13-slim-bookworm@sha256:bb73517d48bd32016e15eade0c009b2724ec3a025a9975b5cd9b251d0dcadb33 AS python
-
-FROM node:24-slim@sha256:dad1a61d4421f0e72068d9f864c73c1e2a617e2cdb23edc777dbc6fe2c90e720
+# renovate: depName=ubuntu datasource=docker versioning=ubuntu
+FROM ubuntu:jammy@sha256:962f6cadeae0ea6284001009daa4cc9a8c37e75d1f5191cf0eb83fe565b63dd7
 
 # Ephemeral agent pod — lifespan managed by n8n spawner
 HEALTHCHECK NONE
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Python 3.13 from official image (mdformat requires 3.13+ for exclude config)
-COPY --from=python /usr/local/bin/python3* /usr/local/bin/
-COPY --from=python /usr/local/bin/pip* /usr/local/bin/
-COPY --from=python /usr/local/lib/python3.13 /usr/local/lib/python3.13
-COPY --from=python /usr/local/lib/libpython3.13.so* /usr/local/lib/
-RUN ldconfig && ln -sf /usr/local/bin/python3.13 /usr/local/bin/python3
-
-# System deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  ca-certificates curl git openssh-client jq libatomic1 \
+# System deps + Python 3.13 from deadsnakes + Node.js 24 from nodesource
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates curl git openssh-client jq gnupg software-properties-common \
+  && add-apt-repository -y ppa:deadsnakes/ppa \
+  && curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
+  && apt-get install -y --no-install-recommends \
+    python3.13 python3.13-venv python3-pip nodejs \
+  && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1 \
   && rm -rf /var/lib/apt/lists/*
 
 # GitHub CLI
@@ -48,7 +45,8 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 ARG SAFE_CHAIN_VERSION="1.4.9"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
 
-# Set up safe-chain shims for node user before any npm/pip calls
+# Non-root user matching node image convention
+RUN useradd -m -u 1000 -s /bin/bash node
 USER 1000
 RUN safe-chain setup && safe-chain setup-ci
 ENV PATH="/home/node/.safe-chain/shims:${PATH}"
@@ -56,7 +54,7 @@ ENV PATH="/home/node/.safe-chain/shims:${PATH}"
 # pre-commit
 # renovate: depName=pre-commit datasource=pypi
 ARG PRECOMMIT_VERSION="4.6.0"
-RUN pip install --no-cache-dir pre-commit=="${PRECOMMIT_VERSION}"
+RUN pip install --no-cache-dir --break-system-packages pre-commit=="${PRECOMMIT_VERSION}"
 ENV PATH="/home/node/.local/bin:${PATH}"
 
 # Claude Code CLI (native binary — npm datasource tracks versions)
