@@ -44,7 +44,9 @@ RUN safe-chain setup && safe-chain setup-ci
 ENV PATH="/home/node/.safe-chain/shims:${PATH}"
 
 # pre-commit
-RUN pip install --break-system-packages pre-commit
+# renovate: depName=pre-commit datasource=pypi
+ARG PRECOMMIT_VERSION="4.2.0"
+RUN pip install --no-cache-dir --break-system-packages pre-commit=="${PRECOMMIT_VERSION}"
 ENV PATH="/home/node/.local/bin:${PATH}"
 
 # Claude Code CLI (native binary — npm datasource tracks versions)
