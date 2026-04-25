@@ -12,8 +12,8 @@ The `n8n-release-watcher.json` workflow automatically detects new Firemerge rele
 ### What it does
 
 1. Checks GitHub daily (11PM AEST) for new tags on `anthony-spruyt/firemerge`
-2. Compares with the last processed version (stored in workflow static data)
-3. If a new version is found:
+1. Compares with the last processed version (stored in workflow static data)
+1. If a new version is found:
    - Triggers the container build workflow with the exact upstream tag
    - Sends an email notification
    - Updates the stored version
@@ -23,9 +23,9 @@ The `n8n-release-watcher.json` workflow automatically detects new Firemerge rele
 ### Import into n8n
 
 1. In n8n, go to **Workflows** > **Add Workflow** > **Import from File**
-2. Select `n8n-release-watcher.json`
-3. Configure the credentials (see below)
-4. Activate the workflow
+1. Select `n8n-release-watcher.json`
+1. Configure the credentials (see below)
+1. Activate the workflow
 
 ### Required Credentials
 
@@ -34,11 +34,11 @@ The `n8n-release-watcher.json` workflow automatically detects new Firemerge rele
 Create a GitHub PAT with `repo` and `workflow` scopes:
 
 1. Go to GitHub > Settings > Developer settings > Personal access tokens > Fine-grained tokens
-2. Create a new token with:
+1. Create a new token with:
    - **Repository access:** `anthony-spruyt/container-images`
    - **Permissions:** Actions (Read and write)
-3. In n8n, go to **Credentials** > **Add Credential** > **Header Auth**
-4. Configure:
+1. In n8n, go to **Credentials** > **Add Credential** > **Header Auth**
+1. Configure:
    - **Name:** `GitHub PAT`
    - **Header Name:** `Authorization`
    - **Header Value:** `Bearer <your-token>`
@@ -46,7 +46,7 @@ Create a GitHub PAT with `repo` and `workflow` scopes:
 #### 2. SMTP Credential
 
 1. In n8n, go to **Credentials** > **Add Credential** > **SMTP**
-2. Configure your SMTP server settings:
+1. Configure your SMTP server settings:
    - **Host:** Your SMTP server hostname
    - **Port:** 587 (TLS) or 465 (SSL)
    - **User:** Your SMTP username
@@ -56,17 +56,17 @@ Create a GitHub PAT with `repo` and `workflow` scopes:
 ### Configuration After Import
 
 1. Open the **Trigger Build Workflow** node and select your GitHub PAT credential
-2. Open the **Send Notification** node:
+1. Open the **Send Notification** node:
    - Select your SMTP credential
    - Update `fromEmail` to your sender address
    - Update `toEmail` to your notification recipient
-3. Save and activate the workflow
+1. Save and activate the workflow
 
 ### Testing
 
 1. Open the workflow in n8n
-2. Click **Execute Workflow** to run manually
-3. Check the output of each node:
+1. Click **Execute Workflow** to run manually
+1. Check the output of each node:
    - **Get GitHub Tags:** Should return tag list from GitHub
    - **Check New Version:** Shows `isNew: true` on first run
    - **Trigger Build Workflow:** Should return HTTP 204 (success)

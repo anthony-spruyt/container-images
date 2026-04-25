@@ -1,28 +1,21 @@
 # Registry Verification Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development
-> (recommended) or superpowers:executing-plans to implement this plan task-by-task.
-> Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fix burned versions by verifying images exist in the container registry before
-skipping builds, and create missing releases when the image exists but the release does not.
+**Goal:** Fix burned versions by verifying images exist in the container registry before skipping builds, and create missing releases when the image exists but the release does not.
 
-**Architecture:** Add `docker manifest inspect` to the `check-release` job. Add a new
-`release-needed` output. Extract release creation into a separate job that runs when the
-image exists but the release is missing. Update `create-release.sh` to handle updating
-existing releases on re-push.
+**Architecture:** Add `docker manifest inspect` to the `check-release` job. Add a new `release-needed` output. Extract release creation into a separate job that runs when the image exists but the release is missing. Update `create-release.sh` to handle updating existing releases on re-push.
 
 **Tech Stack:** GitHub Actions, bash, `gh` CLI, `docker manifest inspect`
 
----
+______________________________________________________________________
 
 ## File Map
 
-- Modify: `.github/workflows/_image-pipeline.yaml` (check-release outputs, GHCR login,
-  registry verification, release-only job, push guard)
+- Modify: `.github/workflows/_image-pipeline.yaml` (check-release outputs, GHCR login, registry verification, release-only job, push guard)
 - Modify: `.github/scripts/create-release.sh` (update existing releases)
 
----
+______________________________________________________________________
 
 ### Task 1: Add registry verification to `check-release` job
 
@@ -76,8 +69,7 @@ Uses the same pinned SHA as the build job's login step (line 247).
 
 - [ ] **Step 3: Replace the "Check if release exists" step with registry-aware logic**
 
-Replace the entire `check` step run script (lines 140-173). Also add `REGISTRY` and `OWNER`
-to the step's env block. The full step becomes:
+Replace the entire `check` step run script (lines 140-173). Also add `REGISTRY` and `OWNER` to the step's env block. The full step becomes:
 
 ```yaml
       - name: Check if release exists
@@ -175,7 +167,7 @@ git add .github/workflows/_image-pipeline.yaml
 git commit -m "fix(image-pipeline): verify image exists in registry before skipping build"
 ```
 
----
+______________________________________________________________________
 
 ### Task 2: Add release-only job and push guard
 
@@ -199,8 +191,7 @@ to:
 
 - [ ] **Step 2: Add a `create-release` job for the release-only recovery path**
 
-Add a new job after the `build` job. This handles the case where the image exists in the
-registry but the GitHub release is missing (e.g., the `claude-agent-1.0.1` scenario).
+Add a new job after the `build` job. This handles the case where the image exists in the registry but the GitHub release is missing (e.g., the `claude-agent-1.0.1` scenario).
 
 ```yaml
   create-release:
@@ -273,7 +264,7 @@ git add .github/workflows/_image-pipeline.yaml
 git commit -m "fix(image-pipeline): add release-only job for missing releases"
 ```
 
----
+______________________________________________________________________
 
 ### Task 3: Update `create-release.sh` to handle existing releases
 
@@ -283,13 +274,9 @@ git commit -m "fix(image-pipeline): add release-only job for missing releases"
 
 - [ ] **Step 1: Restructure the script to generate notes before the release-exists check**
 
-The current script generates release notes at lines 110-152, then creates the release at
-line 155. We need to move note generation before the release-exists check (line 30) so
-that `gh release edit` can use the notes file.
+The current script generates release notes at lines 110-152, then creates the release at line 155. We need to move note generation before the release-exists check (line 30) so that `gh release edit` can use the notes file.
 
-Rewrite the main body of `create-release.sh` (everything after the function definitions,
-starting at line 110). The function definitions (`create_release_with_retry`,
-`get_previous_release`, `generate_local_changelog` at lines 37-107) stay unchanged.
+Rewrite the main body of `create-release.sh` (everything after the function definitions, starting at line 110). The function definitions (`create_release_with_retry`, `get_previous_release`, `generate_local_changelog` at lines 37-107) stay unchanged.
 
 Replace lines 28-155 (from `generate_tags` to end of file) with:
 
@@ -370,7 +357,7 @@ git add .github/scripts/create-release.sh
 git commit -m "fix(image-pipeline): update existing release on re-push instead of skipping"
 ```
 
----
+______________________________________________________________________
 
 ### Task 4: Final validation and squash
 
@@ -387,13 +374,14 @@ Run: `git diff main --stat && git diff main`
 Verify:
 
 - Only two files changed: `_image-pipeline.yaml` and `create-release.sh`
+
 - No unintended changes
-- The `docker/login-action` SHA matches the one in the build job
-  (`a0d57b8e43b6ef1cca20559d68cec2227e63fccd`)
-- The `verify_image_in_registry` function uses the base Docker tag (`$TAG`),
-  not the release tag with `-rN` suffix
-- The `create-release` job condition correctly gates on
-  `release-needed == 'true'` and `should-build == 'false'`
+
+- The `docker/login-action` SHA matches the one in the build job (`a0d57b8e43b6ef1cca20559d68cec2227e63fccd`)
+
+- The `verify_image_in_registry` function uses the base Docker tag (`$TAG`), not the release tag with `-rN` suffix
+
+- The `create-release` job condition correctly gates on `release-needed == 'true'` and `should-build == 'false'`
 
 - [ ] **Step 3: Squash into a single commit for the PR**
 
