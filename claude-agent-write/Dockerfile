@@ -1,5 +1,5 @@
 # renovate: depName=ubuntu datasource=docker versioning=ubuntu
-FROM ubuntu:jammy@sha256:962f6cadeae0ea6284001009daa4cc9a8c37e75d1f5191cf0eb83fe565b63dd7
+FROM ubuntu:resolute@sha256:5e275723f82c67e387ba9e3c24baa0abdcb268917f276a0561c97bef9450d0b4
 
 # Ephemeral agent pod — lifespan managed by n8n spawner
 HEALTHCHECK NONE
