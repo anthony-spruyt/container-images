@@ -65,6 +65,8 @@ CVE-2026-35205
 CVE-2026-35469
 CVE-2026-39883
 
-# Go SDK internal Dockerfiles and kustomize embedded Dockerfile
+# Misconfig findings from embedded files in Go SDK, kustomize, and helm plugins
 DS-0002
 DS-0029
+KSV-0014
+KSV-0118
