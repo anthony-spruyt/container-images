@@ -128,11 +128,11 @@ ENV PATH="/home/node/.local/bin:${PATH}"
 
 # Helm plugins (installed as node user — helm stores plugins in $HOME)
 # renovate: depName=databus23/helm-diff datasource=github-releases
-ARG HELM_DIFF_VERSION="v4.1.5"
+ARG HELM_DIFF_VERSION="v3.15.6"
 RUN helm plugin install https://github.com/databus23/helm-diff --verify=false --version "${HELM_DIFF_VERSION}"
 
 # renovate: depName=knechtionscoding/helm-schema-gen datasource=github-releases
-ARG HELM_SCHEMA_GEN_VERSION="v0.0.6"
+ARG HELM_SCHEMA_GEN_VERSION="0.0.10"
 RUN helm plugin install https://github.com/knechtionscoding/helm-schema-gen --verify=false --version "${HELM_SCHEMA_GEN_VERSION}"
 
 # Working directory
