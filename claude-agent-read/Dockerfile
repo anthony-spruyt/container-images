@@ -20,7 +20,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # ripgrep
 # renovate: depName=BurntSushi/ripgrep datasource=github-releases
-ARG RIPGREP_VERSION="14.1.1"
+ARG RIPGREP_VERSION="15.1.0"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL "https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}/ripgrep_${RIPGREP_VERSION}-1_${ARCH}.deb" -o /tmp/rg.deb \
   && dpkg -i /tmp/rg.deb \
