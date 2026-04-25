@@ -9,7 +9,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # System deps + Python build deps (cleaned up after compile)
 RUN apt-get update && apt-get install -y --no-install-recommends \
   ca-certificates curl git openssh-client jq xz-utils \
-  build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
+  build-essential pkg-config libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
   libsqlite3-dev libncurses-dev libffi-dev liblzma-dev \
   && rm -rf /var/lib/apt/lists/*
 
@@ -29,7 +29,7 @@ WORKDIR /
 # Remove Python build artifacts and deps
 RUN rm -rf /tmp/Python-* \
   && apt-get purge -y --auto-remove \
-    build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
+    build-essential pkg-config libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
     libsqlite3-dev libncurses-dev libffi-dev liblzma-dev \
   && rm -rf /var/lib/apt/lists/*
 
