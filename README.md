@@ -1,11 +1,8 @@
 # Container Images
 
-[![License](https://img.shields.io/github/license/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/blob/main/LICENSE)
-[![CI](https://github.com/anthony-spruyt/container-images/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/anthony-spruyt/container-images/actions/workflows/ci.yaml)
-[![Trivy Scan](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml/badge.svg?branch=main)](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml)
-[![Stars](https://img.shields.io/github/stars/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/stargazers)
-[![Forks](https://img.shields.io/github/forks/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/forks)
-[![Contributors](https://img.shields.io/github/contributors/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/graphs/contributors)
+[![License](https://img.shields.io/github/license/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/blob/main/LICENSE) [![CI](https://github.com/anthony-spruyt/container-images/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/anthony-spruyt/container-images/actions/workflows/ci.yaml)
+[![Trivy Scan](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml/badge.svg?branch=main)](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml) [![Stars](https://img.shields.io/github/stars/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/stargazers)
+[![Forks](https://img.shields.io/github/forks/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/forks) [![Contributors](https://img.shields.io/github/contributors/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/graphs/contributors)
 [![Issues](https://img.shields.io/github/issues/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/issues)
 
 Container images built from upstream sources or custom Dockerfiles, published to GitHub Container Registry with automated security scanning and SLSA provenance.
@@ -29,29 +26,33 @@ docker pull ghcr.io/anthony-spruyt/firemerge:latest
 Use this when building from an external repository (e.g., a GitHub project):
 
 1. Create a directory with the image name
-2. Add `metadata.yaml`:
+
+1. Add `metadata.yaml`:
 
    ```yaml
    upstream: owner/repo
    version: "1.0.0"
    ```
 
-3. Optionally add a custom `Dockerfile` to override the upstream's
-4. Push to main - the image will be built and published automatically
+1. Optionally add a custom `Dockerfile` to override the upstream's
+
+1. Push to main - the image will be built and published automatically
 
 ### Option 2: Build from Local Dockerfile
 
 Use this for custom images with no upstream source:
 
 1. Create a directory with the image name
-2. Add your `Dockerfile` and any required files
-3. Add `metadata.yaml`:
+
+1. Add your `Dockerfile` and any required files
+
+1. Add `metadata.yaml`:
 
    ```yaml
    version: "1.0.0"
    ```
 
-4. Push to main - the image will be built and published automatically
+1. Push to main - the image will be built and published automatically
 
 ### Option 3: Auto-Patched Version
 
@@ -88,9 +89,9 @@ The `/create-megalinter-flavor` command automates flavor creation with automatic
 The command will:
 
 1. Validate the flavor name and check for conflicts
-2. Look up linter configurations from the catalog
-3. Auto-select the optimal base flavor (minimizing custom installs)
-4. Generate `megalinter-<name>/flavor.yaml` with Renovate annotations
+1. Look up linter configurations from the catalog
+1. Auto-select the optimal base flavor (minimizing custom installs)
+1. Generate `megalinter-<name>/flavor.yaml` with Renovate annotations
 
 ### Manual Setup
 
@@ -100,7 +101,7 @@ The command will:
    mkdir megalinter-<name>/
    ```
 
-2. Create `flavor.yaml` with your configuration:
+1. Create `flavor.yaml` with your configuration:
 
    ```yaml
    name: my-flavor
@@ -115,7 +116,7 @@ The command will:
      - PYTHON_BANDIT
    ```
 
-3. Commit `flavor.yaml` - CI generates Dockerfile, test.sh, and metadata.yaml, then builds automatically
+1. Commit `flavor.yaml` - CI generates Dockerfile, test.sh, and metadata.yaml, then builds automatically
 
 ### Available Linters
 

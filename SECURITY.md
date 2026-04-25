@@ -11,7 +11,7 @@
 If you discover a security vulnerability in this repository, please report it by:
 
 1. **Do not** open a public issue
-2. Email the maintainer directly or use GitHub's private vulnerability reporting feature
+1. Email the maintainer directly or use GitHub's private vulnerability reporting feature
 
 ## Security Measures
 

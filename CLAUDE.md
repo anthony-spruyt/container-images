@@ -100,7 +100,7 @@ Create custom MegaLinter flavors by defining a `flavor.yaml` configuration. CI g
 ### Creating a New MegaLinter Flavor
 
 1. Create directory: `megalinter-<name>/`
-2. Create `flavor.yaml` - just list the linter keys you want:
+1. Create `flavor.yaml` - just list the linter keys you want:
 
 ```yaml
 name: my-flavor

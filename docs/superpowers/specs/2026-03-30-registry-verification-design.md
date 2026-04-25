@@ -11,17 +11,15 @@ Reference: [#427](https://github.com/anthony-spruyt/container-images/issues/427)
 Evidence from [run 23744834973][run] shows the actual failure mode:
 
 1. **Push image: SUCCESS** — image exists in GHCR (`ghcr.io/anthony-spruyt/claude-agent:1.0.1`)
-2. **Create GitHub Release: FAILURE** — no release was created
-3. **Git tag left behind** — `claude-agent-1.0.1` tag exists
+1. **Create GitHub Release: FAILURE** — no release was created
+1. **Git tag left behind** — `claude-agent-1.0.1` tag exists
 
-On next run, `check-release` sees the git tag and skips the build entirely.
-The image is in the registry but there is no GitHub release.
+On next run, `check-release` sees the git tag and skips the build entirely. The image is in the registry but there is no GitHub release.
 
 This means the fix needs to handle two scenarios:
+
 - **Image missing + tag exists:** rebuild and push, then create/update release
 - **Image exists + tag exists + no release:** skip the build, but still create the release
-
-[run]: https://github.com/anthony-spruyt/container-images/actions/runs/23744834973/job/69170876586
 
 ## Solution
 
@@ -37,8 +35,7 @@ Update `create-release.sh` to handle updating an existing release with the corre
 
 **New step: GHCR login (read-only).** Use `docker/login-action` (same as the build job) for consistency and credential masking. Required for `docker manifest inspect` against private GHCR packages. Uses existing `GITHUB_TOKEN`.
 
-**Modified step: "Check if release exists".** After each of the three skip conditions
-(release exists, release with `-rN` suffix, git tag exists), call:
+**Modified step: "Check if release exists".** After each of the three skip conditions (release exists, release with `-rN` suffix, git tag exists), call:
 
 ```bash
 docker manifest inspect ghcr.io/$OWNER/$IMAGE_NAME:$TAG
@@ -55,9 +52,7 @@ Note: always inspect the base Docker tag (e.g., `1.0.0`), not the release tag wi
 | No (tag only)   | Yes                | Skip build, create release (`should-build=false`, `release-needed=true`) |
 | No (tag only)   | No                 | Rebuild (`should-build=true`)                                            |
 
-**New output: `release-needed`.** When the image exists but the release does not, set
-`release-needed=true`. The build job uses this to run the release creation step even when
-the build was skipped.
+**New output: `release-needed`.** When the image exists but the release does not, set `release-needed=true`. The build job uses this to run the release creation step even when the build was skipped.
 
 Log the `manifest inspect` result to the step summary for debugging visibility.
 
@@ -72,7 +67,7 @@ if: inputs.push && inputs.create-release && needs.check-release.outputs.tag != '
 Currently, when a release already exists, the script exits with 0 (skip). Change this to:
 
 1. **Release exists:** Update the existing release with the new digest and notes using `gh release edit`, so the release reflects the actual pushed image.
-2. **Tag exists but no release:** Create a new release for the existing tag using `gh release create` (the existing `create_release_with_retry` function already handles this).
+1. **Tag exists but no release:** Create a new release for the existing tag using `gh release create` (the existing `create_release_with_retry` function already handles this).
 
 ### 3. No new files
 
@@ -121,3 +116,5 @@ check-release: tag exists (no release), manifest inspect OK
 ## Known Limitations
 
 - Only the version tag is checked via `manifest inspect`. If the push partially succeeded (version tag pushed but `latest` tag failed), the build will be skipped and `latest` may be stale. The version tag is the critical one; `latest` is updated on the next build.
+
+[run]: https://github.com/anthony-spruyt/container-images/actions/runs/23744834973/job/69170876586

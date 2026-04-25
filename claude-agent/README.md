@@ -8,13 +8,13 @@ Minimal runtime image for Claude Code agents running as Kubernetes pods. Each po
 
 ## Contents
 
-| Component         | Purpose                                                    |
-| ----------------- | ---------------------------------------------------------- |
-| Node.js           | Claude Code CLI runtime dependency                         |
-| Python 3          | Scripting support for agent tasks                          |
-| git               | Repository operations                                      |
-| Claude Code CLI   | Core agent runtime                                         |
-| Aikido safe-chain | npm supply chain security shims                            |
+| Component         | Purpose                            |
+| ----------------- | ---------------------------------- |
+| Node.js           | Claude Code CLI runtime dependency |
+| Python 3          | Scripting support for agent tasks  |
+| git               | Repository operations              |
+| Claude Code CLI   | Core agent runtime                 |
+| Aikido safe-chain | npm supply chain security shims    |
 
 ## Build
 

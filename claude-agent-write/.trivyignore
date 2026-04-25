@@ -38,3 +38,6 @@ CVE-2026-32281
 CVE-2026-32283
 CVE-2026-33186
 CVE-2026-34986
+
+# Go SDK ships internal Dockerfiles without USER — not our images
+DS-0002
