@@ -6,16 +6,38 @@ HEALTHCHECK NONE
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# System deps + Python 3.13 from deadsnakes + Node.js 24 from nodesource
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends \
-    ca-certificates curl git openssh-client jq gnupg software-properties-common \
-  && add-apt-repository -y ppa:deadsnakes/ppa \
-  && curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
-  && apt-get install -y --no-install-recommends \
-    python3.13 python3.13-venv python3-pip nodejs \
-  && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1 \
+# System deps (build deps for Python, cleaned up after install)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  ca-certificates curl git openssh-client jq xz-utils \
+  build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
+  libsqlite3-dev libncurses-dev libffi-dev liblzma-dev \
   && rm -rf /var/lib/apt/lists/*
+
+# Python (built from source — Renovate tracks via github-releases)
+# renovate: depName=python/cpython datasource=github-releases extractVersion=^v(?<version>.+)$
+ARG PYTHON_VERSION="3.13.13"
+RUN curl -fsSL "https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz" \
+  | tar -xz -C /tmp \
+  && cd "/tmp/Python-${PYTHON_VERSION}" \
+  && ./configure --prefix=/usr/local --enable-optimizations --with-ensurepip=install 2>&1 | tail -5 \
+  && make -j"$(nproc)" 2>&1 | tail -5 \
+  && make install \
+  && cd / && rm -rf "/tmp/Python-${PYTHON_VERSION}" \
+  && ln -sf /usr/local/bin/python3 /usr/local/bin/python \
+  && ln -sf /usr/local/bin/pip3 /usr/local/bin/pip
+
+# Remove build deps to shrink image
+RUN apt-get purge -y --auto-remove \
+  build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
+  libsqlite3-dev libncurses-dev libffi-dev liblzma-dev \
+  && rm -rf /var/lib/apt/lists/*
+
+# Node.js (prebuilt binary tarball — Renovate tracks via node-version datasource)
+# renovate: depName=node datasource=node versioning=node
+ARG NODE_VERSION="24.15.0"
+RUN ARCH="$(dpkg --print-architecture)" \
+  && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${ARCH}.tar.xz" \
+  | tar -xJ --strip-components=1 -C /usr/local
 
 # GitHub CLI
 # renovate: depName=cli/cli datasource=github-releases
