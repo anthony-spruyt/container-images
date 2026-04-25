@@ -8,7 +8,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # System deps (persist) + Python build deps (purged after compile)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  ca-certificates curl git openssh-client jq xz-utils \
+  ca-certificates curl git openssh-client jq libatomic1 xz-utils \
   libsqlite3-0 libreadline8 libncurses6 libffi8 liblzma5 libbz2-1.0 libssl3 \
   && apt-get install -y --no-install-recommends \
   build-essential pkg-config libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
