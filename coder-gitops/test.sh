@@ -67,121 +67,80 @@ if ! docker run --rm \
 fi
 echo "  read-only rootfs ok"
 
-# Test 7: push-templates.sh skips unchanged templates (diff logic)
-echo "Test 7: diff-based skip logic..."
-TEST7=$(mktemp)
-cat >"$TEST7" <<'TESTSCRIPT'
+# Helper: run a mock-based push-templates test inside the container.
+# Usage: run_mock_test <test_label> <template_name> <mock_script> <expected_grep> <ok_message>
+run_mock_test() {
+  local label="$1" tpl_name="$2" mock_body="$3" expected="$4" ok_msg="$5"
+  echo "${label}"
+  local mockfile testfile
+  mockfile=$(mktemp)
+  testfile=$(mktemp)
+  printf '%s\n' "${mock_body}" >"${mockfile}"
+  cat >"${testfile}" <<'TESTSCRIPT'
 #!/bin/bash
 set -euo pipefail
 export CODER_URL=http://fake CODER_SESSION_TOKEN=fake
 export TEMPLATES_DIR=$(mktemp -d)
-mkdir -p "${TEMPLATES_DIR}/mytemplate"
-echo "resource {}" > "${TEMPLATES_DIR}/mytemplate/main.tf"
+mkdir -p "${TEMPLATES_DIR}/__TPL__"
+echo "resource {}" > "${TEMPLATES_DIR}/__TPL__/main.tf"
+cp /mock-coder.sh /tmp/coder
+chmod +x /tmp/coder
+export PATH="/tmp:$PATH"
+output=$(/usr/local/bin/push-templates.sh 2>&1)
+if echo "$output" | grep -q "__EXPECTED__"; then
+  echo "  __OK_MSG__"
+else
+  echo "  ERROR: expected '__EXPECTED__' in output"
+  echo "  output: $output"
+  exit 1
+fi
+TESTSCRIPT
+  sed -i "s|__TPL__|${tpl_name}|g; s|__EXPECTED__|${expected}|g; s|__OK_MSG__|${ok_msg}|g" "${testfile}"
+  chmod 644 "${testfile}" "${mockfile}"
+  docker run --rm --tmpfs /tmp:rw,exec,size=16m \
+    -v "${testfile}:/test-diff.sh:ro" \
+    -v "${mockfile}:/mock-coder.sh:ro" \
+    --entrypoint bash "$IMAGE_REF" -c "bash /test-diff.sh"
+  rm -f "${testfile}" "${mockfile}"
+}
 
-cat > /tmp/coder <<'MOCK'
-#!/bin/bash
+# Test 7: push-templates.sh skips unchanged templates (diff logic)
+# shellcheck disable=SC2016 # mock scripts use single quotes intentionally
+run_mock_test "Test 7: diff-based skip logic..." "mytemplate" \
+  '#!/bin/bash
 if [ "$1" = "templates" ] && [ "$2" = "pull" ]; then
   cp -a "${TEMPLATES_DIR}/$3/." "$4/"
   exit 0
 elif [ "$1" = "templates" ] && [ "$2" = "push" ]; then
   echo "UNEXPECTED_PUSH" >&2
   exit 1
-fi
-MOCK
-chmod +x /tmp/coder
-export PATH="/tmp:$PATH"
-
-output=$(/usr/local/bin/push-templates.sh 2>&1)
-if echo "$output" | grep -q "SKIP: mytemplate"; then
-  echo "  skip-unchanged ok"
-else
-  echo "  ERROR: expected SKIP for unchanged template"
-  echo "  output: $output"
-  exit 1
-fi
-TESTSCRIPT
-chmod 644 "$TEST7"
-docker run --rm --tmpfs /tmp:rw,exec,size=16m \
-  -v "$TEST7:/test-diff.sh:ro" \
-  --entrypoint bash "$IMAGE_REF" -c "bash /test-diff.sh"
-rm -f "$TEST7"
+fi' \
+  "SKIP: mytemplate" "skip-unchanged ok"
 
 # Test 8: push-templates.sh pushes changed templates
-echo "Test 8: diff-based push on change..."
-TEST8=$(mktemp)
-cat >"$TEST8" <<'TESTSCRIPT'
-#!/bin/bash
-set -euo pipefail
-export CODER_URL=http://fake CODER_SESSION_TOKEN=fake
-export TEMPLATES_DIR=$(mktemp -d)
-mkdir -p "${TEMPLATES_DIR}/mytemplate"
-echo "resource {}" > "${TEMPLATES_DIR}/mytemplate/main.tf"
-
-cat > /tmp/coder <<'MOCK'
-#!/bin/bash
+# shellcheck disable=SC2016
+run_mock_test "Test 8: diff-based push on change..." "mytemplate" \
+  '#!/bin/bash
 if [ "$1" = "templates" ] && [ "$2" = "pull" ]; then
   echo "old content" > "$4/main.tf"
   exit 0
 elif [ "$1" = "templates" ] && [ "$2" = "push" ]; then
   echo "pushed"
   exit 0
-fi
-MOCK
-chmod +x /tmp/coder
-export PATH="/tmp:$PATH"
-
-output=$(/usr/local/bin/push-templates.sh 2>&1)
-if echo "$output" | grep -q "CHANGED: mytemplate"; then
-  echo "  push-changed ok"
-else
-  echo "  ERROR: expected CHANGED for modified template"
-  echo "  output: $output"
-  exit 1
-fi
-TESTSCRIPT
-chmod 644 "$TEST8"
-docker run --rm --tmpfs /tmp:rw,exec,size=16m \
-  -v "$TEST8:/test-diff.sh:ro" \
-  --entrypoint bash "$IMAGE_REF" -c "bash /test-diff.sh"
-rm -f "$TEST8"
+fi' \
+  "CHANGED: mytemplate" "push-changed ok"
 
 # Test 9: push-templates.sh creates new templates (pull fails)
-echo "Test 9: new template creation..."
-TEST9=$(mktemp)
-cat >"$TEST9" <<'TESTSCRIPT'
-#!/bin/bash
-set -euo pipefail
-export CODER_URL=http://fake CODER_SESSION_TOKEN=fake
-export TEMPLATES_DIR=$(mktemp -d)
-mkdir -p "${TEMPLATES_DIR}/newtemplate"
-echo "resource {}" > "${TEMPLATES_DIR}/newtemplate/main.tf"
-
-cat > /tmp/coder <<'MOCK'
-#!/bin/bash
+# shellcheck disable=SC2016
+run_mock_test "Test 9: new template creation..." "newtemplate" \
+  '#!/bin/bash
 if [ "$1" = "templates" ] && [ "$2" = "pull" ]; then
   exit 1
 elif [ "$1" = "templates" ] && [ "$2" = "push" ]; then
   echo "pushed"
   exit 0
-fi
-MOCK
-chmod +x /tmp/coder
-export PATH="/tmp:$PATH"
-
-output=$(/usr/local/bin/push-templates.sh 2>&1)
-if echo "$output" | grep -q "NEW: newtemplate"; then
-  echo "  new-template ok"
-else
-  echo "  ERROR: expected NEW for non-existent template"
-  echo "  output: $output"
-  exit 1
-fi
-TESTSCRIPT
-chmod 644 "$TEST9"
-docker run --rm --tmpfs /tmp:rw,exec,size=16m \
-  -v "$TEST9:/test-diff.sh:ro" \
-  --entrypoint bash "$IMAGE_REF" -c "bash /test-diff.sh"
-rm -f "$TEST9"
+fi' \
+  "NEW: newtemplate" "new-template ok"
 
 echo ""
 echo "=== All tests passed ==="
