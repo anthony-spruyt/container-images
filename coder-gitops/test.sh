@@ -135,12 +135,26 @@ fi' \
 run_mock_test "Test 9: new template creation..." "newtemplate" \
   '#!/bin/bash
 if [ "$1" = "templates" ] && [ "$2" = "pull" ]; then
+  echo "template \"newtemplate\" not found" >&2
   exit 1
 elif [ "$1" = "templates" ] && [ "$2" = "push" ]; then
   echo "pushed"
   exit 0
 fi' \
   "NEW: newtemplate" "new-template ok"
+
+# Test 10: pull failure reason appears in log output
+# shellcheck disable=SC2016
+run_mock_test "Test 10: pull failure reason logged..." "failtemplate" \
+  '#!/bin/bash
+if [ "$1" = "templates" ] && [ "$2" = "pull" ]; then
+  echo "auth token expired" >&2
+  exit 1
+elif [ "$1" = "templates" ] && [ "$2" = "push" ]; then
+  echo "pushed"
+  exit 0
+fi' \
+  "pull failed (auth token expired)" "pull-failure-reason ok"
 
 echo ""
 echo "=== All tests passed ==="
