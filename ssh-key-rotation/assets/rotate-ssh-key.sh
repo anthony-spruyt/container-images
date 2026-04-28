@@ -13,6 +13,9 @@
 
 set -e
 
+cleanup() { rm -f /tmp/id_ed25519 /tmp/id_ed25519.pub; }
+trap cleanup EXIT
+
 fail() {
   echo "ERROR: $1" >&2
   exit 1
@@ -135,8 +138,5 @@ if [ -n "${FORCE_SYNC_NAMESPACES}" ]; then
     echo "=== Force-sync complete ==="
   fi
 fi
-
-# --- Clean up ---
-rm -f /tmp/id_ed25519 /tmp/id_ed25519.pub
 
 echo "=== SSH key rotation complete (auth + signing) ==="
