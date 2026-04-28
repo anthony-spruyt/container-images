@@ -13,7 +13,10 @@
 
 set -e
 
-fail() { echo "ERROR: $1" >&2; exit 1; }
+fail() {
+  echo "ERROR: $1" >&2
+  exit 1
+}
 
 # --- Validate required env vars ---
 [ -z "${GITHUB_PAT}" ] && fail "GITHUB_PAT is required"
@@ -112,7 +115,10 @@ kubectl patch secret "${SECRET_NAME}" -n "${SECRET_NAMESPACE}" \
 # --- Force-sync ExternalSecrets (optional) ---
 if [ -n "${FORCE_SYNC_NAMESPACES}" ]; then
   echo "=== Force-syncing ExternalSecrets ==="
-  IFS=',' ; set -- ${FORCE_SYNC_NAMESPACES} ; unset IFS
+  IFS=','
+  # shellcheck disable=SC2086
+  set -- ${FORCE_SYNC_NAMESPACES}
+  unset IFS
   FAILURES=0
   for NS in "$@"; do
     echo "Force-syncing ${FORCE_SYNC_ES_NAME} in ${NS}..."

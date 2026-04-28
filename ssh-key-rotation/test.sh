@@ -67,16 +67,14 @@ echo "  read-only rootfs ok"
 
 # Test 7: fails fast when required env vars are missing
 echo "Test 7: env var validation..."
-for VAR in GITHUB_PAT TITLE_PREFIX SECRET_NAME SECRET_NAMESPACE; do
-  OUTPUT=$(docker run --rm \
-    --read-only \
-    --tmpfs /tmp:rw,size=64m \
-    "$IMAGE_REF" 2>&1 || true)
-  if ! echo "$OUTPUT" | grep -q "ERROR:.*is required"; then
-    echo "  ERROR: script did not fail for missing env vars"
-    exit 1
-  fi
-done
+OUTPUT=$(docker run --rm \
+  --read-only \
+  --tmpfs /tmp:rw,size=64m \
+  "$IMAGE_REF" 2>&1 || true)
+if ! echo "$OUTPUT" | grep -q "ERROR:.*is required"; then
+  echo "  ERROR: script did not fail for missing env vars"
+  exit 1
+fi
 echo "  env var validation ok"
 
 # Test 8: fails when FORCE_SYNC_NAMESPACES set without FORCE_SYNC_ES_NAME
