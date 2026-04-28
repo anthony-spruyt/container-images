@@ -65,5 +65,34 @@ if ! docker run --rm \
 fi
 echo "  read-only rootfs ok"
 
+# Test 7: fails fast when required env vars are missing
+echo "Test 7: env var validation..."
+OUTPUT=$(docker run --rm \
+  --read-only \
+  --tmpfs /tmp:rw,size=64m \
+  "$IMAGE_REF" 2>&1 || true)
+if ! echo "$OUTPUT" | grep -q "ERROR:.*is required"; then
+  echo "  ERROR: script did not fail for missing env vars"
+  exit 1
+fi
+echo "  env var validation ok"
+
+# Test 8: fails when FORCE_SYNC_NAMESPACES set without FORCE_SYNC_ES_NAME
+echo "Test 8: FORCE_SYNC_ES_NAME required with FORCE_SYNC_NAMESPACES..."
+OUTPUT=$(docker run --rm \
+  --read-only \
+  --tmpfs /tmp:rw,size=64m \
+  -e GITHUB_PAT=fake \
+  -e TITLE_PREFIX=test \
+  -e SECRET_NAME=test \
+  -e SECRET_NAMESPACE=test \
+  -e FORCE_SYNC_NAMESPACES=ns1 \
+  "$IMAGE_REF" 2>&1 || true)
+if ! echo "$OUTPUT" | grep -q "FORCE_SYNC_ES_NAME is required"; then
+  echo "  ERROR: script did not fail for missing FORCE_SYNC_ES_NAME"
+  exit 1
+fi
+echo "  conditional validation ok"
+
 echo ""
 echo "=== All tests passed ==="

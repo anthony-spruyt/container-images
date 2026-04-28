@@ -1,9 +1,15 @@
-# SSH Key Rotation image for Coder workspace SSH signing/auth key rotation.
+# SSH Key Rotation — rotates SSH auth + signing keys for any GitHub user account.
 # Designed for PSA restricted: non-root (UID 1000), read-only root filesystem,
 # all caps dropped. Keypair material written to /tmp (mount as memory emptyDir).
 #
 # Required env:
-#   GITHUB_PAT - GitHub PAT with admin:public_key + admin:ssh_signing_key scopes
+#   GITHUB_PAT       — PAT with admin:public_key + admin:ssh_signing_key scopes
+#   TITLE_PREFIX     — GitHub key title prefix (e.g. "coder-workspace")
+#   SECRET_NAME      — Kubernetes secret to patch
+#   SECRET_NAMESPACE — Namespace of that secret
+# Optional env:
+#   FORCE_SYNC_NAMESPACES — comma-separated namespaces for ExternalSecret force-sync
+#   FORCE_SYNC_ES_NAME    — ExternalSecret name to sync
 #
 # Pin to specific digest for supply chain security (renovate updates this)
 FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11

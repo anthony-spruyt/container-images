@@ -1,7 +1,7 @@
 ---
-# SSH Key Rotation - Coder workspace SSH key rotator
-# Custom image for spruyt-labs Coder ssh-key-rotation CronJob.
+# SSH Key Rotation - GitHub user SSH key rotator
+# Generic image for rotating SSH auth + signing keys on any GitHub user account.
 # Runs under PSA restricted (non-root, read-only root filesystem).
 
-version: "1.0"
+version: "2.0"
 auto_patch: true
