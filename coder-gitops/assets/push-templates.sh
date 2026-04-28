@@ -32,18 +32,21 @@ for dir in "${TEMPLATES_DIR}"/*/; do
   echo "=== Checking template: ${name} ==="
 
   pull_dir="$(mktemp -d)"
+  pull_err="$(mktemp)"
 
-  if coder templates pull "${name}" "${pull_dir}" 2>/dev/null; then
+  if coder templates pull "${name}" "${pull_dir}" 2>"${pull_err}"; then
     if diff -rq "${dir}" "${pull_dir}" >/dev/null 2>&1; then
       echo "SKIP: ${name} — no changes detected"
       skipped+=("${name}")
-      rm -rf "${pull_dir}"
+      rm -rf "${pull_dir}" "${pull_err}"
       continue
     fi
     echo "CHANGED: ${name} — pushing new version"
   else
-    echo "NEW: ${name} — template does not exist yet, creating"
+    echo "NEW: ${name} — pull failed ($(head -1 "${pull_err}")), pushing as new template"
   fi
+
+  rm -f "${pull_err}"
 
   rm -rf "${pull_dir}"
 
