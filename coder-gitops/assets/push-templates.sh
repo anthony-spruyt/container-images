@@ -1,7 +1,7 @@
 #!/bin/bash
-# Push every Coder template under TEMPLATES_DIR (default /templates).
-# Iterates each subdir, runs `coder templates push <name> -y`, continues on
-# error, exits non-zero if any failed.
+# Diff-based Coder template push. For each subdir in TEMPLATES_DIR, pulls the
+# active version from Coder, diffs against local files, and only pushes when
+# content differs. New templates (pull fails) are always pushed.
 #
 # Required env:
 #   CODER_URL            - Coder deployment URL (e.g. https://coder.example.com)
@@ -24,10 +24,29 @@ export CODER_URL CODER_SESSION_TOKEN
 
 failed=()
 pushed=()
+skipped=()
 for dir in "${TEMPLATES_DIR}"/*/; do
   [ -d "$dir" ] || continue
   name="$(basename "$dir")"
-  echo "=== Pushing template: ${name} ==="
+
+  echo "=== Checking template: ${name} ==="
+
+  pull_dir="$(mktemp -d)"
+
+  if coder templates pull "${name}" "${pull_dir}" 2>/dev/null; then
+    if diff -rq "${dir}" "${pull_dir}" >/dev/null 2>&1; then
+      echo "SKIP: ${name} — no changes detected"
+      skipped+=("${name}")
+      rm -rf "${pull_dir}"
+      continue
+    fi
+    echo "CHANGED: ${name} — pushing new version"
+  else
+    echo "NEW: ${name} — template does not exist yet, creating"
+  fi
+
+  rm -rf "${pull_dir}"
+
   if coder templates push "${name}" --directory "${dir}" --yes; then
     pushed+=("${name}")
   else
@@ -38,6 +57,7 @@ done
 
 echo
 echo "Pushed:  ${#pushed[@]} (${pushed[*]:-none})"
+echo "Skipped: ${#skipped[@]} (${skipped[*]:-none})"
 echo "Failed:  ${#failed[@]} (${failed[*]:-none})"
 
 [ "${#failed[@]}" -eq 0 ]
