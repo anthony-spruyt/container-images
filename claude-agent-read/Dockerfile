@@ -1,4 +1,4 @@
-FROM node:24-slim@sha256:dad1a61d4421f0e72068d9f864c73c1e2a617e2cdb23edc777dbc6fe2c90e720
+FROM node:24-slim@sha256:03eae3ef7e88a9de535496fb488d67e02b9d96a063a8967bae657744ecd513f2
 
 # Ephemeral agent pod — lifespan managed by n8n spawner
 HEALTHCHECK NONE
@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # GitHub CLI
 # renovate: depName=cli/cli datasource=github-releases
-ARG GH_VERSION="2.73.0"
+ARG GH_VERSION="2.91.0"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.deb" -o /tmp/gh.deb \
   && dpkg -i /tmp/gh.deb \
@@ -29,7 +29,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # Aikido safe-chain (installed globally, then set up for node user)
 # renovate: depName=@aikidosec/safe-chain datasource=npm
-ARG SAFE_CHAIN_VERSION="1.4.9"
+ARG SAFE_CHAIN_VERSION="1.5.0"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
 
 # Set up safe-chain shims for node user before any npm/pip calls

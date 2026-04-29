@@ -31,7 +31,7 @@ sudo chmod a+rx /etc/containers /etc/containers/registries.conf.d /etc/container
 git ls-files -z '*.sh' | xargs -0 -r chmod +x 2>/dev/null || true
 
 # renovate: datasource=npm depName=@aikidosec/safe-chain
-SAFE_CHAIN_VERSION="1.4.9"
+SAFE_CHAIN_VERSION="1.5.0"
 echo "Installing safe-chain ${SAFE_CHAIN_VERSION}..."
 npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
 safe-chain setup

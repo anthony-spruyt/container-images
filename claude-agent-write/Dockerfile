@@ -46,7 +46,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # GitHub CLI
 # renovate: depName=cli/cli datasource=github-releases
-ARG GH_VERSION="2.73.0"
+ARG GH_VERSION="2.91.0"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.deb" -o /tmp/gh.deb \
   && dpkg -i /tmp/gh.deb \
@@ -63,14 +63,14 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # Go
 # renovate: depName=golang datasource=docker
-ARG GO_VERSION="1.24.4"
+ARG GO_VERSION="1.26.1"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" | tar -C /usr/local -xz
 ENV PATH="/usr/local/go/bin:${PATH}"
 
 # Aikido safe-chain (installed globally, then set up for node user)
 # renovate: depName=@aikidosec/safe-chain datasource=npm
-ARG SAFE_CHAIN_VERSION="1.4.9"
+ARG SAFE_CHAIN_VERSION="1.5.0"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}" \
   && useradd -m -u 1000 -s /bin/bash node
 USER 1000
