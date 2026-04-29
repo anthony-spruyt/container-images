@@ -81,7 +81,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # flux
 # renovate: depName=fluxcd/flux2 datasource=github-releases
-ARG FLUX_VERSION="v2.6.1"
+ARG FLUX_VERSION="v2.8.6"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/fluxcd/flux2/releases/download/${FLUX_VERSION}/flux_${FLUX_VERSION#v}_linux_${ARCH}.tar.gz" \
   | tar -xz -C /usr/local/bin
