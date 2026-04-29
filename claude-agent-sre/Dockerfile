@@ -74,7 +74,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # talosctl
 # renovate: depName=siderolabs/talos datasource=github-releases
-ARG TALOSCTL_VERSION="v1.10.3"
+ARG TALOSCTL_VERSION="v1.12.6"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/siderolabs/talos/releases/download/${TALOSCTL_VERSION}/talosctl-linux-${ARCH}" -o /usr/local/bin/talosctl \
   && chmod +x /usr/local/bin/talosctl
