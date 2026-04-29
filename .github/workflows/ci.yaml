@@ -37,6 +37,10 @@ on:
         type: boolean
         default: true
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   actions: write
   attestations: write
