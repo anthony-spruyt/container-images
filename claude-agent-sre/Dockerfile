@@ -67,7 +67,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # hubble
 # renovate: depName=cilium/hubble datasource=github-releases
-ARG HUBBLE_VERSION="v1.18.6"
+ARG HUBBLE_VERSION="v1.19.3"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/cilium/hubble/releases/download/${HUBBLE_VERSION}/hubble-linux-${ARCH}.tar.gz" \
   | tar -xz -C /usr/local/bin
