@@ -29,7 +29,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # kubectl
 # renovate: depName=kubernetes/kubernetes datasource=github-releases
-ARG KUBECTL_VERSION="v1.35.4"
+ARG KUBECTL_VERSION="v1.36.0"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl" -o /usr/local/bin/kubectl \
   && chmod +x /usr/local/bin/kubectl
