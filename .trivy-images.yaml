@@ -2,7 +2,6 @@
 
 images:
   - "chrony"
-  - "claude-agent"
   - "claude-agent-read"
   - "claude-agent-spruyt-labs"
   - "claude-agent-write"
