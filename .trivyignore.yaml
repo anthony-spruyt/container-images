@@ -29,10 +29,6 @@ misconfigurations:
   - id: AVD-DS-0002
     paths:
       - "**/server/Dockerfile"
-  # Ephemeral agent pods — no healthcheck needed, lifespan managed by n8n spawner
-  - id: AVD-DS-0026
-    paths:
-      - claude-agent/Dockerfile
   # CronJob entrypoint — runs to completion, Job controller tracks success/failure
   - id: AVD-DS-0026
     paths:
