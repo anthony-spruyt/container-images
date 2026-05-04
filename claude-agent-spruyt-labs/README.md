@@ -1,4 +1,4 @@
-# claude-agent-sre
+# claude-agent-spruyt-labs
 
 SRE investigation container for Claude Code agent pods spawned by n8n.
 
@@ -35,5 +35,5 @@ Runtime image for Claude Code agents that investigate Kubernetes cluster state i
 ## Build
 
 ```bash
-docker build -t claude-agent-sre claude-agent-sre/
+docker build -t claude-agent-spruyt-labs claude-agent-spruyt-labs/
 ```

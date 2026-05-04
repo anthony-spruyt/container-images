@@ -19,7 +19,7 @@ Three independent images, all built from `node:24-slim`. No cross-image dependen
 ```text
 node:24-slim ──┬── claude-agent-read    (read)
                ├── claude-agent-write   (write)
-               └── claude-agent-sre     (investigate)
+               └── claude-agent-spruyt-labs     (investigate)
 ```
 
 ## Shared Core (all 3 images)
@@ -59,7 +59,7 @@ Installed in every image:
 
 **Directory:** `claude-agent-write/` (new)
 
-### claude-agent-sre
+### claude-agent-spruyt-labs
 
 **Purpose:** Investigation-only agent for spruyt-labs k8s cluster. No write operations.
 
@@ -84,7 +84,7 @@ Installed in every image:
 
 Note: tools marked "pinned" are currently installed via latest-fetching scripts in spruyt-labs. Dockerfile will pin explicit versions with Renovate annotations for reproducibility.
 
-**Directory:** `claude-agent-sre/` (new)
+**Directory:** `claude-agent-spruyt-labs/` (new)
 
 ## Per-Image Files
 
@@ -107,7 +107,7 @@ Each image directory contains:
 
 ## Metadata
 
-### claude-agent-read, claude-agent-write, and claude-agent-sre
+### claude-agent-read, claude-agent-write, and claude-agent-spruyt-labs
 
 All start at:
 
