@@ -120,29 +120,17 @@ else
 fi
 
 cat <<EOF >/tmp/release-notes.md
-## Container Image
+\`${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}\`
+\`${DIGEST}\`
 
-**Image:** \`${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}\`
-**Digest:** \`${DIGEST}\`
-
-### Pull Commands
 \`\`\`bash
 docker pull ${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}
-docker pull ${REGISTRY}/${OWNER}/${IMAGE_NAME}@${DIGEST}
 \`\`\`
 
-### Build Info
-- **Upstream:** ${UPSTREAM_DISPLAY}
-- **Build Commit:** ${SHA}
-- **Workflow Run:** [#${RUN_NUMBER}](${SERVER_URL}/${REPO}/actions/runs/${RUN_ID})
+**Upstream:** ${UPSTREAM_DISPLAY} | **Commit:** ${SHA} | **Run:** [#${RUN_NUMBER}](${SERVER_URL}/${REPO}/actions/runs/${RUN_ID})
 
 ### Changes
 ${CHANGELOG}
-
-### Security
-- Trivy vulnerability scan: Passed (CRITICAL/HIGH)
-- SBOM: Included in image
-- Provenance: Attested
 EOF
 
 # --- Create or update release ---
