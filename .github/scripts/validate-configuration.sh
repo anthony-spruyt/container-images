@@ -17,6 +17,7 @@ ERRORS=0
 # Source shared version handling functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=.github/scripts/version-handling.sh
+# shellcheck disable=SC1091
 source "$SCRIPT_DIR/version-handling.sh"
 
 # Determine effective upstream (input takes precedence)
@@ -66,8 +67,7 @@ fi
 
 # Test release notes generation (validates no injection issues)
 cat <<EOF >/tmp/release-notes-test.md
-## Container Image
-**Image:** \`ghcr.io/test/${IMAGE_NAME}:${TAG}\`
+\`ghcr.io/test/${IMAGE_NAME}:${TAG}\`
 **Upstream:** [${UPSTREAM}](https://github.com/${UPSTREAM})
 EOF
 if [ ! -s /tmp/release-notes-test.md ]; then
