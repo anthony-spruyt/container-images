@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Create three independent container images (`claude-agent-read`, `claude-agent-write`, `claude-agent-sre`) alongside the existing `claude-agent` image.
+**Goal:** Create three independent container images (`claude-agent-read`, `claude-agent-write`, `claude-agent-spruyt-labs`) alongside the existing `claude-agent` image.
 
 **Architecture:** Each image is built independently from `node:24-slim` with no cross-image dependencies. All share a common core (Claude CLI, safe-chain, git, jq, python3, gh CLI, ripgrep) and add role-specific tools. Existing `claude-agent` remains unchanged until retired after migration.
 
@@ -29,7 +29,7 @@ claude-agent-write/
   .trivyignore        # Copy from claude-agent, adjust as needed
   README.md           # Image purpose and contents
 
-claude-agent-sre/
+claude-agent-spruyt-labs/
   Dockerfile          # Shared core + 14 infra CLIs
   metadata.yaml       # version: "1.0", auto_patch: true
   test.sh             # Verify core + all SRE binaries
@@ -398,11 +398,11 @@ git commit -m "feat(claude-agent-write): add metadata, test, trivyignore, and RE
 
 ______________________________________________________________________
 
-### Task 5: claude-agent-sre — Dockerfile
+### Task 5: claude-agent-spruyt-labs — Dockerfile
 
 **Files:**
 
-- Create: `claude-agent-sre/Dockerfile`
+- Create: `claude-agent-spruyt-labs/Dockerfile`
 
 - [ ] **Step 1: Create the Dockerfile**
 
@@ -577,23 +577,23 @@ Expected: `HTTP/2 200` for all. If any 404, check GitHub for latest release and 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add claude-agent-sre/Dockerfile
-git commit -m "feat(claude-agent-sre): add Dockerfile with shared core + 14 infra CLIs"
+git add claude-agent-spruyt-labs/Dockerfile
+git commit -m "feat(claude-agent-spruyt-labs): add Dockerfile with shared core + 14 infra CLIs"
 ```
 
 ______________________________________________________________________
 
-### Task 6: claude-agent-sre — metadata, test, trivyignore, README
+### Task 6: claude-agent-spruyt-labs — metadata, test, trivyignore, README
 
 **Files:**
 
-- Create: `claude-agent-sre/metadata.yaml`
+- Create: `claude-agent-spruyt-labs/metadata.yaml`
 
-- Create: `claude-agent-sre/test.sh`
+- Create: `claude-agent-spruyt-labs/test.sh`
 
-- Create: `claude-agent-sre/.trivyignore`
+- Create: `claude-agent-spruyt-labs/.trivyignore`
 
-- Create: `claude-agent-sre/README.md`
+- Create: `claude-agent-spruyt-labs/README.md`
 
 - [ ] **Step 1: Create metadata.yaml**
 
@@ -611,7 +611,7 @@ set -euo pipefail
 
 IMAGE="${1:?Usage: test.sh <image-ref>}"
 
-echo "Testing claude-agent-sre image..."
+echo "Testing claude-agent-spruyt-labs image..."
 
 docker run --rm "$IMAGE" bash -c '
 set -euo pipefail
@@ -644,18 +644,18 @@ echo "All tests passed."
 '
 ```
 
-Make executable: `chmod +x claude-agent-sre/test.sh`
+Make executable: `chmod +x claude-agent-spruyt-labs/test.sh`
 
 - [ ] **Step 3: Create .trivyignore**
 
 ```bash
-cp claude-agent/.trivyignore claude-agent-sre/.trivyignore
+cp claude-agent/.trivyignore claude-agent-spruyt-labs/.trivyignore
 ```
 
 - [ ] **Step 4: Create README.md**
 
 ```markdown
-# claude-agent-sre
+# claude-agent-spruyt-labs
 
 SRE investigation container for Claude Code agent pods spawned by n8n.
 
@@ -693,15 +693,15 @@ Runtime image for Claude Code agents that investigate Kubernetes cluster state i
 ## Build
 
 \`\`\`bash
-docker build -t claude-agent-sre claude-agent-sre/
+docker build -t claude-agent-spruyt-labs claude-agent-spruyt-labs/
 \`\`\`
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add claude-agent-sre/metadata.yaml claude-agent-sre/test.sh claude-agent-sre/.trivyignore claude-agent-sre/README.md
-git commit -m "feat(claude-agent-sre): add metadata, test, trivyignore, and README"
+git add claude-agent-spruyt-labs/metadata.yaml claude-agent-spruyt-labs/test.sh claude-agent-spruyt-labs/.trivyignore claude-agent-spruyt-labs/README.md
+git commit -m "feat(claude-agent-spruyt-labs): add metadata, test, trivyignore, and README"
 ```
 
 ______________________________________________________________________
@@ -742,18 +742,18 @@ claude-agent-write/test.sh claude-agent-write
 
 Expected: all binaries found, versions printed, "All tests passed."
 
-- [ ] **Step 5: Build claude-agent-sre**
+- [ ] **Step 5: Build claude-agent-spruyt-labs**
 
 ```bash
-docker build -t claude-agent-sre claude-agent-sre/
+docker build -t claude-agent-spruyt-labs claude-agent-spruyt-labs/
 ```
 
 Expected: successful build, no errors.
 
-- [ ] **Step 6: Test claude-agent-sre**
+- [ ] **Step 6: Test claude-agent-spruyt-labs**
 
 ```bash
-claude-agent-sre/test.sh claude-agent-sre
+claude-agent-spruyt-labs/test.sh claude-agent-spruyt-labs
 ```
 
 Expected: all binaries found, versions printed, "All tests passed."
@@ -787,7 +787,7 @@ gh pr create --title "feat(claude-agent): add read, write, and SRE agent images"
 
 - Add `claude-agent-read` — shared core (Claude CLI, safe-chain, git, jq, python3, gh CLI, ripgrep) for PR review, Renovate triage, issue refinement
 - Add `claude-agent-write` — shared core + pre-commit + Go for implementing issues and fixing PRs
-- Add `claude-agent-sre` — shared core + 14 k8s/infra CLIs for spruyt-labs cluster investigation
+- Add `claude-agent-spruyt-labs` — shared core + 14 k8s/infra CLIs for spruyt-labs cluster investigation
 
 All three images are independent (built from `node:24-slim`, no cross-dependencies). Existing `claude-agent` image is unchanged and will be retired after migration.
 
