@@ -3,7 +3,7 @@ set -euo pipefail
 
 IMAGE="${1:?Usage: test.sh <image-ref>}"
 
-echo "Testing claude-agent-sre image..."
+echo "Testing claude-agent-spruyt-labs image..."
 
 docker run --rm "$IMAGE" bash -c '
 set -euo pipefail
