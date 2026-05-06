@@ -70,7 +70,7 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 
 # Aikido safe-chain (installed globally, then set up for node user)
 # renovate: depName=@aikidosec/safe-chain datasource=npm
-ARG SAFE_CHAIN_VERSION="1.5.0"
+ARG SAFE_CHAIN_VERSION="1.5.1"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}" \
   && useradd -m -u 1000 -s /bin/bash node
 USER 1000
@@ -86,7 +86,7 @@ ENV PATH="/home/node/.local/bin:${PATH}"
 
 # Claude Code CLI (native binary — npm datasource tracks versions)
 # renovate: depName=@anthropic-ai/claude-code datasource=npm
-ARG CLAUDE_VERSION="2.1.120"
+ARG CLAUDE_VERSION="2.1.123"
 RUN curl -fsSL https://claude.ai/install.sh | bash -s -- "$CLAUDE_VERSION"
 
 # Working directory
