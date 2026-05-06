@@ -1,0 +1,30 @@
+// Repo-specific Renovate overrides — not synced after creation
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  packageRules: [
+    {
+      description: "Weekly batch for all non-major updates (excludes named groups)",
+      matchUpdateTypes: ["minor", "patch", "digest", "pin", "pinDigest"],
+      matchPackageNames: [
+        "!kubernetes",
+        "!kubernetes/kubernetes",
+        "!siderolabs/talos",
+        "!ghcr.io/siderolabs/installer",
+        "!ghcr.io/siderolabs/kubelet",
+        "!bitnami/kubectl",
+        "!public.ecr.aws/bitnami/kubectl",
+        "!alpine/k8s",
+        "!cilium",
+        "!cilium/cilium-cli",
+        "!cilium/hubble",
+        "!quay.io/cilium/cilium",
+        "!quay.io/cilium/operator-generic"
+      ],
+      schedule: ["before 9am on monday"],
+      groupName: "weekly-dependencies",
+      group: {
+        commitMessageTopic: "weekly dependency updates"
+      }
+    }
+  ]
+}
