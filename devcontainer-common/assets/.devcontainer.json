@@ -1,7 +1,7 @@
 {
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1.1.0@sha256:d22f50b70ed75339b4eed1ba9ecde3a1791f90e88d37936517e3bace0bbad671": {
-      "version": "2.89.0"
+      "version": "2.92.0"
     },
     "ghcr.io/devcontainers/features/node:2.0.0@sha256:fedd4c11f7adfb64283b578dddc7da906728daa25fa293351c9d913231acf12f": {
       "version": "24.14.1"
