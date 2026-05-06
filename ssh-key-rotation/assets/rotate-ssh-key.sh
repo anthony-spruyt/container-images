@@ -8,6 +8,7 @@
 #   SECRET_NAMESPACE  — Namespace of that secret
 #
 # Optional env:
+#   GRACE_PERIOD_DAYS     — keep old keys younger than N days (0 or unset = delete all old keys)
 #   FORCE_SYNC_NAMESPACES — comma-separated namespaces for ExternalSecret force-sync
 #   FORCE_SYNC_ES_NAME    — ExternalSecret name to sync (required if FORCE_SYNC_NAMESPACES set)
 
@@ -34,9 +35,22 @@ fi
 DATE_SUFFIX=$(date +%Y%m%d)
 TITLE="${TITLE_PREFIX}-${DATE_SUFFIX}"
 
+# Grace period: compute cutoff date for old key deletion.
+# Keys with a title date suffix >= CUTOFF are preserved.
+if [ -n "${GRACE_PERIOD_DAYS}" ] && [ "${GRACE_PERIOD_DAYS}" -gt 0 ] 2>/dev/null; then
+  CUTOFF=$(date -d @$(( $(date +%s) - GRACE_PERIOD_DAYS * 86400 )) +%Y%m%d)
+else
+  CUTOFF=""
+fi
+
 echo "=== SSH key rotation (auth + signing) ==="
 echo "Title prefix: ${TITLE_PREFIX}"
 echo "Secret: ${SECRET_NAME} in ${SECRET_NAMESPACE}"
+if [ -n "${CUTOFF}" ]; then
+  echo "Grace period: ${GRACE_PERIOD_DAYS} days (deleting keys dated before ${CUTOFF})"
+else
+  echo "Grace period: none (deleting all old keys)"
+fi
 
 # --- Generate new SSH key pair ---
 ssh-keygen -t ed25519 -f /tmp/id_ed25519 -N "" -C "${TITLE}"
@@ -75,12 +89,17 @@ echo "Signing key added with ID: ${NEW_SIGN_ID}"
 
 # --- Clean up old AUTHENTICATION keys ---
 echo "Cleaning up old authentication keys..."
+if [ -n "${CUTOFF}" ]; then
+  AUTH_JQ=".[] | select(.title | startswith(\"${TITLE_PREFIX}-\")) | select(.id != ${NEW_AUTH_ID}) | select((.title | ltrimstr(\"${TITLE_PREFIX}-\")) < \"${CUTOFF}\") | .id"
+else
+  AUTH_JQ=".[] | select(.title | startswith(\"${TITLE_PREFIX}-\")) | select(.id != ${NEW_AUTH_ID}) | .id"
+fi
 curl -s \
   "https://api.github.com/user/keys?per_page=100" \
   -H "Authorization: token ${GITHUB_PAT}" \
   -H "Accept: application/vnd.github+json" \
   -H "X-GitHub-Api-Version: 2022-11-28" |
-  jq -r ".[] | select(.title | startswith(\"${TITLE_PREFIX}-\")) | select(.id != ${NEW_AUTH_ID}) | .id" |
+  jq -r "${AUTH_JQ}" |
   while read -r OLD_ID; do
     echo "Removing old auth key ID: ${OLD_ID}"
     curl -s -X DELETE \
@@ -92,12 +111,17 @@ curl -s \
 
 # --- Clean up old SIGNING keys ---
 echo "Cleaning up old signing keys..."
+if [ -n "${CUTOFF}" ]; then
+  SIGN_JQ=".[] | select(.title | startswith(\"${TITLE_PREFIX}-\")) | select(.id != ${NEW_SIGN_ID}) | select((.title | ltrimstr(\"${TITLE_PREFIX}-\")) < \"${CUTOFF}\") | .id"
+else
+  SIGN_JQ=".[] | select(.title | startswith(\"${TITLE_PREFIX}-\")) | select(.id != ${NEW_SIGN_ID}) | .id"
+fi
 curl -s \
   "https://api.github.com/user/ssh_signing_keys?per_page=100" \
   -H "Authorization: token ${GITHUB_PAT}" \
   -H "Accept: application/vnd.github+json" \
   -H "X-GitHub-Api-Version: 2022-11-28" |
-  jq -r ".[] | select(.title | startswith(\"${TITLE_PREFIX}-\")) | select(.id != ${NEW_SIGN_ID}) | .id" |
+  jq -r "${SIGN_JQ}" |
   while read -r OLD_ID; do
     echo "Removing old signing key ID: ${OLD_ID}"
     curl -s -X DELETE \
