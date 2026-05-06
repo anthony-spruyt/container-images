@@ -1,5 +1,5 @@
 # renovate: depName=ubuntu datasource=docker versioning=ubuntu
-FROM ubuntu:jammy@sha256:962f6cadeae0ea6284001009daa4cc9a8c37e75d1f5191cf0eb83fe565b63dd7
+FROM ubuntu:noble@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b
 
 # Ephemeral agent pod — lifespan managed by n8n spawner
 HEALTHCHECK NONE
@@ -9,7 +9,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # System deps (persist) + Python build deps (purged after compile)
 RUN apt-get update && apt-get install -y --no-install-recommends \
   ca-certificates curl git openssh-client jq libatomic1 xz-utils \
-  libsqlite3-0 libreadline8 libncurses6 libffi8 liblzma5 libbz2-1.0 libssl3 \
+  libsqlite3-0 libreadline8t64 libncurses6 libffi8 liblzma5 libbz2-1.0 libssl3t64 \
   && apt-get install -y --no-install-recommends \
   build-essential pkg-config libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
   libsqlite3-dev libncurses-dev libffi-dev liblzma-dev \
@@ -72,6 +72,7 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 # renovate: depName=@aikidosec/safe-chain datasource=npm
 ARG SAFE_CHAIN_VERSION="1.5.1"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}" \
+  && if getent passwd 1000 >/dev/null; then userdel -r "$(getent passwd 1000 | cut -d: -f1)"; fi \
   && useradd -m -u 1000 -s /bin/bash node
 USER 1000
 
