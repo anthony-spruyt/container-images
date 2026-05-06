@@ -94,5 +94,41 @@ if ! echo "$OUTPUT" | grep -q "FORCE_SYNC_ES_NAME is required"; then
 fi
 echo "  conditional validation ok"
 
+# Test 9: GRACE_PERIOD_DAYS cutoff date computation
+echo "Test 9: grace period cutoff computation..."
+OUTPUT=$(docker run --rm \
+  --read-only \
+  --tmpfs /tmp:rw,size=64m \
+  -e GITHUB_PAT=fake \
+  -e TITLE_PREFIX=test \
+  -e SECRET_NAME=test \
+  -e SECRET_NAMESPACE=test \
+  -e GRACE_PERIOD_DAYS=7 \
+  "$IMAGE_REF" 2>&1 || true)
+if ! echo "$OUTPUT" | grep -q "Grace period: 7 days"; then
+  echo "  ERROR: grace period message not found in output"
+  echo "  Output: $OUTPUT"
+  exit 1
+fi
+echo "  grace period ok"
+
+# Test 10: GRACE_PERIOD_DAYS=0 falls back to no grace period
+echo "Test 10: grace period disabled with 0..."
+OUTPUT=$(docker run --rm \
+  --read-only \
+  --tmpfs /tmp:rw,size=64m \
+  -e GITHUB_PAT=fake \
+  -e TITLE_PREFIX=test \
+  -e SECRET_NAME=test \
+  -e SECRET_NAMESPACE=test \
+  -e GRACE_PERIOD_DAYS=0 \
+  "$IMAGE_REF" 2>&1 || true)
+if ! echo "$OUTPUT" | grep -q "Grace period: none"; then
+  echo "  ERROR: expected 'Grace period: none' for GRACE_PERIOD_DAYS=0"
+  echo "  Output: $OUTPUT"
+  exit 1
+fi
+echo "  grace period disabled ok"
+
 echo ""
 echo "=== All tests passed ==="
