@@ -22,6 +22,9 @@ CVE-2026-33671
 CVE-2026-33810
 CVE-2026-35535
 
+# OpenTelemetry-Go upstream in gh-cli binary
+CVE-2026-29181
+
 # Go stdlib CVEs in upstream binaries
 CVE-2026-32281
 CVE-2026-32283
