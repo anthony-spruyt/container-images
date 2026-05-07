@@ -65,13 +65,6 @@ RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/cilium/cilium-cli/releases/download/${CILIUM_VERSION}/cilium-linux-${ARCH}.tar.gz" \
   | tar -xz -C /usr/local/bin
 
-# hubble
-# renovate: depName=cilium/hubble datasource=github-releases
-ARG HUBBLE_VERSION="v1.19.3"
-RUN ARCH="$(dpkg --print-architecture)" \
-  && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/cilium/hubble/releases/download/${HUBBLE_VERSION}/hubble-linux-${ARCH}.tar.gz" \
-  | tar -xz -C /usr/local/bin
-
 # talosctl
 # renovate: depName=siderolabs/talos datasource=github-releases
 ARG TALOSCTL_VERSION="v1.13.0"
