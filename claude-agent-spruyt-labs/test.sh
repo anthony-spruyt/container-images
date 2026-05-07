@@ -9,7 +9,7 @@ docker run --rm "$IMAGE" bash -c '
 set -euo pipefail
 
 for bin in claude node python3 git npm jq gh rg \
-           kubectl kustomize helm helmfile cilium hubble \
+           kubectl kustomize helm helmfile cilium \
            talosctl flux velero kubectl-cnpg falcoctl; do
   if ! command -v "$bin" &>/dev/null; then
     echo "FAIL: $bin not found"
