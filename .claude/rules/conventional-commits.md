@@ -31,7 +31,7 @@ This repository follows [Conventional Commits](https://www.conventionalcommits.o
 ### Commits
 
 ```text
-feat(firemerge): add health check endpoint
+feat(chrony): add health check endpoint
 fix(chrony): correct NTP pool configuration
 ci(workflows): simplify image addition process
 docs(readme): update setup instructions

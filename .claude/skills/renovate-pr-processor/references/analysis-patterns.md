@@ -41,8 +41,6 @@ version: "1.0.0"
 
 ### Known Upstream Sources
 
-**firemerge** (`anthony-spruyt/firemerge`): Transaction entry tool for Firefly III. Check for CLI flag changes, config format changes, and dependency updates that may affect the Dockerfile.
-
 ### Impact Assessment for Upstream Sources
 
 1. Read `<image>/Dockerfile` — check if build references specific upstream paths, versions, or features
