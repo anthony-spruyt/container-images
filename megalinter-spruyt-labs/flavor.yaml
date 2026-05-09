@@ -7,7 +7,7 @@
 # Linter versions are automatically extracted from MegaLinter at build time.
 ---
 name: spruyt-labs
-description: "MegaLinter for spruyt-labs - Go, Terraform, and infrastructure repositories"
+description: "MegaLinter for spruyt-labs - Go, Terraform, TypeScript, and infrastructure repositories"
 
 # Upstream MegaLinter base image (Renovate tracks this)
 # renovate: datasource=docker depName=oxsecurity/megalinter-go
@@ -25,3 +25,12 @@ custom_linters:
   - MARKDOWN_MARKDOWNLINT
   - SPELL_LYCHEE
   - TERRAFORM_TFLINT
+
+# Biome plugin - not in MegaLinter upstream, bundled as custom plugin descriptor
+extra_dockerfile: |
+  RUN npm install -g @biomejs/biome && npm cache clean --force && rm -rf /root/.npm/_cacache
+  COPY mega-linter-plugin-biome /mega-linter-plugin-biome
+
+extra_test_linters:
+  - name: biome
+    version_command: "biome --version"

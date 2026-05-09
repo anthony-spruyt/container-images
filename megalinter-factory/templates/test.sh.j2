@@ -38,6 +38,12 @@ check_linter "{{ linter.name }}" "{{ linter.version_command }}"
 {% else %}
 echo "  (no custom linters to test)"
 {% endif -%}
+{% if flavor.extra_test_linters %}
+# Extra linters (installed via extra_dockerfile, not managed by factory)
+{% for linter in flavor.extra_test_linters -%}
+check_linter "{{ linter.name }}" "{{ linter.version_command }}"
+{% endfor %}
+{% endif -%}
 
 echo ""
 
