@@ -49,7 +49,7 @@ echo ""
 echo "--- Extra environment variables ---"
 {% for env_var in flavor.extra_test_env_vars -%}
 ENV_VAL=$(docker run --rm --entrypoint="" "$IMAGE_REF" printenv {{ env_var.name }} 2>/dev/null || echo "NOT_SET")
-if echo "$ENV_VAL" | grep -q "{{ env_var.contains }}"; then
+if echo "$ENV_VAL" | grep -Fq "{{ env_var.contains }}"; then
   echo "  [PASS] {{ env_var.name }} contains '{{ env_var.contains }}'"
 else
   echo "  [FAIL] {{ env_var.name }}=$ENV_VAL (expected to contain: '{{ env_var.contains }}')"
