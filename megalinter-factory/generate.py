@@ -276,6 +276,11 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disa
         keep_trailing_newline=True,
     )
 
+    # Process extra_dockerfile through Jinja2 so it can reference flavor fields
+    if flavor.get("extra_dockerfile"):
+        extra_tpl = env.from_string(flavor["extra_dockerfile"])
+        flavor["extra_dockerfile"] = extra_tpl.render(flavor=flavor)
+
     # Template context
     context = {
         "flavor": flavor,

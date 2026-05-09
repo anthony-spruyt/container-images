@@ -4,6 +4,7 @@ descriptor_type: language
 file_extensions:
   - ".ts"
   - ".tsx"
+  - ".css"
 linters:
   - linter_name: biome
     name: TYPESCRIPT_BIOME
@@ -26,6 +27,3 @@ linters:
       - "biome lint myfile.ts"
       - "biome lint --config-path biome.json myfile.ts"
       - "biome lint --write myfile.ts"
-    install:
-      npm:
-        - "@biomejs/biome"

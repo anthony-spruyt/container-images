@@ -27,9 +27,14 @@ custom_linters:
   - TERRAFORM_TFLINT
 
 # Biome plugin - not in MegaLinter upstream, bundled as custom plugin descriptor
+# renovate: datasource=npm depName=@biomejs/biome
+biome_version: "2.4.14"
+
 extra_dockerfile: |
-  RUN npm install -g @biomejs/biome && npm cache clean --force && rm -rf /root/.npm/_cacache
+  ARG BIOME_VERSION={{ flavor.biome_version }}
+  RUN npm install -g @biomejs/biome@${BIOME_VERSION} && npm cache clean --force && rm -rf /root/.npm/_cacache
   COPY mega-linter-plugin-biome /mega-linter-plugin-biome
+  ENV PLUGINS='["file:///mega-linter-plugin-biome/biome.megalinter-descriptor.yml"]'
 
 extra_test_linters:
   - name: biome
