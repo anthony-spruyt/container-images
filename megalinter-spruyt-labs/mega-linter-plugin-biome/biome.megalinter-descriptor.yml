@@ -10,7 +10,7 @@ linters:
     name: TYPESCRIPT_BIOME
     linter_url: https://biomejs.dev/
     linter_repo: https://github.com/biomejs/biome
-    linter_rules_url: https://biomejs.dev/linter/rules/
+    linter_rules_url: https://biomejs.dev/linter/
     linter_rules_configuration_url: https://biomejs.dev/reference/configuration/
     linter_spdx_license: "MIT OR Apache-2.0"
     cli_lint_mode: list_of_files

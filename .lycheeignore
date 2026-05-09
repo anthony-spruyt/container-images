@@ -28,3 +28,6 @@ http://.*\.svc:\d+/.*
 
 # Internal/LAN URLs
 .*\.lan.*
+
+# MegaLinter plugin file:// paths — runtime container paths, not checkable in CI
+file:///mega-linter-plugin-.*
