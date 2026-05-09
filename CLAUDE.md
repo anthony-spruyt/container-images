@@ -133,6 +133,10 @@ python megalinter-factory/generate.py megalinter-<name>/
 
 Generated files (`Dockerfile`, `test.sh`) are gitignored - CI regenerates at build time.
 
+### Adding Non-Factory Linters
+
+For linters not in MegaLinter upstream, use `extra_dockerfile` for build-time setup and `extra_test_linters` for test verification. See `megalinter-spruyt-labs/flavor.yaml` for an example using a custom plugin descriptor.
+
 ### Factory Files
 
 - `megalinter-factory/generate.py` - Generator script

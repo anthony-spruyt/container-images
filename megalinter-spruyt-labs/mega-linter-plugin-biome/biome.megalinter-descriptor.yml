@@ -1,9 +1,12 @@
 ---
+# descriptor_id: TYPESCRIPT merges with any upstream TYPESCRIPT descriptor per MegaLinter plugin semantics
 descriptor_id: TYPESCRIPT
 descriptor_type: language
 file_extensions:
   - ".ts"
   - ".tsx"
+  - ".js"
+  - ".jsx"
   - ".css"
 linters:
   - linter_name: biome
