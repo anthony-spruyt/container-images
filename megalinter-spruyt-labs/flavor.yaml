@@ -39,3 +39,7 @@ extra_dockerfile: |
 extra_test_linters:
   - name: biome
     version_command: "biome --version"
+
+extra_test_env_vars:
+  - name: PLUGINS
+    contains: "biome.megalinter-descriptor.yml"

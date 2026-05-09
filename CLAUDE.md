@@ -135,7 +135,8 @@ Generated files (`Dockerfile`, `test.sh`) are gitignored - CI regenerates at bui
 
 ### Adding Non-Factory Linters
 
-For linters not in MegaLinter upstream, use `extra_dockerfile` for build-time setup and `extra_test_linters` for test verification. See `megalinter-spruyt-labs/flavor.yaml` for an example using a custom plugin descriptor.
+For linters not in MegaLinter upstream, use `extra_dockerfile` for build-time setup and `extra_test_linters` for test verification. Plugin descriptors go in `mega-linter-plugin-<name>/` within the flavor directory and are referenced at runtime via `file:///mega-linter-plugin-<name>/<name>.megalinter-descriptor.yml`. See `megalinter-spruyt-labs/flavor.yaml` for an example using a custom plugin
+descriptor.
 
 ### Factory Files
 

@@ -16,8 +16,10 @@ linters:
     linter_rules_url: https://biomejs.dev/linter/
     linter_rules_configuration_url: https://biomejs.dev/reference/configuration/
     linter_spdx_license: "MIT OR Apache-2.0"
+    cli_executable: biome
     cli_lint_mode: list_of_files
     cli_version_arg_name: "--version"
+    cli_lint_errors_regex: "Found (?P<ERRORS_COUNT>\\d+) error"
     cli_lint_extra_args:
       - "lint"
     cli_config_arg_name: "--config-path"
