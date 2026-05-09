@@ -10,6 +10,7 @@ images:
   - "firemerge"
   - "megalinter-claude-config"
   - "megalinter-container-images"
+  - "megalinter-firemerge"
   - "megalinter-factory"
   - "megalinter-spruyt-labs"
   - "megalinter-sungather"
