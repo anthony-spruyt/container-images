@@ -1,9 +1,9 @@
 ---
+name: create-megalinter-flavor
 description: Create a new MegaLinter flavor image configuration
 allowed-tools:
   - Read
   - Write
-  - Glob
   - Bash
   - AskUserQuestion
 argument-hint: <name> [LINTER1,LINTER2,...]
@@ -154,15 +154,37 @@ version: "v1.0"
 auto_patch: true
 ```
 
-## Step 6: Report Success
+## Step 6: Add to Trivy Daily Scan
+
+Add the new image to `.trivy-images.yaml` so it gets included in daily vulnerability scanning. Insert `megalinter-<name>` in alphabetical order within the `images` list:
+
+```yaml
+images:
+  # ... existing entries ...
+  - "megalinter-<name>"
+  # ... existing entries ...
+```
+
+## Step 7: Run Factory Generator
+
+Run the factory generator to verify the configuration produces valid output:
+
+```bash
+python megalinter-factory/generate.py megalinter-<name>/
+```
+
+Review the generated `Dockerfile` and `test.sh` to verify they look correct. Generated files are gitignored — CI regenerates them at build time.
+
+## Step 8: Report Success
 
 Inform the user:
 
 1. Configuration files created:
    - `megalinter-<name>/flavor.yaml` - flavor configuration
    - `megalinter-<name>/metadata.yaml` - CI versioning
-2. Linter versions will be extracted from MegaLinter at build time
-3. Next steps:
+2. Added to `.trivy-images.yaml` for daily vulnerability scanning
+3. Linter versions will be extracted from MegaLinter at build time
+4. Next steps:
    - Commit the changes
    - CI will automatically generate Dockerfile and build the image
    - Or run locally: `python megalinter-factory/generate.py megalinter-<name>/`
