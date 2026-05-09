@@ -2,6 +2,7 @@
 # descriptor_id: TYPESCRIPT merges with any upstream TYPESCRIPT descriptor per MegaLinter plugin semantics
 descriptor_id: TYPESCRIPT
 descriptor_type: language
+# JSON/JSONC omitted — MegaLinter has dedicated JSON linters (JSON_JSONLINT)
 file_extensions:
   - ".ts"
   - ".tsx"
