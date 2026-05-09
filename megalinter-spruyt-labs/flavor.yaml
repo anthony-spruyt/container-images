@@ -34,6 +34,7 @@ extra_dockerfile: |
   ARG BIOME_VERSION={{ flavor.biome_version }}
   RUN npm install -g @biomejs/biome@${BIOME_VERSION} && npm cache clean --force && rm -rf /root/.npm/_cacache
   COPY mega-linter-plugin-biome /mega-linter-plugin-biome
+  # Note: runtime -e PLUGINS=... overrides this default; include baked-in paths alongside additions
   ENV PLUGINS='["file:///mega-linter-plugin-biome/biome.megalinter-descriptor.yml"]'
 
 extra_test_linters:
