@@ -1,7 +1,0 @@
----
-# Firemerge - Semi-automated transaction entry for Firefly III
-# https://github.com/lvu/firemerge
-
-upstream: anthony-spruyt/firemerge
-# renovate: datasource=github-tags depName=anthony-spruyt/firemerge
-version: v0.5.6

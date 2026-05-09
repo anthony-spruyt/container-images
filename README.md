@@ -16,7 +16,7 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for development environment setup.
 Pull an image:
 
 ```bash
-docker pull ghcr.io/anthony-spruyt/firemerge:latest
+docker pull ghcr.io/anthony-spruyt/chrony:latest
 ```
 
 ## Adding a New Image
@@ -162,20 +162,20 @@ curl -X POST \
   -H "Authorization: token $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github.v3+json" \
   https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/ci.yaml/dispatches \
-  -d '{"ref":"main","inputs":{"image":"firemerge","version":"0.5.3"}}'
+  -d '{"ref":"main","inputs":{"image":"chrony","version":"4.6.1"}}'
 
 # Production build - pushes to GHCR and creates release
 curl -X POST \
   -H "Authorization: token $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github.v3+json" \
   https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/ci.yaml/dispatches \
-  -d '{"ref":"main","inputs":{"image":"firemerge","version":"0.5.3","dry_run":"false"}}'
+  -d '{"ref":"main","inputs":{"image":"chrony","version":"4.6.1","dry_run":"false"}}'
 ```
 
 Parameters:
 
-- **image** (required): Image directory name (e.g., `firemerge`, `chrony`)
-- **version** (optional): Semver tag to build (e.g., `0.5.3`) - checks out this tag from upstream
+- **image** (required): Image directory name (e.g., `chrony`, `ssh-key-rotation`)
+- **version** (optional): Semver tag to build (e.g., `4.6.1`) - checks out this tag from upstream
 - **dry_run** (optional, default: `true`): When `true`, builds and scans the image but skips push to GHCR and release creation. Set to `false` for production builds.
 
 ## Automatic Version Updates

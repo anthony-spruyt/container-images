@@ -247,9 +247,9 @@ Format your analysis using EXACTLY this structure — the orchestrating skill pa
 
 ### Config Files Checked
 <List the actual files you read to assess impact, e.g.:>
-- `firemerge/Dockerfile` — build instructions checked
-- `firemerge/metadata.yaml` — upstream reference checked
-- `firemerge/test.sh` — test dependencies checked
+- `chrony/Dockerfile` — build instructions checked
+- `chrony/metadata.yaml` — upstream reference checked
+- `chrony/test.sh` — test dependencies checked
 
 ### Upstream Issues
 <List of relevant open issues, or "None found">
