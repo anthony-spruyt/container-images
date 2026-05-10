@@ -222,7 +222,7 @@ jobs:
           fi
 
   build:
-    name: Build and Test
+    name: Build, Test and Publish
     needs: check-release
     if: needs.check-release.outputs.should-build == 'true'
     runs-on: ubuntu-latest
