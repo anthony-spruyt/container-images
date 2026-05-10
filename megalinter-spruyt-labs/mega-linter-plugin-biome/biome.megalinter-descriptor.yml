@@ -1,0 +1,36 @@
+---
+# descriptor_id: TYPESCRIPT merges with any upstream TYPESCRIPT descriptor per MegaLinter plugin semantics
+descriptor_id: TYPESCRIPT
+descriptor_type: language
+# JSON/JSONC omitted — MegaLinter has dedicated JSON linters (JSON_JSONLINT)
+# CSS included here because Biome lints CSS but MegaLinter has no CSS descriptor to merge with
+file_extensions:
+  - ".ts"
+  - ".tsx"
+  - ".js"
+  - ".jsx"
+  - ".css"
+linters:
+  - linter_name: biome
+    name: TYPESCRIPT_BIOME
+    linter_url: https://biomejs.dev/
+    linter_repo: https://github.com/biomejs/biome
+    linter_rules_url: https://biomejs.dev/linter/
+    linter_rules_configuration_url: https://biomejs.dev/reference/configuration/
+    linter_spdx_license: "MIT OR Apache-2.0"
+    cli_executable: biome
+    cli_lint_mode: list_of_files
+    cli_version_arg_name: "--version"
+    cli_lint_errors_regex: "Found (?P<ERRORS_COUNT>\\d+) error"
+    cli_lint_extra_args:
+      - "lint"
+    cli_config_arg_name: "--config-path"
+    config_file_name: biome.json
+    cli_lint_fix_arg_name: "--write"
+    active_only_if_file_found:
+      - "biome.json"
+      - "biome.jsonc"
+    examples:
+      - "biome lint myfile.ts"
+      - "biome lint --config-path biome.json myfile.ts"
+      - "biome lint --write myfile.ts"

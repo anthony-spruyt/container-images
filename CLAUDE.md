@@ -133,6 +133,11 @@ python megalinter-factory/generate.py megalinter-<name>/
 
 Generated files (`Dockerfile`, `test.sh`) are gitignored - CI regenerates at build time.
 
+### Adding Non-Factory Linters
+
+For linters not in MegaLinter upstream, use `extra_dockerfile` for build-time setup and `extra_test_linters` for test verification. Plugin descriptors go in `mega-linter-plugin-<name>/` within the flavor directory and are referenced at runtime via `file:///mega-linter-plugin-<name>/<name>.megalinter-descriptor.yml`. The image bakes `PLUGINS` as an env var default; downstream repos that define
+their own `PLUGINS` list must include any baked-in plugin paths alongside their additions. See `megalinter-spruyt-labs/flavor.yaml` for an example using a custom plugin descriptor.
+
 ### Factory Files
 
 - `megalinter-factory/generate.py` - Generator script
