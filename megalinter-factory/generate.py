@@ -279,8 +279,9 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disa
     # Process extra_dockerfile through Jinja2 so it can reference flavor fields.
     # Caveat: any literal {{ }} in the content will be interpreted as Jinja2.
     if flavor.get("extra_dockerfile"):
+        # Autoescaping disabled: output is a Dockerfile, not HTML.
         extra_tpl = Environment(
-            autoescape=False, undefined=StrictUndefined
+            autoescape=False, undefined=StrictUndefined  # lgtm[py/jinja2/autoescape-false]
         ).from_string(flavor["extra_dockerfile"])
         flavor["extra_dockerfile"] = extra_tpl.render(flavor=flavor)
 
