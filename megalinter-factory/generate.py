@@ -281,7 +281,7 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disa
     if flavor.get("extra_dockerfile"):
         # Autoescaping disabled: output is a Dockerfile, not HTML.
         extra_tpl = Environment(
-            autoescape=False, undefined=StrictUndefined  # lgtm[py/jinja2/autoescape-false]
+            autoescape=False, undefined=StrictUndefined
         ).from_string(flavor["extra_dockerfile"])
         flavor["extra_dockerfile"] = extra_tpl.render(flavor=flavor)
 
