@@ -38,4 +38,3 @@ extra_dockerfile: |
 extra_test_linters:
   - name: biome
     version_command: "biome --version"
-
