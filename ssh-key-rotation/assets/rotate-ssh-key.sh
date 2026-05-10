@@ -38,7 +38,7 @@ TITLE="${TITLE_PREFIX}-${DATE_SUFFIX}"
 # Grace period: compute cutoff date for old key deletion.
 # Keys with a title date suffix >= CUTOFF are preserved.
 if [ -n "${GRACE_PERIOD_DAYS}" ] && [ "${GRACE_PERIOD_DAYS}" -gt 0 ] 2>/dev/null; then
-  CUTOFF=$(date -d @$(( $(date +%s) - GRACE_PERIOD_DAYS * 86400 )) +%Y%m%d)
+  CUTOFF=$(date -d @$(($(date +%s) - GRACE_PERIOD_DAYS * 86400)) +%Y%m%d)
 else
   CUTOFF=""
 fi

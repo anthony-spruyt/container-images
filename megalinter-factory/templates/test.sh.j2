@@ -11,8 +11,7 @@ echo "=== MegaLinter {{ flavor.name | replace('-', ' ') | title }} Flavor Tests 
 echo "Image: $IMAGE_REF"
 echo ""
 
-# Test 1: Verify all expected linters are available
-echo "Test 1: Checking linter availability..."
+echo "--- Linter availability ---"
 
 FAILED=0
 
@@ -38,12 +37,30 @@ check_linter "{{ linter.name }}" "{{ linter.version_command }}"
 {% else %}
 echo "  (no custom linters to test)"
 {% endif -%}
+{% if flavor.extra_test_linters %}
+# Extra linters (installed via extra_dockerfile, not managed by factory)
+{% for linter in flavor.extra_test_linters -%}
+check_linter "{{ linter.name }}" "{{ linter.version_command }}"
+{% endfor %}
+{% endif -%}
 
 echo ""
+{% if flavor.extra_test_env_vars %}
+echo "--- Extra environment variables ---"
+{% for env_var in flavor.extra_test_env_vars -%}
+ENV_VAL=$(docker run --rm --entrypoint="" "$IMAGE_REF" printenv "{{ env_var.name }}" 2>/dev/null || echo "NOT_SET")
+if printf '%s\n' "$ENV_VAL" | grep -Fq "{{ env_var.contains | replace('"', '\\"') }}"; then
+  echo "  [PASS] {{ env_var.name }} contains '{{ env_var.contains }}'"
+else
+  echo "  [FAIL] {{ env_var.name }}=$ENV_VAL (expected to contain: '{{ env_var.contains }}')"
+  FAILED=$((FAILED + 1))
+fi
+{% endfor %}
+echo ""
+{% endif %}
 
-# Test 2: Verify MegaLinter flavor is set correctly
+echo "--- MEGALINTER_FLAVOR ---"
 # Uses 'all' to bypass MegaLinter's flavor validation (custom names aren't recognized)
-echo "Test 2: Checking MEGALINTER_FLAVOR environment variable..."
 FLAVOR=$(docker run --rm --entrypoint="" "$IMAGE_REF" printenv MEGALINTER_FLAVOR 2>/dev/null || echo "NOT_SET")
 if [ "$FLAVOR" = "all" ]; then
   echo "  [PASS] MEGALINTER_FLAVOR=$FLAVOR"

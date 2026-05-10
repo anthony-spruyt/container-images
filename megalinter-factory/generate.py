@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 import yaml
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
 from megalinter_extractor import get_megalinter_linters
 
@@ -275,6 +275,16 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disa
         autoescape=select_autoescape(),
         keep_trailing_newline=True,
     )
+
+    # Process extra_dockerfile through Jinja2 so it can reference flavor fields.
+    # Caveat: any literal {{ }} in the content will be interpreted as Jinja2.
+    if flavor.get("extra_dockerfile"):
+        # Autoescaping disabled: output is a Dockerfile, not HTML.
+        extra_tpl = Environment(
+            autoescape=select_autoescape(enabled_extensions=(), default=False),
+            undefined=StrictUndefined,
+        ).from_string(flavor["extra_dockerfile"])
+        flavor["extra_dockerfile"] = extra_tpl.render(flavor=flavor)
 
     # Template context
     context = {
