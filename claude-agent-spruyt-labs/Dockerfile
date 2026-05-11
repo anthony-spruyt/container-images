@@ -1,4 +1,4 @@
-FROM node:24-slim@sha256:03eae3ef7e88a9de535496fb488d67e02b9d96a063a8967bae657744ecd513f2
+FROM node:24-slim@sha256:24dc26ef1e3c3690f27ebc4136c9c186c3133b25563ae4d7f0692e4d1fe5db0e
 
 # Ephemeral agent pod — lifespan managed by n8n spawner
 HEALTHCHECK NONE
@@ -52,7 +52,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # helmfile
 # renovate: depName=helmfile/helmfile datasource=github-releases
-ARG HELMFILE_VERSION="v1.4.4"
+ARG HELMFILE_VERSION="v1.5.0"
 RUN ARCH="$(dpkg --print-architecture)" \
   && HELMFILE_VERSION_NUM="${HELMFILE_VERSION#v}" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/helmfile/helmfile/releases/download/${HELMFILE_VERSION}/helmfile_${HELMFILE_VERSION_NUM}_linux_${ARCH}.tar.gz" \
@@ -116,7 +116,7 @@ ENV PATH="/home/node/.safe-chain/shims:${PATH}"
 
 # Claude Code CLI (native binary — npm datasource tracks versions)
 # renovate: depName=@anthropic-ai/claude-code datasource=npm
-ARG CLAUDE_VERSION="2.1.123"
+ARG CLAUDE_VERSION="2.1.126"
 RUN curl -fsSL https://claude.ai/install.sh | bash -s -- "$CLAUDE_VERSION"
 ENV PATH="/home/node/.local/bin:${PATH}"
 
