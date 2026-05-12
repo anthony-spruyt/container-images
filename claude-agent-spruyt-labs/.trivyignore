@@ -66,6 +66,11 @@ CVE-2026-35204
 CVE-2026-35205
 CVE-2026-35469
 CVE-2026-39883
+CVE-2026-33811
+CVE-2026-33814
+CVE-2026-39820
+CVE-2026-39836
+CVE-2026-42499
 
 # Misconfig findings from embedded files in Go SDK, kustomize, and helm plugins
 DS-0002
