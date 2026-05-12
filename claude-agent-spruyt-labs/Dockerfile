@@ -98,7 +98,7 @@ RUN ARCH="$(uname -m)" \
 
 # falcoctl
 # renovate: depName=falcosecurity/falcoctl datasource=github-releases
-ARG FALCOCTL_VERSION="v0.12.2"
+ARG FALCOCTL_VERSION="v0.13.0"
 RUN ARCH="$(dpkg --print-architecture)" \
   && FALCOCTL_VERSION_NUM="${FALCOCTL_VERSION#v}" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/falcosecurity/falcoctl/releases/download/${FALCOCTL_VERSION}/falcoctl_${FALCOCTL_VERSION_NUM}_linux_${ARCH}.tar.gz" \
