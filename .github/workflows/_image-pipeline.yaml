@@ -233,6 +233,7 @@ jobs:
       packages: write # Push to GHCR (gated by push input)
       id-token: write # OIDC for attestations
       attestations: write # Build provenance (gated by push input)
+      security-events: write # SARIF upload to GitHub code scanning
     outputs:
       digest: ${{ steps.push.outputs.digest }}
       tag: ${{ needs.check-release.outputs.tag }}
@@ -364,15 +365,13 @@ jobs:
           fi
 
       - name: Scan for vulnerabilities
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1
+        uses: anthony-spruyt/repo-operator/.github/actions/trivy-scan@main
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}:${{ needs.check-release.outputs.tag }}
-          scanners: ${{ steps.trivyconfig.outputs.scanners }}
-          format: table
-          exit-code: ${{ steps.trivyconfig.outputs.exitcode }}
-          severity: CRITICAL,HIGH
-          ignore-unfixed: true
           trivyignores: ${{ steps.trivyconfig.outputs.ignorefile }}
+          scanners: ${{ steps.trivyconfig.outputs.scanners }}
+          exit-code: ${{ steps.trivyconfig.outputs.exitcode }}
+          category: trivy-${{ inputs.image }}
 
       - name: Dry run summary
         if: ${{ !inputs.push }}
