@@ -46,11 +46,11 @@ env:
   REGISTRY: ghcr.io
   OWNER: ${{ github.repository_owner }}
 
-# Prevent race condition: only one build per image at a time
-# With cancel-in-progress: false, the next queued build waits for the current one
-# When it starts, check-release will see any releases created by the previous build
+# Serialise releases: on main, only one build per image runs at a time so
+# check-release sees any releases created by the previous build.
+# Including github.ref keeps PR builds independent of each other and of main.
 concurrency:
-  group: release-${{ inputs.image }}
+  group: release-${{ inputs.image }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
