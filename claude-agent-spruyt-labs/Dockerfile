@@ -98,7 +98,7 @@ RUN ARCH="$(uname -m)" \
 
 # falcoctl
 # renovate: depName=falcosecurity/falcoctl datasource=github-releases
-ARG FALCOCTL_VERSION="v0.12.2"
+ARG FALCOCTL_VERSION="v0.13.0"
 RUN ARCH="$(dpkg --print-architecture)" \
   && FALCOCTL_VERSION_NUM="${FALCOCTL_VERSION#v}" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/falcosecurity/falcoctl/releases/download/${FALCOCTL_VERSION}/falcoctl_${FALCOCTL_VERSION_NUM}_linux_${ARCH}.tar.gz" \
@@ -106,7 +106,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # Aikido safe-chain (installed globally, then set up for node user)
 # renovate: depName=@aikidosec/safe-chain datasource=npm
-ARG SAFE_CHAIN_VERSION="1.5.1"
+ARG SAFE_CHAIN_VERSION="1.5.2"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
 
 # Set up safe-chain shims for node user before any npm/pip calls
@@ -116,7 +116,7 @@ ENV PATH="/home/node/.safe-chain/shims:${PATH}"
 
 # Claude Code CLI (native binary — npm datasource tracks versions)
 # renovate: depName=@anthropic-ai/claude-code datasource=npm
-ARG CLAUDE_VERSION="2.1.126"
+ARG CLAUDE_VERSION="2.1.128"
 RUN curl -fsSL https://claude.ai/install.sh | bash -s -- "$CLAUDE_VERSION"
 ENV PATH="/home/node/.local/bin:${PATH}"
 
