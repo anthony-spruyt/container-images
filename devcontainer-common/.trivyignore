@@ -1,5 +1,8 @@
 # Ubuntu base image CVEs (linux-libc-dev, sudo)
 # These are from the upstream devcontainer base image
+CVE-2023-2640
+CVE-2023-32629
+CVE-2026-23112
 CVE-2024-35870
 CVE-2024-53179
 CVE-2025-37849
@@ -28,6 +31,10 @@ CVE-2026-29181
 # Go stdlib CVEs in upstream binaries
 CVE-2026-32281
 CVE-2026-32283
+CVE-2026-33814
+CVE-2026-39820
+CVE-2026-39836
+CVE-2026-42499
 
 # Go stdlib CVEs in gh-cli binary
 CVE-2023-39321
@@ -42,3 +49,4 @@ CVE-2025-47907
 CVE-2025-58183
 CVE-2025-61729
 CVE-2026-32280
+CVE-2026-33811
