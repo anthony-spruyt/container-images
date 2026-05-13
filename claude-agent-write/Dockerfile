@@ -70,7 +70,7 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 
 # Aikido safe-chain (installed globally, then set up for node user)
 # renovate: depName=@aikidosec/safe-chain datasource=npm
-ARG SAFE_CHAIN_VERSION="1.5.2"
+ARG SAFE_CHAIN_VERSION="1.5.3"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}" \
   && if getent passwd 1000 >/dev/null; then userdel -r "$(getent passwd 1000 | cut -d: -f1)"; fi \
   && useradd -m -u 1000 -s /bin/bash node

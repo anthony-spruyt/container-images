@@ -29,7 +29,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # Aikido safe-chain (installed globally, then set up for node user)
 # renovate: depName=@aikidosec/safe-chain datasource=npm
-ARG SAFE_CHAIN_VERSION="1.5.2"
+ARG SAFE_CHAIN_VERSION="1.5.3"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
 
 # Set up safe-chain shims for node user before any npm/pip calls
