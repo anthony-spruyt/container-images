@@ -104,6 +104,13 @@ RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/falcosecurity/falcoctl/releases/download/${FALCOCTL_VERSION}/falcoctl_${FALCOCTL_VERSION_NUM}_linux_${ARCH}.tar.gz" \
   | tar -xz -C /usr/local/bin falcoctl
 
+# Go
+# renovate: depName=golang datasource=docker
+ARG GO_VERSION="1.26.2"
+RUN ARCH="$(dpkg --print-architecture)" \
+  && curl -fsSL --retry 3 --retry-delay 5 "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" | tar -C /usr/local -xz
+ENV PATH="/usr/local/go/bin:${PATH}"
+
 # Aikido safe-chain (installed globally, then set up for node user)
 # renovate: depName=@aikidosec/safe-chain datasource=npm
 ARG SAFE_CHAIN_VERSION="1.5.2"
@@ -113,6 +120,11 @@ RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
 USER 1000
 RUN safe-chain setup && safe-chain setup-ci
 ENV PATH="/home/node/.safe-chain/shims:${PATH}"
+
+# pre-commit
+# renovate: depName=pre-commit datasource=pypi
+ARG PRECOMMIT_VERSION="4.6.0"
+RUN pip install --no-cache-dir --break-system-packages pre-commit=="${PRECOMMIT_VERSION}"
 
 # Claude Code CLI (native binary — npm datasource tracks versions)
 # renovate: depName=@anthropic-ai/claude-code datasource=npm
