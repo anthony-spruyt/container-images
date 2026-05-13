@@ -18,3 +18,13 @@ CVE-2026-32283
 
 # Transitive Go dep in upstream coder binary
 CVE-2026-35469
+
+# go-git CVE in upstream coder binary - can't fix without a new coder release
+CVE-2026-45022
+
+# Go stdlib CVEs in upstream coder binary - can't fix without a new coder release
+CVE-2026-33811
+CVE-2026-33814
+CVE-2026-39820
+CVE-2026-39836
+CVE-2026-42499
