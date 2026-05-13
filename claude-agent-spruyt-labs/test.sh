@@ -8,7 +8,7 @@ echo "Testing claude-agent-spruyt-labs image..."
 docker run --rm "$IMAGE" bash -c '
 set -euo pipefail
 
-for bin in claude node python3 git npm jq gh rg \
+for bin in claude node python3 git npm jq gh rg go pre-commit \
            kubectl kustomize helm helmfile cilium \
            talosctl flux velero kubectl-cnpg falcoctl; do
   if ! command -v "$bin" &>/dev/null; then
@@ -22,6 +22,8 @@ claude --version
 safe-chain --version
 gh --version
 rg --version
+go version
+pre-commit --version
 kubectl version --client
 helm version
 flux --version
