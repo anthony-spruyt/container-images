@@ -74,6 +74,12 @@ ARG SAFE_CHAIN_VERSION="1.5.3"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}" \
   && if getent passwd 1000 >/dev/null; then userdel -r "$(getent passwd 1000 | cut -d: -f1)"; fi \
   && useradd -m -u 1000 -s /bin/bash node
+
+# agentmemory MCP (pre-installed so npx resolves locally without network fetch)
+# renovate: depName=@agentmemory/mcp datasource=npm
+ARG AGENTMEMORY_VERSION="0.9.12"
+RUN npm install -g "@agentmemory/mcp@${AGENTMEMORY_VERSION}"
+
 USER 1000
 
 RUN safe-chain setup && safe-chain setup-ci
