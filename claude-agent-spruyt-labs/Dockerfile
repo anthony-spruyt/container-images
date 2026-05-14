@@ -29,7 +29,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # kubectl
 # renovate: depName=kubernetes/kubernetes datasource=github-releases
-ARG KUBECTL_VERSION="v1.36.0"
+ARG KUBECTL_VERSION="v1.36.1"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl" -o /usr/local/bin/kubectl \
   && chmod +x /usr/local/bin/kubectl
@@ -67,7 +67,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # talosctl
 # renovate: depName=siderolabs/talos datasource=github-releases
-ARG TALOSCTL_VERSION="v1.13.0"
+ARG TALOSCTL_VERSION="v1.13.2"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/siderolabs/talos/releases/download/${TALOSCTL_VERSION}/talosctl-linux-${ARCH}" -o /usr/local/bin/talosctl \
   && chmod +x /usr/local/bin/talosctl
