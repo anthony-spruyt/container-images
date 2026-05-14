@@ -37,6 +37,8 @@ npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
 safe-chain setup
 safe-chain setup-ci
 export PATH="$HOME/.safe-chain/shims:$PATH"
+# shellcheck disable=SC2016
+grep -q 'safe-chain/shims' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.safe-chain/shims:$PATH"' >>"$HOME/.bashrc"
 
 echo "Installing pre-commit hooks..."
 git config --unset-all core.hooksPath 2>/dev/null || true
