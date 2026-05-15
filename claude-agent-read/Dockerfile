@@ -8,6 +8,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # System deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
   ca-certificates curl git openssh-client jq python3 python3-pip \
+  libnghttp2-14 \
   && rm -rf /var/lib/apt/lists/*
 
 # GitHub CLI
@@ -31,6 +32,11 @@ RUN ARCH="$(dpkg --print-architecture)" \
 # renovate: depName=@aikidosec/safe-chain datasource=npm
 ARG SAFE_CHAIN_VERSION="1.5.3"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
+
+# agentmemory MCP (pre-installed so npx resolves locally without network fetch)
+# renovate: depName=@agentmemory/mcp datasource=npm
+ARG AGENTMEMORY_VERSION="0.9.12"
+RUN npm install -g "@agentmemory/mcp@${AGENTMEMORY_VERSION}"
 
 # Set up safe-chain shims for node user before any npm/pip calls
 USER 1000
