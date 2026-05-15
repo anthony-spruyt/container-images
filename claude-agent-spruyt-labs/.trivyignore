@@ -67,11 +67,21 @@ CVE-2026-35204
 CVE-2026-35205
 CVE-2026-35469
 CVE-2026-39883
+CVE-2026-44973
 CVE-2026-33811
 CVE-2026-33814
 CVE-2026-39820
 CVE-2026-39836
 CVE-2026-42499
+
+# @agentmemory/mcp transitive dependencies (protobufjs 6.x, underscore)
+# protobufjs fix requires 6→7+ major bump — upstream must update
+CVE-2026-41242
+CVE-2026-44289
+CVE-2026-44290
+CVE-2026-44291
+CVE-2026-44293
+CVE-2026-27601
 CVE-2026-45022
 
 # Misconfig findings from embedded files in Go SDK, kustomize, and helm plugins
