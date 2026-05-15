@@ -39,6 +39,7 @@ CVE-2026-32283
 CVE-2026-33186
 CVE-2026-34986
 CVE-2026-29181
+CVE-2026-44973
 
 # SRE tool Go binary upstream vulnerabilities — cilium, flux, helmfile,
 # hubble, kubectl-cnpg, falcoctl, talosctl, kustomize, velero
