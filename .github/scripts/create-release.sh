@@ -119,7 +119,7 @@ else
   CHANGELOG=$(generate_local_changelog "$IMAGE_NAME" "$PREV_RELEASE")
 fi
 
-cat <<EOF >/tmp/release-notes.md
+cat <<__RELEASE_NOTES_DELIM__ >/tmp/release-notes.md
 \`${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}\`
 \`${DIGEST}\`
 
@@ -131,7 +131,7 @@ docker pull ${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}
 
 ### Changes
 ${CHANGELOG}
-EOF
+__RELEASE_NOTES_DELIM__
 
 # --- Create or update release ---
 
