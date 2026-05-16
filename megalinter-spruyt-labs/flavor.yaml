@@ -28,7 +28,7 @@ custom_linters:
 
 # Biome plugin - not in MegaLinter upstream, bundled as custom plugin descriptor
 # renovate: datasource=npm depName=@biomejs/biome
-biome_version: "2.4.14"
+biome_version: "2.4.15"
 
 extra_dockerfile: |
   ARG BIOME_VERSION={{ flavor.biome_version }}
