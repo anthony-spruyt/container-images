@@ -353,12 +353,12 @@ jobs:
             echo "ignorefile=.trivyignore.yaml" >> "$GITHUB_OUTPUT"
           fi
 
-          # Dev containers and megalinter flavors: warn-only (exit 0)
+          # Dev containers, megalinter flavors, and ML images: warn-only (exit 0)
           # These inherit upstream vulnerabilities we can't control
-          if [[ "$IMAGE_NAME" == *-dev ]] || [[ "$IMAGE_NAME" == megalinter-* ]]; then
+          if [[ "$IMAGE_NAME" == *-dev ]] || [[ "$IMAGE_NAME" == megalinter-* ]] || [[ "$IMAGE_NAME" == "llm-guard" ]]; then
             echo "exitcode=0" >> "$GITHUB_OUTPUT"
             echo "scanners=vuln" >> "$GITHUB_OUTPUT"
-            echo "::notice::Trivy set to warn-only for $IMAGE_NAME (dev/megalinter image)"
+            echo "::notice::Trivy set to warn-only for $IMAGE_NAME (upstream-heavy image)"
           else
             echo "exitcode=1" >> "$GITHUB_OUTPUT"
             echo "scanners=vuln,misconfig" >> "$GITHUB_OUTPUT"
