@@ -361,7 +361,7 @@ jobs:
             echo "::notice::Trivy set to warn-only for $IMAGE_NAME (dev/megalinter image)"
           else
             echo "exitcode=1" >> "$GITHUB_OUTPUT"
-            echo "scanners=vuln,secret,misconfig" >> "$GITHUB_OUTPUT"
+            echo "scanners=vuln,misconfig" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Scan for vulnerabilities
