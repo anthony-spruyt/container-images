@@ -34,7 +34,7 @@ echo "Test 2: Waiting for /healthz (max 120s)..."
 TIMEOUT=120
 ELAPSED=0
 while [ $ELAPSED -lt $TIMEOUT ]; do
-  if docker exec "$CONTAINER_NAME" wget -q -O /dev/null http://localhost:8000/healthz 2>/dev/null; then
+  if curl -sf http://localhost:8000/healthz >/dev/null 2>&1; then
     echo "  Healthy after ${ELAPSED}s"
     break
   fi
@@ -50,7 +50,7 @@ fi
 
 # Test 3: Verify /readyz
 echo "Test 3: Readiness check..."
-if docker exec "$CONTAINER_NAME" wget -q -O /dev/null http://localhost:8000/readyz 2>/dev/null; then
+if curl -sf http://localhost:8000/readyz >/dev/null 2>&1; then
   echo "  /readyz OK"
 else
   echo "  ERROR: /readyz failed"
