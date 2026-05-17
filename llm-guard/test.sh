@@ -17,16 +17,16 @@ echo "=== LLM Guard Container Tests ==="
 echo "Image: $IMAGE_REF"
 echo ""
 
-# Test 1: Container starts (lazy load to avoid OOM in CI)
+# Test 1: Container starts with minimal scanner config (avoids loading all default scanners)
 echo "Test 1: Container startup..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 docker run -d \
   --name "$CONTAINER_NAME" \
   -p 8000:8000 \
+  -v "${SCRIPT_DIR}/assets/test-scanners.yml:/home/user/app/config/scanners.yml:ro" \
   -e LOG_LEVEL=INFO \
   -e LOG_JSON=true \
   -e APP_PORT=8000 \
-  -e SCAN_FAIL_FAST=true \
-  -e LAZY_LOAD=true \
   "$IMAGE_REF"
 
 # Test 2: Wait for healthz
