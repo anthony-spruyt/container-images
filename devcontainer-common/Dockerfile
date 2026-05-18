@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/base:jammy@sha256:55126de3b3e113096201055951b4cb717900bafb379c59dcbada65c49cd7ce22
+FROM mcr.microsoft.com/devcontainers/base:jammy@sha256:f2d74267998cfe76acefa5cc8d19ccc86bb2ba4520a5ad2b218def9566dc04cd
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
