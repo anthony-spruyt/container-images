@@ -57,13 +57,13 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
     [ -f "$settings_file" ] || return 0
     jq empty "$settings_file" 2>/dev/null || { echo "  WARNING: invalid JSON in $settings_file, skipping"; return 0; }
     echo "  reading $settings_file"
-    jq -r '.extraKnownMarketplaces // {} | to_entries[] | select(.value.source != null and .value.source.repo != null) | "\(.key)\t\(.value.source.repo)"' \
+    jq -r '.extraKnownMarketplaces // {} | to_entries[] | select(.key != "claude-plugins-official") | select(.value.source != null and .value.source.repo != null) | "\(.key)\t\(.value.source.repo)"' \
       "$settings_file" 2>/dev/null | while IFS="$(printf '\t')" read -r name repo; do
       echo "    marketplace: $name ($repo)"
       claude plugins marketplace add "$repo" --scope user \
         || echo "    WARNING: failed to add marketplace '$name'"
     done
-    jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true or .value == "true") | .key' \
+    jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true or .value == "true") | select(.key | endswith("@claude-plugins-official") | not) | .key' \
       "$settings_file" 2>/dev/null | while IFS= read -r plugin; do
       echo "    install: $plugin"
       claude plugins install "$plugin" --scope user \
