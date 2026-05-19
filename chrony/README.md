@@ -81,7 +81,7 @@ This image is designed for minimal privilege operation:
 Chrony operates in two modes:
 
 1. **NTP Client** - Syncs the system clock from upstream servers (requires `SYS_TIME` capability)
-1. **NTP Server** - Serves time to clients
+2. **NTP Server** - Serves time to clients
 
 With `-x`, chrony:
 
@@ -98,10 +98,10 @@ The `n8n-release-watcher.json` workflow automatically detects new chrony package
 ### What it does
 
 1. Checks daily (11PM AEST) for chrony package updates in Alpine Linux
-1. Dynamically reads the Alpine version from this repo's Dockerfile
-1. Fetches the corresponding APKBUILD from Alpine's Git repository
-1. Compares the package version with the last processed version (stored in workflow static data)
-1. If a new version is found:
+2. Dynamically reads the Alpine version from this repo's Dockerfile
+3. Fetches the corresponding APKBUILD from Alpine's Git repository
+4. Compares the package version with the last processed version (stored in workflow static data)
+5. If a new version is found:
    - Triggers the container build workflow
    - Sends an email notification
    - Updates the stored version
@@ -109,9 +109,9 @@ The `n8n-release-watcher.json` workflow automatically detects new chrony package
 ### Import into n8n
 
 1. In n8n, go to **Workflows** > **Add Workflow** > **Import from File**
-1. Select `n8n-release-watcher.json`
-1. Configure the credentials (see below)
-1. Activate the workflow
+2. Select `n8n-release-watcher.json`
+3. Configure the credentials (see below)
+4. Activate the workflow
 
 ### Required Credentials
 
@@ -120,11 +120,11 @@ The `n8n-release-watcher.json` workflow automatically detects new chrony package
 Create a GitHub PAT with `repo` and `workflow` scopes:
 
 1. Go to GitHub > Settings > Developer settings > Personal access tokens > Fine-grained tokens
-1. Create a new token with:
+2. Create a new token with:
    - **Repository access:** `anthony-spruyt/container-images`
    - **Permissions:** Actions (Read and write)
-1. In n8n, go to **Credentials** > **Add Credential** > **Header Auth**
-1. Configure:
+3. In n8n, go to **Credentials** > **Add Credential** > **Header Auth**
+4. Configure:
    - **Name:** `GitHub PAT`
    - **Header Name:** `Authorization`
    - **Header Value:** `Bearer <your-token>`
@@ -132,7 +132,7 @@ Create a GitHub PAT with `repo` and `workflow` scopes:
 #### 2. SMTP Credential
 
 1. In n8n, go to **Credentials** > **Add Credential** > **SMTP**
-1. Configure your SMTP server settings:
+2. Configure your SMTP server settings:
    - **Host:** Your SMTP server hostname
    - **Port:** 587 (TLS) or 465 (SSL)
    - **User:** Your SMTP username
@@ -142,17 +142,17 @@ Create a GitHub PAT with `repo` and `workflow` scopes:
 ### Configuration After Import
 
 1. Open the **Trigger Build Workflow** node and select your GitHub PAT credential
-1. Open the **Send Notification** node:
+2. Open the **Send Notification** node:
    - Select your SMTP credential
    - Update `fromEmail` to your sender address
    - Update `toEmail` to your notification recipient
-1. Save and activate the workflow
+3. Save and activate the workflow
 
 ### Testing
 
 1. Open the workflow in n8n
-1. Click **Execute Workflow** to run manually
-1. Check the output of each node:
+2. Click **Execute Workflow** to run manually
+3. Check the output of each node:
    - **Get Dockerfile:** Should return Dockerfile content
    - **Parse Alpine Version:** Shows extracted Alpine version (e.g., `3.23`)
    - **Get Alpine APKBUILD:** Should return APKBUILD content
