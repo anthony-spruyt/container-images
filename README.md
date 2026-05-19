@@ -27,16 +27,16 @@ Use this when building from an external repository (e.g., a GitHub project):
 
 1. Create a directory with the image name
 
-1. Add `metadata.yaml`:
+2. Add `metadata.yaml`:
 
    ```yaml
    upstream: owner/repo
    version: "1.0.0"
    ```
 
-1. Optionally add a custom `Dockerfile` to override the upstream's
+3. Optionally add a custom `Dockerfile` to override the upstream's
 
-1. Push to main - the image will be built and published automatically
+4. Push to main - the image will be built and published automatically
 
 ### Option 2: Build from Local Dockerfile
 
@@ -44,15 +44,15 @@ Use this for custom images with no upstream source:
 
 1. Create a directory with the image name
 
-1. Add your `Dockerfile` and any required files
+2. Add your `Dockerfile` and any required files
 
-1. Add `metadata.yaml`:
+3. Add `metadata.yaml`:
 
    ```yaml
    version: "1.0.0"
    ```
 
-1. Push to main - the image will be built and published automatically
+4. Push to main - the image will be built and published automatically
 
 ### Option 3: Auto-Patched Version
 
@@ -89,9 +89,9 @@ The `/create-megalinter-flavor` command automates flavor creation with automatic
 The command will:
 
 1. Validate the flavor name and check for conflicts
-1. Look up linter configurations from the catalog
-1. Auto-select the optimal base flavor (minimizing custom installs)
-1. Generate `megalinter-<name>/flavor.yaml` with Renovate annotations
+2. Look up linter configurations from the catalog
+3. Auto-select the optimal base flavor (minimizing custom installs)
+4. Generate `megalinter-<name>/flavor.yaml` with Renovate annotations
 
 ### Manual Setup
 
@@ -101,7 +101,7 @@ The command will:
    mkdir megalinter-<name>/
    ```
 
-1. Create `flavor.yaml` with your configuration:
+2. Create `flavor.yaml` with your configuration:
 
    ```yaml
    name: my-flavor
@@ -116,7 +116,7 @@ The command will:
      - PYTHON_BANDIT
    ```
 
-1. Commit `flavor.yaml` - CI generates Dockerfile, test.sh, and metadata.yaml, then builds automatically
+3. Commit `flavor.yaml` - CI generates Dockerfile, test.sh, and metadata.yaml, then builds automatically
 
 ### Available Linters
 

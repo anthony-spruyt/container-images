@@ -82,10 +82,10 @@ run_test "Find megalinter release in mixed list" \
   "v1.0.5" \
   ""
 
-# Test 5: Find previous for megalinter-claude-config
-run_test "Find megalinter-claude-config (only one exists)" \
+# Test 5: Find previous for megalinter-container-images
+run_test "Find megalinter-container-images (only one exists)" \
   "releases-mixed.json" \
-  "megalinter-claude-config" \
+  "megalinter-container-images" \
   "v1.0.6" \
   ""
 

@@ -8,7 +8,6 @@ images:
   - "coder-gitops"
   - "devcontainer-common"
   - "llm-guard"
-  - "megalinter-claude-config"
   - "megalinter-container-images"
   - "megalinter-firemerge"
   - "megalinter-factory"
