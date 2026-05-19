@@ -106,10 +106,10 @@ Or enable the OpenSSH Authentication Agent service in Windows Services.
 **Solution**:
 
 1. Verify the fixed symlink is configured in your `~/.bashrc` (see keychain setup above)
-1. Restart your terminal or run: `source ~/.bashrc`
-1. Verify the symlink exists: `ls -la ~/.ssh/agent.sock`
-1. **Rebuild the devcontainer one final time**: Command Palette → "Dev Containers: Rebuild Container"
-1. After this rebuild, reboots will no longer require rebuilds
+2. Restart your terminal or run: `source ~/.bashrc`
+3. Verify the symlink exists: `ls -la ~/.ssh/agent.sock`
+4. **Rebuild the devcontainer one final time**: Command Palette → "Dev Containers: Rebuild Container"
+5. After this rebuild, reboots will no longer require rebuilds
 
 If the symlink is missing or broken after reboot, ensure the keychain configuration is in `~/.bashrc` (not just set in the current terminal session).
 
@@ -129,8 +129,8 @@ Create a token at [GitHub Settings > Developer settings > Personal access tokens
 ## Opening the Devcontainer
 
 1. Clone the repository
-1. Open the folder in VS Code
-1. When prompted, click "Reopen in Container" (or run `Dev Containers: Reopen in Container` from the command palette)
+2. Open the folder in VS Code
+3. When prompted, click "Reopen in Container" (or run `Dev Containers: Reopen in Container` from the command palette)
 
 ## Included Tools
 

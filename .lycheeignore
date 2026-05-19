@@ -1,27 +1,33 @@
-# Ignore GitHub Actions template variables in workflow files
-https://github.com/\$%7BUPSTREAM%7D
+# GitHub rate-limits unauthenticated requests (429 Too Many Requests)
+https://github.com/.*
+https://raw.githubusercontent.com/.*
 
-# Ignore GitHub API endpoints (rate-limited without auth)
-https://api.github.com/repos/.*
+# GitHub API URLs require authentication and can't be validated
+https://api.github.com/.*
 
-# Ignore private repository URLs
-https://github.com/anthony-spruyt/spruyt-labs/.*
+# VS Code site returns 403 to automated link checkers
+https://code.visualstudio.com/.*
+
+# VS Code Marketplace (intermittent 503s)
+https://marketplace.visualstudio.com/
+
+# LAN server URLs use private .lan domains with shell variable substitution
+.*\.lan/.*
+
+# Internal MCP server hostname (not publicly accessible)
+https://litellm/
+
+# Localhost URLs are not reachable in CI/lint environments
+http://localhost.*
+https://localhost.*
+http://127\.0\.0\.1.*
+https://127\.0\.0\.1.*
+
+# Schema store times out intermittently in CI
+https://json\.schemastore\.org/.*
 
 # Ignore Alpine Git URLs with dynamic version parameters (n8n templates)
 https://git.alpinelinux.org/aports/plain/.*\?h=.*
-
-# Ignore LICENSE URL until pushed (lychee checks remote URLs)
-https://github.com/anthony-spruyt/container-images/blob/main/LICENSE
-
-# Ignore workflow badge URLs until PR is merged
-https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml/badge.svg
-https://github.com/anthony-spruyt/container-images/actions/workflows/ci.yaml/badge.svg\?branch=main
-
-# Ignore example URLs used in tests
-https://github.com/example/repo/.*
-
-# Network error: Too Many Requests
-https://github.com/rhysd/actionlint/blob/main/docs/config.md
 
 # Internal K8s service DNS URLs — not reachable from CI
 http://.*\.svc:\d+/.*
