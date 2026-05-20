@@ -77,6 +77,15 @@ CVE-2026-0861
 CVE-2026-29111
 CVE-2026-4878
 
+# gnutls CVEs from node:24-slim base image (libgnutls30 3.7.9-2+deb12u6)
+# Fixed upstream in 3.7.9-2+deb12u7 — ignore until base image updates
+CVE-2026-33845
+CVE-2026-42010
+CVE-2026-33846
+CVE-2026-3833
+CVE-2026-42009
+CVE-2026-42011
+
 # @agentmemory/mcp transitive dependencies (protobufjs 6.x, underscore)
 # protobufjs fix requires 6→7+ major bump — upstream must update
 CVE-2026-41242
