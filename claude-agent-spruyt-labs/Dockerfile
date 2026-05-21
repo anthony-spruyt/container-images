@@ -44,7 +44,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # helm
 # renovate: depName=helm/helm datasource=github-releases
-ARG HELM_VERSION="v4.1.4"
+ARG HELM_VERSION="v4.2.0"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://get.helm.sh/helm-${HELM_VERSION}-linux-${ARCH}.tar.gz" \
   | tar -xz -C /tmp \
