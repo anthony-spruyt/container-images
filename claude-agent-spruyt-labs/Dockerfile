@@ -134,7 +134,7 @@ RUN pip install --no-cache-dir --break-system-packages pre-commit=="${PRECOMMIT_
 
 # Claude Code CLI (native binary — npm datasource tracks versions)
 # renovate: depName=@anthropic-ai/claude-code datasource=npm
-ARG CLAUDE_VERSION="2.1.146"
+ARG CLAUDE_VERSION="2.1.147"
 RUN curl -fsSL https://claude.ai/install.sh | bash -s -- "$CLAUDE_VERSION"
 ENV PATH="/home/node/.local/bin:${PATH}"
 
