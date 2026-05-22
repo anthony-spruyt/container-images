@@ -77,7 +77,7 @@ RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}" \
 
 # agentmemory MCP (pre-installed so npx resolves locally without network fetch)
 # renovate: depName=@agentmemory/mcp datasource=npm
-ARG AGENTMEMORY_VERSION="0.9.12"
+ARG AGENTMEMORY_VERSION="0.9.13"
 RUN npm install -g "@agentmemory/mcp@${AGENTMEMORY_VERSION}"
 
 USER 1000
