@@ -35,7 +35,7 @@ RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
 
 # agentmemory MCP (pre-installed so npx resolves locally without network fetch)
 # renovate: depName=@agentmemory/mcp datasource=npm
-ARG AGENTMEMORY_VERSION="0.9.13"
+ARG AGENTMEMORY_VERSION="0.9.16"
 RUN npm install -g "@agentmemory/mcp@${AGENTMEMORY_VERSION}"
 
 # Set up safe-chain shims for node user before any npm/pip calls
