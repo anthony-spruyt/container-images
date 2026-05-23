@@ -353,24 +353,12 @@ jobs:
             echo "ignorefile=.trivyignore.yaml" >> "$GITHUB_OUTPUT"
           fi
 
-          # Dev containers, megalinter flavors, and ML images: warn-only (exit 0)
-          # These inherit upstream vulnerabilities we can't control
-          if [[ "$IMAGE_NAME" == *-dev ]] || [[ "$IMAGE_NAME" == megalinter-* ]] || [[ "$IMAGE_NAME" == "llm-guard" ]]; then
-            echo "exitcode=0" >> "$GITHUB_OUTPUT"
-            echo "scanners=vuln" >> "$GITHUB_OUTPUT"
-            echo "::notice::Trivy set to warn-only for $IMAGE_NAME (upstream-heavy image)"
-          else
-            echo "exitcode=1" >> "$GITHUB_OUTPUT"
-            echo "scanners=vuln,misconfig" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Scan for vulnerabilities
         uses: anthony-spruyt/repo-operator/.github/actions/trivy-scan@main
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}:${{ needs.check-release.outputs.tag }}
+          image-name: ${{ inputs.image }}
           trivyignores: ${{ steps.trivyconfig.outputs.ignorefile }}
-          scanners: ${{ steps.trivyconfig.outputs.scanners }}
-          exit-code: ${{ steps.trivyconfig.outputs.exitcode }}
           category: trivy-${{ inputs.image }}
 
       - name: Dry run summary
