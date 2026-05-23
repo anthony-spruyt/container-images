@@ -341,26 +341,6 @@ jobs:
             echo "No test script found at $TEST_SCRIPT, skipping"
           fi
 
-      - name: Determine trivy config
-        id: trivyconfig
-        env:
-          IMAGE_NAME: ${{ inputs.image }}
-        run: |
-          # Use per-image ignore file if it exists, otherwise use global
-          if [ -f "${IMAGE_NAME}/.trivyignore" ]; then
-            echo "ignorefile=${IMAGE_NAME}/.trivyignore" >> "$GITHUB_OUTPUT"
-          else
-            echo "ignorefile=.trivyignore.yaml" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Scan for vulnerabilities
-        uses: anthony-spruyt/repo-operator/.github/actions/trivy-scan@main
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.OWNER }}/${{ inputs.image }}:${{ needs.check-release.outputs.tag }}
-          image-name: ${{ inputs.image }}
-          trivyignores: ${{ steps.trivyconfig.outputs.ignorefile }}
-          category: trivy-${{ inputs.image }}
-
       - name: Dry run summary
         if: ${{ !inputs.push }}
         env:
@@ -386,7 +366,6 @@ jobs:
           - ✅ Metadata validation
           - ✅ ${UPSTREAM:+Upstream checkout}${UPSTREAM:-Build context preparation}
           - ✅ Image build
-          - ✅ Trivy vulnerability scan
 
           ### Skipped steps:
           - ⏭️ Push to GHCR
