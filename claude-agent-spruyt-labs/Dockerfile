@@ -82,7 +82,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # velero
 # renovate: depName=vmware-tanzu/velero datasource=github-releases
-ARG VELERO_VERSION="v1.18.0"
+ARG VELERO_VERSION="v1.18.1"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/vmware-tanzu/velero/releases/download/${VELERO_VERSION}/velero-${VELERO_VERSION}-linux-${ARCH}.tar.gz" \
   | tar -xz -C /tmp \
