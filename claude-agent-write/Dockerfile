@@ -38,7 +38,7 @@ RUN rm -rf /tmp/Python-* \
 
 # Node.js (prebuilt binary tarball — Renovate tracks via node-version datasource)
 # renovate: depName=node datasource=node versioning=node
-ARG NODE_VERSION="24.15.0"
+ARG NODE_VERSION="24.16.0"
 RUN ARCH="$(dpkg --print-architecture)" \
   && case "${ARCH}" in amd64) ARCH=x64;; arm64) ARCH=arm64;; *) echo "unsupported: ${ARCH}"; exit 1;; esac \
   && curl -fsSL --retry 3 --retry-delay 5 "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${ARCH}.tar.xz" \
