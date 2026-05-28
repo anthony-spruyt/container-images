@@ -169,6 +169,33 @@ location = "registry.k8s.io"
 location = "mcr.microsoft.com"
 REGISTRIES_CONF
 
+# Write Nexus pull-through mirror for podman if NEXUS_DOCKER_URL is set.
+# Local devcontainers inject this via containerEnv; Coder workspaces skip
+# this block and rely on the cluster ConfigMap mount instead.
+if [ -n "${NEXUS_DOCKER_URL:-}" ]; then
+  cat >"$HOME/.config/containers/registries.conf.d/99-nexus-mirror.conf" <<MIRROR_CONF
+[[registry]]
+prefix = "docker.io"
+location = "${NEXUS_DOCKER_URL}"
+
+[[registry]]
+prefix = "ghcr.io"
+location = "${NEXUS_DOCKER_URL}"
+
+[[registry]]
+prefix = "quay.io"
+location = "${NEXUS_DOCKER_URL}"
+
+[[registry]]
+prefix = "mcr.microsoft.com"
+location = "${NEXUS_DOCKER_URL}"
+
+[[registry]]
+prefix = "registry.k8s.io"
+location = "${NEXUS_DOCKER_URL}"
+MIRROR_CONF
+fi
+
 echo ""
 echo "Setting up devcontainer (repo-specific tooling)..."
 if [[ -x "$DEVCONTAINER_DIR/setup-devcontainer.sh" ]]; then
