@@ -7,6 +7,14 @@ set -euo pipefail
 #
 # Usage: devcontainer-post-create [workspace-dir]
 
+grep -qxF 'if [ -f /home/vscode/.secrets/.env ]; then' ~/.bashrc || cat <<'EOF' >>~/.bashrc
+if [ -f /home/vscode/.secrets/.env ]; then
+  set -a
+  . /home/vscode/.secrets/.env
+  set +a
+fi
+EOF
+
 WORKSPACE="${1:-.}"
 DEVCONTAINER_DIR="$WORKSPACE/.devcontainer"
 
