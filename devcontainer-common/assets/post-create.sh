@@ -176,7 +176,7 @@ if [ -n "${NEXUS_DOCKER_URL:-}" ]; then
   _nexus_mirror="${NEXUS_DOCKER_URL#http://}"
   _nexus_mirror="${_nexus_mirror#https://}"
   if ! echo "${_nexus_mirror}" | grep -qE '^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*(:[0-9]+)?(/[a-zA-Z0-9._/-]*)?$'; then
-    echo "WARNING: NEXUS_DOCKER_URL='${NEXUS_DOCKER_URL}' (scheme stripped: '${_nexus_mirror}') does not match expected format host[:port][/path], skipping mirror config"
+    echo "WARNING: NEXUS_DOCKER_URL does not match expected format host[:port][/path] (value redacted), skipping mirror config"
   else
     cat >"$HOME/.config/containers/registries.conf.d/99-nexus-mirror.conf" <<MIRROR_CONF
 [[registry]]
