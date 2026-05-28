@@ -169,6 +169,54 @@ location = "registry.k8s.io"
 location = "mcr.microsoft.com"
 REGISTRIES_CONF
 
+# Write Nexus pull-through mirror for podman if NEXUS_DOCKER_URL is set.
+# Local devcontainers inject this via containerEnv; Coder workspaces skip
+# this block and rely on the cluster ConfigMap mount instead.
+if [ -n "${NEXUS_DOCKER_URL:-}" ]; then
+  _nexus_mirror="${NEXUS_DOCKER_URL#http://}"
+  _nexus_mirror="${_nexus_mirror#https://}"
+  if ! echo "${_nexus_mirror}" | grep -qE '^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*(:[0-9]+)?(/[a-zA-Z0-9._/-]*)?$'; then
+    echo "WARNING: NEXUS_DOCKER_URL does not match expected format host[:port][/path] (value redacted), skipping mirror config"
+  else
+    cat >"$HOME/.config/containers/registries.conf.d/99-nexus-mirror.conf" <<MIRROR_CONF
+[[registry]]
+prefix = "docker.io"
+location = "docker.io"
+
+[[registry.mirror]]
+location = "${_nexus_mirror}"
+
+[[registry]]
+prefix = "ghcr.io"
+location = "ghcr.io"
+
+[[registry.mirror]]
+location = "${_nexus_mirror}"
+
+[[registry]]
+prefix = "quay.io"
+location = "quay.io"
+
+[[registry.mirror]]
+location = "${_nexus_mirror}"
+
+[[registry]]
+prefix = "mcr.microsoft.com"
+location = "mcr.microsoft.com"
+
+[[registry.mirror]]
+location = "${_nexus_mirror}"
+
+[[registry]]
+prefix = "registry.k8s.io"
+location = "registry.k8s.io"
+
+[[registry.mirror]]
+location = "${_nexus_mirror}"
+MIRROR_CONF
+  fi
+fi
+
 echo ""
 echo "Setting up devcontainer (repo-specific tooling)..."
 if [[ -x "$DEVCONTAINER_DIR/setup-devcontainer.sh" ]]; then
