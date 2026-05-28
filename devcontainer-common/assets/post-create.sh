@@ -173,27 +173,46 @@ REGISTRIES_CONF
 # Local devcontainers inject this via containerEnv; Coder workspaces skip
 # this block and rely on the cluster ConfigMap mount instead.
 if [ -n "${NEXUS_DOCKER_URL:-}" ]; then
-  cat >"$HOME/.config/containers/registries.conf.d/99-nexus-mirror.conf" <<MIRROR_CONF
+  if ! echo "${NEXUS_DOCKER_URL}" | grep -qE '^(https?://)?[a-zA-Z0-9._-]+(:[0-9]+)?(/[a-zA-Z0-9._/-]*)?$'; then
+    echo "WARNING: NEXUS_DOCKER_URL='${NEXUS_DOCKER_URL}' does not match expected format (scheme://host[:port] or host[:port]), skipping mirror config"
+  else
+    cat >"$HOME/.config/containers/registries.conf.d/99-nexus-mirror.conf" <<MIRROR_CONF
 [[registry]]
 prefix = "docker.io"
+location = "docker.io"
+
+[[registry.mirror]]
 location = "${NEXUS_DOCKER_URL}"
 
 [[registry]]
 prefix = "ghcr.io"
+location = "ghcr.io"
+
+[[registry.mirror]]
 location = "${NEXUS_DOCKER_URL}"
 
 [[registry]]
 prefix = "quay.io"
+location = "quay.io"
+
+[[registry.mirror]]
 location = "${NEXUS_DOCKER_URL}"
 
 [[registry]]
 prefix = "mcr.microsoft.com"
+location = "mcr.microsoft.com"
+
+[[registry.mirror]]
 location = "${NEXUS_DOCKER_URL}"
 
 [[registry]]
 prefix = "registry.k8s.io"
+location = "registry.k8s.io"
+
+[[registry.mirror]]
 location = "${NEXUS_DOCKER_URL}"
 MIRROR_CONF
+  fi
 fi
 
 echo ""
