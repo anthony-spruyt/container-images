@@ -18,8 +18,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ARG NODE_VERSION="24.16.0"
 RUN ARCH="$(dpkg --print-architecture)" \
   && case "${ARCH}" in amd64) ARCH=x64;; arm64) ARCH=arm64;; *) echo "unsupported: ${ARCH}"; exit 1;; esac \
-  && curl -fsSL --retry 3 --retry-delay 5 "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${ARCH}.tar.xz" \
-  | tar -xJ --strip-components=1 -C /usr/local
+  && TARBALL="node-v${NODE_VERSION}-linux-${ARCH}.tar.xz" \
+  && curl -fsSL --retry 3 --retry-delay 5 "https://nodejs.org/dist/v${NODE_VERSION}/${TARBALL}" -o "/tmp/${TARBALL}" \
+  && EXPECTED="$(curl -fsSL --retry 3 --retry-delay 5 "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" | awk -v f="${TARBALL}" '$2 == f {print $1}')" \
+  && echo "${EXPECTED}  /tmp/${TARBALL}" | sha256sum -c - \
+  && tar -xJ --strip-components=1 -C /usr/local -f "/tmp/${TARBALL}" \
+  && rm -f "/tmp/${TARBALL}"
 
 # GitHub CLI
 # renovate: depName=cli/cli datasource=github-releases
