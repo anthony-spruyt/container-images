@@ -1,5 +1,5 @@
 # renovate: datasource=docker depName=python
-ARG PYTHON_VERSION=3.12-slim
+ARG PYTHON_VERSION=3.12-slim@sha256:090ba77e2958f6af52a5341f788b50b032dd4ca28377d2893dcf1ecbdfdfe203
 FROM python:${PYTHON_VERSION}
 
 ARG MODEL=protectai/deberta-v3-base-prompt-injection-v2
