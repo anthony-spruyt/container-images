@@ -54,6 +54,7 @@ class PromptInjectionScanner:
         self._match_type = kwargs.get("match_type", "full")
         self._model_max_length = kwargs.get("model_max_length", 512)
         self._pipe: Optional[Pipeline] = None
+        self._injection_label_missing_warned = False
 
     def load(self):
         """Load the HuggingFace pipeline and validate the injection label exists."""
@@ -99,6 +100,15 @@ class PromptInjectionScanner:
         results = self._pipe(text)
         flat = results[0] if results and isinstance(results[0], list) else results
         scores = {r["label"]: r["score"] for r in flat}
+        if self._injection_label not in scores and not self._injection_label_missing_warned:
+            # Fail-open: a missing label means every prompt scores 0.0. Warn
+            # once so the silent pass-through is observable at runtime.
+            logger.warning(
+                "injection_label not in model output; scanner fails open (scores 0.0)",
+                extra={"injection_label": self._injection_label,
+                       "model_labels": sorted(scores.keys())},
+            )
+            self._injection_label_missing_warned = True
         return scores.get(self._injection_label, 0.0)
 
     @staticmethod
