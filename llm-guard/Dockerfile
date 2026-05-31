@@ -13,16 +13,17 @@ COPY app/ .
 
 ENV HF_HOME=/app/.cache/huggingface
 
-# Pre-download model into HF cache
+# Pre-download the default model into the HF cache so the image runs offline.
 COPY assets/download_model.py /tmp/download_model.py
 RUN MODEL=${MODEL} python /tmp/download_model.py && rm /tmp/download_model.py
 
 RUN useradd -u 1000 -m appuser && chown -R 1000:1000 /app
 USER 1000:1000
 
-ENV MODEL=${MODEL}
-ENV INJECTION_LABEL=INJECTION
-ENV THRESHOLD=0.5
+# Scanner pipeline is configured via CONFIG_FILE (required). Default to the
+# baked-in single-scanner config; override by mounting a file and setting
+# CONFIG_FILE to its path (e.g. /config/scanners.yml).
+ENV CONFIG_FILE=/app/default-scanners.yml
 ENV LISTEN_HOST=0.0.0.0
 ENV LISTEN_PORT=8080
 

@@ -89,5 +89,29 @@ if [ "$IS_VALID" != "True" ]; then
 fi
 echo "  /scan/prompt OK"
 
+echo "Test 7: Generic Guardrail API payload with explicit nulls (regression: 422)..."
+# LiteLLM serialises with model_dump(mode="json"), sending optional fields as
+# explicit null and using structured_messages instead of texts. Guards against
+# the 422 where non-Optional fields rejected explicit nulls.
+RESPONSE=$(curl -sf -X POST http://localhost:${PORT}/beta/litellm_basic_guardrail_api \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input_type": "request",
+    "texts": null,
+    "structured_messages": [{"role": "user", "content": "What is the capital of France?"}],
+    "litellm_call_id": null,
+    "litellm_trace_id": null,
+    "request_data": {},
+    "model": "gpt-4o",
+    "request_headers": null
+  }')
+ACTION=$(echo "$RESPONSE" | python3 -c "import json,sys; print(json.load(sys.stdin)['action'])")
+if [ "$ACTION" != "NONE" ]; then
+  echo "  ERROR: generic guardrail payload not handled. Response: $RESPONSE"
+  docker logs "$CONTAINER_NAME"
+  exit 1
+fi
+echo "  generic guardrail (explicit nulls) action=NONE OK"
+
 echo ""
 echo "=== All tests passed ==="

@@ -41,14 +41,14 @@ class PromptInjectionScanner:
         Initialise the scanner from keyword arguments.
 
         Kwargs:
-            model (str): HuggingFace model ID. Defaults to config.MODEL.
-            injection_label (str): Positive-class label. Defaults to config.INJECTION_LABEL.
-            threshold (float): Block threshold [0,1]. Defaults to config.THRESHOLD.
+            model (str): HuggingFace model ID. Defaults to config.DEFAULT_MODEL.
+            injection_label (str): Positive-class label. Defaults to config.DEFAULT_INJECTION_LABEL.
+            threshold (float): Block threshold [0,1]. Defaults to config.DEFAULT_THRESHOLD.
             match_type (str): ``"full"`` or ``"sentence"``. Defaults to ``"full"``.
             model_max_length (int): Max token length. Defaults to 512.
         """
-        self._model = kwargs.get("model", "") or config.MODEL
-        self._injection_label = kwargs.get("injection_label", "") or config.INJECTION_LABEL
+        self._model = kwargs.get("model", "") or config.DEFAULT_MODEL
+        self._injection_label = kwargs.get("injection_label", "") or config.DEFAULT_INJECTION_LABEL
         threshold = kwargs.get("threshold", None)
         self._threshold = config.THRESHOLD if threshold is None else threshold
         self._match_type = kwargs.get("match_type", "full")
@@ -69,7 +69,7 @@ class PromptInjectionScanner:
         known_labels = set(self._pipe.model.config.label2id.keys())
         if self._injection_label not in known_labels:
             raise RuntimeError(
-                f"INJECTION_LABEL {self._injection_label!r} not in model labels: {known_labels}"
+                f"injection_label {self._injection_label!r} not in model labels: {known_labels}"
             )
         logger.info("model ready")
 
