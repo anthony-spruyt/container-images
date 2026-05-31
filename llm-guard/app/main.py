@@ -68,7 +68,9 @@ class _StructuredMsg(BaseModel):
 
 
 class LiteLLMRequest(BaseModel):
-    """Request body from a LiteLLM guardrail hook."""
+    """Request body from a LiteLLM guardrail hook (custom or generic API format)."""
+
+    model_config = {"extra": "ignore"}
 
     texts: list[str] = []
     structured_messages: list[_StructuredMsg] = []
@@ -90,6 +92,7 @@ def _safe_id(value: str) -> str:
 
 
 @app.post("/")
+@app.post("/beta/litellm_basic_guardrail_api")
 async def litellm_guardrail(req: LiteLLMRequest):
     """
     Evaluate a LiteLLM request for prompt injection.
