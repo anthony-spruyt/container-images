@@ -1,3 +1,5 @@
+"""FastAPI service: LiteLLM guardrail and llm-guard-api compatible endpoints."""
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -15,14 +17,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-_ready = False
+_STATE = {"ready": False}
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    global _ready
+async def lifespan(_app: FastAPI):
+    """Load model on startup and mark service ready."""
     scanner.load()
-    _ready = True
+    _STATE["ready"] = True
     yield
 
 
@@ -31,12 +33,14 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/healthz")
 def healthz():
+    """Liveness probe."""
     return {"status": "ok"}
 
 
 @app.get("/readyz")
 def readyz():
-    if not _ready:
+    """Readiness probe."""
+    if not _STATE["ready"]:
         return JSONResponse(status_code=503, content={"status": "not ready"})
     return {"status": "ok"}
 
@@ -44,19 +48,28 @@ def readyz():
 # --- LiteLLM guardrail format ---
 
 class _StructuredMsg(BaseModel):
+    """A single message in a structured conversation."""
+
     role: str
     content: object
 
     def text(self) -> str:
+        """Extract plain text from string or content-part list."""
         c = self.content
         if isinstance(c, str):
             return c
         if isinstance(c, list):
-            return "\n".join(p.get("text", "") for p in c if p.get("type") == "text")
+            return "\n".join(
+                str(p.get("text", ""))
+                for p in c
+                if isinstance(p, dict) and p.get("type") == "text"
+            )
         return str(c)
 
 
 class LiteLLMRequest(BaseModel):
+    """Request body from a LiteLLM guardrail hook."""
+
     texts: list[str] = []
     structured_messages: list[_StructuredMsg] = []
     litellm_call_id: str = ""
@@ -64,36 +77,55 @@ class LiteLLMRequest(BaseModel):
 
 
 def _extract_prompt(req: LiteLLMRequest) -> str:
+    """Extract user text from a LiteLLM request."""
     if req.texts:
         return "\n".join(req.texts)
     parts = [m.text() for m in req.structured_messages if m.role == "user"]
     return "\n".join(parts)
 
 
+def _safe_id(value: str) -> str:
+    """Strip newlines to prevent log injection."""
+    return value.replace("\n", " ").replace("\r", " ")
+
+
 @app.post("/")
 async def litellm_guardrail(req: LiteLLMRequest):
+    """LiteLLM guardrail endpoint — returns BLOCKED or NONE."""
     prompt = _extract_prompt(req)
     if not prompt:
         return {"action": "NONE"}
 
-    is_safe, score = scanner.scan(prompt)
-    logger.info("litellm scan", extra={"call_id": req.litellm_call_id, "is_safe": is_safe, "score": score})
+    loop = asyncio.get_running_loop()
+    is_safe, score = await loop.run_in_executor(None, scanner.scan, prompt)
+
+    logger.info(
+        "litellm scan",
+        extra={"call_id": _safe_id(req.litellm_call_id), "is_safe": is_safe, "score": score},
+    )
 
     if not is_safe:
-        return {"action": "BLOCKED", "blocked_reason": f"prompt injection detected (score: {score})"}
+        return {
+            "action": "BLOCKED",
+            "blocked_reason": f"prompt injection detected (score: {score})",
+        }
     return {"action": "NONE"}
 
 
 # --- llm-guard-api compat format ---
 
 class ScanPromptRequest(BaseModel):
+    """Request body for llm-guard-api compatible endpoints."""
+
     prompt: str
 
 
 @app.post("/analyze/prompt")
 @app.post("/scan/prompt")
 async def scan_prompt(req: ScanPromptRequest):
-    is_safe, score = scanner.scan(req.prompt)
+    """llm-guard-api compatible prompt scan endpoint."""
+    loop = asyncio.get_running_loop()
+    is_safe, score = await loop.run_in_executor(None, scanner.scan, req.prompt)
     return {
         "is_valid": is_safe,
         "sanitized_prompt": req.prompt,
