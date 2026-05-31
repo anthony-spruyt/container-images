@@ -1,100 +1,38 @@
-# renovate: depName=ubuntu datasource=docker versioning=ubuntu
-FROM ubuntu:resolute@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
+# claude-agent-write = claude-agent-read + Go + pre-commit.
+# Pinned to a digest by Renovate once claude-agent-read publishes; until then
+# :latest resolves the most recent read build.
+# renovate: datasource=docker depName=ghcr.io/anthony-spruyt/claude-agent-read versioning=semver
+FROM ghcr.io/anthony-spruyt/claude-agent-read:1.0.38@sha256:8492ba5bfb072bdcb3a54bb35ac9330131bd5eb9ba5aa314ee96477645287177
 
 # Ephemeral agent pod — lifespan managed by n8n spawner
 HEALTHCHECK NONE
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# System deps (persist) + Python build deps (purged after compile)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  ca-certificates curl git openssh-client jq libatomic1 xz-utils \
-  libsqlite3-0 libreadline8t64 libncurses6 libffi8 liblzma5 libbz2-1.0 libssl3t64 \
-  && apt-get install -y --no-install-recommends \
-  build-essential pkg-config libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
-  libsqlite3-dev libncurses-dev libffi-dev liblzma-dev \
+USER root
+
+# libatomic1: pre-commit's nodeenv builds its own node binary (not the
+# nodejs.org prebuilt tarball in the read base), and that binary dynamically
+# links libatomic.so.1. Without it `pre-commit run` fails at hook-env install
+# with "libatomic.so.1: cannot open shared object file". Lives here because
+# pre-commit is added in this layer. Ref spruyt-labs#1878.
+RUN apt-get update && apt-get install -y --no-install-recommends libatomic1 \
   && rm -rf /var/lib/apt/lists/*
 
-# Python (built from source — Renovate tracks via github-releases)
-# renovate: depName=python/cpython datasource=github-releases extractVersion=^v(?<version>.+)$
-ARG PYTHON_VERSION="3.13.13"
-RUN curl -fsSL --retry 3 --retry-delay 5 "https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz" \
-  | tar -xz -C /tmp
-WORKDIR /tmp/Python-${PYTHON_VERSION}
-RUN ./configure --prefix=/usr/local --enable-optimizations --with-ensurepip=install 2>&1 | tail -5 \
-  && make -j"$(nproc)" 2>&1 | tail -5 \
-  && make install \
-  && ln -sf /usr/local/bin/python3 /usr/local/bin/python \
-  && ln -sf /usr/local/bin/pip3 /usr/local/bin/pip
-WORKDIR /
-
-# Remove Python build artifacts and deps
-RUN rm -rf /tmp/Python-* \
-  && apt-get purge -y \
-    build-essential pkg-config libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
-    libsqlite3-dev libncurses-dev libffi-dev liblzma-dev \
-  && apt-get autoremove -y \
-  && rm -rf /var/lib/apt/lists/*
-
-# Node.js (prebuilt binary tarball — Renovate tracks via node-version datasource)
-# renovate: depName=node datasource=node versioning=node
-ARG NODE_VERSION="24.16.0"
-RUN ARCH="$(dpkg --print-architecture)" \
-  && case "${ARCH}" in amd64) ARCH=x64;; arm64) ARCH=arm64;; *) echo "unsupported: ${ARCH}"; exit 1;; esac \
-  && curl -fsSL --retry 3 --retry-delay 5 "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${ARCH}.tar.xz" \
-  | tar -xJ --strip-components=1 -C /usr/local
-
-# GitHub CLI
-# renovate: depName=cli/cli datasource=github-releases
-ARG GH_VERSION="2.93.0"
-RUN ARCH="$(dpkg --print-architecture)" \
-  && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.deb" -o /tmp/gh.deb \
-  && dpkg -i /tmp/gh.deb \
-  && rm /tmp/gh.deb
-
-# ripgrep
-# renovate: depName=BurntSushi/ripgrep datasource=github-releases
-ARG RIPGREP_VERSION="15.1.0"
-RUN ARCH="$(dpkg --print-architecture)" \
-  && case "${ARCH}" in amd64) RG_ARCH="x86_64-unknown-linux-musl";; arm64) RG_ARCH="aarch64-unknown-linux-gnu";; *) echo "unsupported: ${ARCH}"; exit 1;; esac \
-  && curl -fsSL --retry 3 --retry-delay 5 \
-    "https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}/ripgrep-${RIPGREP_VERSION}-${RG_ARCH}.tar.gz" \
-  | tar -xz -C /usr/local/bin --strip-components=1 "ripgrep-${RIPGREP_VERSION}-${RG_ARCH}/rg"
-
-# Go
+# Go (prebuilt tarball). Root needed to write under /usr/local.
 # renovate: depName=golang datasource=docker
 ARG GO_VERSION="1.26.3"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" | tar -C /usr/local -xz
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-# Aikido safe-chain (installed globally, then set up for node user)
-# renovate: depName=@aikidosec/safe-chain datasource=npm
-ARG SAFE_CHAIN_VERSION="1.5.3"
-RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}" \
-  && if getent passwd 1000 >/dev/null; then userdel -r "$(getent passwd 1000 | cut -d: -f1)"; fi \
-  && useradd -m -u 1000 -s /bin/bash node
-
-# agentmemory MCP (pre-installed so npx resolves locally without network fetch)
-# renovate: depName=@agentmemory/mcp datasource=npm
-ARG AGENTMEMORY_VERSION="0.9.22"
-RUN npm install -g "@agentmemory/mcp@${AGENTMEMORY_VERSION}"
-
-USER 1000
-
-RUN safe-chain setup && safe-chain setup-ci
-ENV PATH="/home/node/.safe-chain/shims:${PATH}"
-
-# pre-commit
+# pre-commit (installed for the uid 1000 node user, matching the chain).
+# pre-commit builds node/python hook environments at runtime; python3 comes
+# from apt in the read base, so there is no fragile from-source Python build.
 # renovate: depName=pre-commit datasource=pypi
 ARG PRECOMMIT_VERSION="4.6.0"
+USER 1000
 RUN pip install --no-cache-dir --break-system-packages pre-commit=="${PRECOMMIT_VERSION}"
-ENV PATH="/home/node/.local/bin:${PATH}"
-
-# Claude Code CLI (native binary — npm datasource tracks versions)
-# renovate: depName=@anthropic-ai/claude-code datasource=npm
-ARG CLAUDE_VERSION="2.1.158"
-RUN curl -fsSL https://claude.ai/install.sh | bash -s -- "$CLAUDE_VERSION"
 
 # Working directory
 WORKDIR /workspace
