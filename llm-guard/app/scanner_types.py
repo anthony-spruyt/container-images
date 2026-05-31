@@ -50,7 +50,7 @@ class PromptInjectionScanner:
         self._model = kwargs.get("model", "") or config.DEFAULT_MODEL
         self._injection_label = kwargs.get("injection_label", "") or config.DEFAULT_INJECTION_LABEL
         threshold = kwargs.get("threshold", None)
-        self._threshold = config.THRESHOLD if threshold is None else threshold
+        self._threshold = config.DEFAULT_THRESHOLD if threshold is None else threshold
         self._match_type = kwargs.get("match_type", "full")
         self._model_max_length = kwargs.get("model_max_length", 512)
         self._pipe: Optional[Pipeline] = None

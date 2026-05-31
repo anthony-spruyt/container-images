@@ -14,11 +14,6 @@ DEFAULT_MODEL = "protectai/deberta-v3-base-prompt-injection-v2"
 DEFAULT_INJECTION_LABEL = "INJECTION"
 DEFAULT_THRESHOLD = 0.5
 
-# Backwards-compatible aliases referenced by scanner_types defaults.
-MODEL = DEFAULT_MODEL
-INJECTION_LABEL = DEFAULT_INJECTION_LABEL
-THRESHOLD = DEFAULT_THRESHOLD
-
 # --- Operational settings (environment-driven) ---
 CONFIG_FILE = os.environ.get("CONFIG_FILE", "")
 LISTEN_HOST = os.environ.get("LISTEN_HOST", "0.0.0.0")
