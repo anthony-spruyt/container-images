@@ -17,11 +17,40 @@ for bin in claude node python3 git npm jq gh rg go pre-commit; do
 done
 
 claude --version
+node -e "console.log(\"OK: node executes\")"
 safe-chain --version
 gh --version
 rg --version
 go version
 pre-commit --version
+
+# Functional pre-commit test that actually installs hook environments.
+# Uses a node-language hook (markdownlint) and a python-language hook
+# (end-of-file-fixer) so pre-commit builds and runs real node + python hook
+# envs — not a "language: system / echo" no-op. This exercises the full path
+# agents depend on (clone hook repo, build env, run hook).
+TMPDIR=$(mktemp -d)
+cd "$TMPDIR"
+git init -q
+git config user.email "test@test"
+git config user.name "test"
+cat > .pre-commit-config.yaml <<EOF
+repos:
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.48.0
+    hooks:
+      - id: markdownlint
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+EOF
+printf "# Title\n\nContent.\n" > README.md
+git add .
+pre-commit run --all-files
+echo "OK: pre-commit functional test passed (node + python hook envs built and ran)"
+cd /
+rm -rf "$TMPDIR"
 
 echo "All tests passed."
 '
