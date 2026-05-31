@@ -15,6 +15,7 @@ on:
       - "**/metadata.yaml"
       - "**/flavor.yaml"
       - "**/assets/**"
+      - "**/app/**"
       # MegaLinter factory (triggers all flavor rebuilds)
       - "megalinter-factory/**"
       # CI scripts (trigger script tests)
@@ -114,7 +115,7 @@ jobs:
 
             # Collect changed images from direct file changes
             DIRECT_CHANGES=$(echo "$DIFF_FILES" | \
-              grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|test\.sh|assets/|metadata\.yaml|flavor\.yaml)' | \
+              grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|test\.sh|assets/|app/|metadata\.yaml|flavor\.yaml)' | \
               cut -d'/' -f1 | sort -u | \
               while read -r img; do if [ -d "$img" ]; then echo "$img"; fi; done)
 
@@ -140,7 +141,7 @@ jobs:
 
             # Collect changed images from direct file changes
             DIRECT_CHANGES=$(echo "$DIFF_FILES" | \
-              grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|metadata\.yaml|flavor\.yaml|assets/)' | \
+              grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|metadata\.yaml|flavor\.yaml|assets/|app/)' | \
               cut -d'/' -f1 | sort -u | \
               while read -r img; do if [ -d "$img" ]; then echo "$img"; fi; done)
 
