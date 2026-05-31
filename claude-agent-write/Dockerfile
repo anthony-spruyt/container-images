@@ -28,12 +28,15 @@ RUN ./configure --prefix=/usr/local --enable-optimizations --with-ensurepip=inst
   && ln -sf /usr/local/bin/pip3 /usr/local/bin/pip
 WORKDIR /
 
-# Remove Python build artifacts and deps
+# Remove Python build artifacts and deps.
+# Re-install libatomic1 after autoremove: gcc (build-essential) held it as a
+# dependency, so autoremove would otherwise sweep it out.
 RUN rm -rf /tmp/Python-* \
   && apt-get purge -y \
     build-essential pkg-config libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
     libsqlite3-dev libncurses-dev libffi-dev liblzma-dev \
   && apt-get autoremove -y \
+  && apt-get install -y --no-install-recommends libatomic1 \
   && rm -rf /var/lib/apt/lists/*
 
 # Node.js (prebuilt binary tarball — Renovate tracks via node-version datasource)
