@@ -22,11 +22,7 @@ _STATE = {"ready": False}
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    """
-    Initialize scanner resources at application startup and mark the service as ready.
-    
-    This lifespan context is used by FastAPI on startup: it loads scanner resources and sets the module readiness flag (`_STATE["ready"] = True`) before yielding control to run the application.
-    """
+    """Load scanner resources at startup and mark the service ready."""
     scanner.load()
     _STATE["ready"] = True
     yield
@@ -37,23 +33,13 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/healthz")
 def healthz():
-    """
-    Return liveness status for the service.
-    
-    Returns:
-        dict: `{"status": "ok"}` indicating the service is alive.
-    """
+    """Return liveness status."""
     return {"status": "ok"}
 
 
 @app.get("/readyz")
 def readyz():
-    """
-    Report whether the service is ready to receive traffic.
-    
-    Returns:
-        `{"status": "ok"}` if the application is marked ready; otherwise an HTTP 503 response with `{"status": "not ready"}`.
-    """
+    """Return readiness status; 503 until model is loaded."""
     if not _STATE["ready"]:
         return JSONResponse(status_code=503, content={"status": "not ready"})
     return {"status": "ok"}
@@ -68,14 +54,7 @@ class _StructuredMsg(BaseModel):
     content: object
 
     def text(self) -> str:
-        """
-        Return the plain-text representation of this structured message's content.
-        
-        If the content is a string, that string is returned; if it's a list, the `text` fields of elements with `"type" == "text"` are joined with newlines; otherwise the content is converted to a string.
-        
-        Returns:
-            str: The extracted plain-text string.
-        """
+        """Extract plain text from a string or content-part list."""
         c = self.content
         if isinstance(c, str):
             return c
@@ -98,16 +77,7 @@ class LiteLLMRequest(BaseModel):
 
 
 def _extract_prompt(req: LiteLLMRequest) -> str:
-    """
-    Build a single prompt string from a LiteLLM request.
-    
-    If `req.texts` contains items, those strings are joined with newline characters and returned.
-    Otherwise, the `text()` results of `req.structured_messages` with `role == "user"` are joined with newlines.
-    Returns an empty string if no text content is found.
-    
-    Returns:
-        str: The composed prompt string.
-    """
+    """Build a single prompt string from a LiteLLM request."""
     if req.texts:
         return "\n".join(req.texts)
     parts = [m.text() for m in req.structured_messages if m.role == "user"]
@@ -122,15 +92,11 @@ def _safe_id(value: str) -> str:
 @app.post("/")
 async def litellm_guardrail(req: LiteLLMRequest):
     """
-    Evaluate a LiteLLM request for prompt-injection and produce a guardrail action.
-    
-    Parameters:
-        req (LiteLLMRequest): The incoming LiteLLM payload; prompt is extracted from `texts` or from user-role entries in `structured_messages`.
-    
+    Evaluate a LiteLLM request for prompt injection.
+
     Returns:
-        dict: A response object with an `action` key:
-            - `"BLOCKED"` with `blocked_reason` set to "prompt injection detected (score: <score>)" when the prompt is classified as unsafe.
-            - `"NONE"` when no prompt is found or the prompt is considered safe.
+        dict: ``{"action": "BLOCKED", "blocked_reason": "..."}`` if unsafe,
+              ``{"action": "NONE"}`` otherwise.
     """
     prompt = _extract_prompt(req)
     if not prompt:
@@ -164,17 +130,10 @@ class ScanPromptRequest(BaseModel):
 @app.post("/scan/prompt")
 async def scan_prompt(req: ScanPromptRequest):
     """
-    Scan a provided prompt for prompt-injection and return an llm-guard-api compatible result.
-    
-    Parameters:
-        req (ScanPromptRequest): Request containing the `prompt` string to scan.
-    
+    Scan a prompt for injection; returns an llm-guard-api compatible result.
+
     Returns:
-        dict: {
-            "is_valid": `true` if the prompt is considered safe, `false` otherwise,
-            "sanitized_prompt": the (unchanged) prompt string provided in the request,
-            "scanners": mapping of scanner names to their numeric scores, e.g. {"PromptInjection": <score>}
-        }
+        dict: ``{"is_valid": bool, "sanitized_prompt": str, "scanners": {...}}``
     """
     loop = asyncio.get_running_loop()
     is_safe, score = await loop.run_in_executor(None, scanner.scan, req.prompt)
