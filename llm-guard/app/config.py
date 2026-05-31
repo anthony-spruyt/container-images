@@ -7,7 +7,17 @@ INJECTION_LABEL = os.environ.get("INJECTION_LABEL", "INJECTION")
 
 
 def _parse_threshold() -> float:
-    """Parse and validate THRESHOLD env var."""
+    """
+    Parse and validate the THRESHOLD environment variable.
+    
+    Reads THRESHOLD from the environment (default "0.5"), converts it to a float, and ensures the value is between 0.0 and 1.0 inclusive.
+    
+    Returns:
+        float: Parsed threshold value between 0.0 and 1.0.
+    
+    Raises:
+        ValueError: If THRESHOLD cannot be parsed as a float or is outside the range [0.0, 1.0].
+    """
     raw = os.environ.get("THRESHOLD", "0.5")
     try:
         value = float(raw)

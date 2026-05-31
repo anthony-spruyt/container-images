@@ -8,6 +8,7 @@ IMAGE_REF="${1:?Usage: $0 <image-ref>}"
 CONTAINER_NAME="llm-guard-test-$$"
 PORT=8080
 
+# cleanup removes the Docker container named by CONTAINER_NAME (if present) and suppresses any errors.
 cleanup() {
   echo "Cleaning up..."
   docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
