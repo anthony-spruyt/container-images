@@ -25,6 +25,11 @@ class _Scanner:
             max_length=512,
             top_k=None,
         )
+        known_labels = set(self._pipe.model.config.label2id.keys())
+        if config.INJECTION_LABEL not in known_labels:
+            raise RuntimeError(
+                f"INJECTION_LABEL {config.INJECTION_LABEL!r} not in model labels: {known_labels}"
+            )
         logger.info("model ready")
 
     def scan(self, text: str) -> tuple[bool, float]:
