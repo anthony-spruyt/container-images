@@ -19,14 +19,18 @@ _SCANNER_TYPES = {
 def _build_from_config(path: str) -> list:
     """Build scanner list from a YAML config file."""
     with open(path, encoding="utf-8") as fh:
-        cfg = yaml.safe_load(fh)
+        cfg = yaml.safe_load(fh) or {}
     scanner_list = []
+    seen_names: set = set()
     for entry in cfg.get("input_scanners", []):
         scanner_type = entry.get("type", "")
         params = entry.get("params") or {}
         cls = _SCANNER_TYPES.get(scanner_type)
         if cls is None:
             raise ValueError(f"Unknown scanner type: {scanner_type!r}")
+        if scanner_type in seen_names:
+            raise ValueError(f"Duplicate scanner type: {scanner_type!r}")
+        seen_names.add(scanner_type)
         scanner_list.append(cls(**params))
     return scanner_list
 

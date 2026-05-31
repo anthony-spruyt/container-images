@@ -2,7 +2,7 @@
 import logging
 import re
 import unicodedata
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 from transformers import Pipeline, pipeline
 
@@ -10,8 +10,9 @@ import config
 
 logger = logging.getLogger(__name__)
 
-# Invisible/zero-width Unicode categories and specific codepoints
-_INVISIBLE_CATEGORIES = frozenset({"Cf", "Cc"})
+# Cf = Unicode format chars (zero-width, directional overrides, etc.)
+# Cc (control chars) intentionally excluded — it includes \n \r \t
+_INVISIBLE_CATEGORIES = frozenset({"Cf"})
 _INVISIBLE_CODEPOINTS = frozenset({
     0x00AD,  # soft hyphen
     0x200B,  # zero-width space
@@ -29,7 +30,7 @@ class ScanResult:
     scanner: str
     is_safe: bool
     score: float
-    reason: Optional[str] = field(default=None)
+    reason: Optional[str] = None
 
 
 class PromptInjectionScanner:
@@ -48,8 +49,8 @@ class PromptInjectionScanner:
         """
         self._model = kwargs.get("model", "") or config.MODEL
         self._injection_label = kwargs.get("injection_label", "") or config.INJECTION_LABEL
-        threshold = kwargs.get("threshold", 0.0)
-        self._threshold = threshold if threshold > 0.0 else config.THRESHOLD
+        threshold = kwargs.get("threshold", None)
+        self._threshold = config.THRESHOLD if threshold is None else threshold
         self._match_type = kwargs.get("match_type", "full")
         self._model_max_length = kwargs.get("model_max_length", 512)
         self._pipe: Optional[Pipeline] = None
@@ -146,18 +147,28 @@ class RegexScanner:
             ScanResult with is_safe=False if a blocking pattern matches.
         """
         for pat in self._compiled:
-            matched = (
-                pat.search(text) is not None
-                if self._match_type == "search"
-                else pat.fullmatch(text) is not None
-            )
-            if matched and self._is_blocked:
-                return ScanResult(
-                    scanner="Regex",
-                    is_safe=False,
-                    score=1.0,
-                    reason=f"matched blocked pattern: {pat.pattern!r}",
-                )
+            if self._match_type == "search":
+                matched = pat.search(text) is not None
+            elif self._match_type == "fullmatch":
+                matched = pat.fullmatch(text) is not None
+            else:
+                raise ValueError(f"Unknown match_type: {self._match_type!r}")
+            if self._is_blocked:
+                if matched:
+                    return ScanResult(
+                        scanner="Regex",
+                        is_safe=False,
+                        score=1.0,
+                        reason=f"matched blocked pattern: {pat.pattern!r}",
+                    )
+            else:
+                if not matched:
+                    return ScanResult(
+                        scanner="Regex",
+                        is_safe=False,
+                        score=1.0,
+                        reason=f"did not match required pattern: {pat.pattern!r}",
+                    )
         return ScanResult(scanner="Regex", is_safe=True, score=0.0)
 
 
