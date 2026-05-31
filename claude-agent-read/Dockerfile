@@ -1,15 +1,25 @@
-FROM node:24-slim@sha256:242549cd46785b480c832479a730f4f2a20865d61ea2e404fdb2a5c3d3b73ecf
+# renovate: depName=ubuntu datasource=docker versioning=ubuntu
+FROM ubuntu:resolute@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64
 
 # Ephemeral agent pod — lifespan managed by n8n spawner
 HEALTHCHECK NONE
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# System deps
+# System deps. xz-utils is required to extract the node .tar.xz tarball below
+# (node:24-slim provided it implicitly; ubuntu minimal does not).
 RUN apt-get update && apt-get install -y --no-install-recommends \
   ca-certificates curl git openssh-client jq python3 python3-pip \
-  libnghttp2-14 \
+  xz-utils \
   && rm -rf /var/lib/apt/lists/*
+
+# Node.js (prebuilt binary tarball — Renovate tracks via node-version datasource)
+# renovate: depName=node datasource=node versioning=node
+ARG NODE_VERSION="24.16.0"
+RUN ARCH="$(dpkg --print-architecture)" \
+  && case "${ARCH}" in amd64) ARCH=x64;; arm64) ARCH=arm64;; *) echo "unsupported: ${ARCH}"; exit 1;; esac \
+  && curl -fsSL --retry 3 --retry-delay 5 "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${ARCH}.tar.xz" \
+  | tar -xJ --strip-components=1 -C /usr/local
 
 # GitHub CLI
 # renovate: depName=cli/cli datasource=github-releases
@@ -28,10 +38,14 @@ RUN ARCH="$(dpkg --print-architecture)" \
     "https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}/ripgrep-${RIPGREP_VERSION}-${RG_ARCH}.tar.gz" \
   | tar -xz -C /usr/local/bin --strip-components=1 "ripgrep-${RIPGREP_VERSION}-${RG_ARCH}/rg"
 
-# Aikido safe-chain (installed globally, then set up for node user)
+# Aikido safe-chain (installed globally, then set up for node user).
+# ubuntu has no uid 1000 user; create one named "node" to match downstream
+# images and the n8n spawner's expected runtime user.
 # renovate: depName=@aikidosec/safe-chain datasource=npm
 ARG SAFE_CHAIN_VERSION="1.5.3"
-RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
+RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}" \
+  && if getent passwd 1000 >/dev/null; then userdel -r "$(getent passwd 1000 | cut -d: -f1)"; fi \
+  && useradd -m -u 1000 -s /bin/bash node
 
 # agentmemory MCP (pre-installed so npx resolves locally without network fetch)
 # renovate: depName=@agentmemory/mcp datasource=npm
