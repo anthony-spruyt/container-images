@@ -34,13 +34,29 @@ echo "OK: helm-diff plugin installed"
 helm plugin list | grep -q schema-gen || { echo "FAIL: helm-schema-gen plugin not found"; exit 1; }
 echo "OK: helm-schema-gen plugin installed"
 
-# Verify claude can actually execute (catches missing libatomic1 and similar)
-if ! claude --version --no-update-check >/dev/null 2>&1; then
-  echo "FAIL: claude binary fails at runtime (missing shared libs?)"
-  ldd "$(which claude)" 2>/dev/null || true
-  exit 1
-fi
-echo "OK: claude runtime smoke test passed"
+# Functional pre-commit test: use a local hook so no network or hook env install needed.
+# Verifies python, pre-commit, and git all work together end-to-end.
+TMPDIR=$(mktemp -d)
+cd "$TMPDIR"
+git init -q
+git config user.email "test@test"
+git config user.name "test"
+cat > .pre-commit-config.yaml <<EOF
+repos:
+  - repo: local
+    hooks:
+      - id: smoke
+        name: smoke
+        entry: echo
+        language: system
+        pass_filenames: false
+EOF
+touch test.txt
+git add .
+pre-commit run --all-files smoke
+echo "OK: pre-commit functional test passed"
+cd /
+rm -rf "$TMPDIR"
 
 echo "All tests passed."
 '

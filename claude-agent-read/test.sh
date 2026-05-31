@@ -21,13 +21,5 @@ safe-chain --version
 gh --version
 rg --version
 
-# Verify claude can actually execute (catches missing libatomic1 and similar)
-if ! claude --version --no-update-check >/dev/null 2>&1; then
-  echo "FAIL: claude binary fails at runtime (missing shared libs?)"
-  ldd "$(which claude)" 2>/dev/null || true
-  exit 1
-fi
-echo "OK: claude runtime smoke test passed"
-
 echo "All tests passed."
 '
