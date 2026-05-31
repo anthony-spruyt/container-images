@@ -66,12 +66,31 @@ class PromptInjectionScanner:
             max_length=self._model_max_length,
             top_k=None,
         )
-        known_labels = set(self._pipe.model.config.label2id.keys())
-        if self._injection_label not in known_labels:
+        known_labels = self._known_labels()
+        if known_labels and self._injection_label not in known_labels:
             raise RuntimeError(
                 f"injection_label {self._injection_label!r} not in model labels: {known_labels}"
             )
+        if not known_labels:
+            # Some models populate only one of label2id/id2label, or neither
+            # (e.g. generic LABEL_0/LABEL_1). Can't validate up front; the
+            # label is resolved per-inference from pipeline output instead.
+            logger.warning(
+                "model exposes no label map; skipping injection_label validation",
+                extra={"injection_label": self._injection_label},
+            )
         logger.info("model ready")
+
+    def _known_labels(self) -> set:
+        """Return the model's label names from label2id or id2label, if any."""
+        cfg = self._pipe.model.config
+        label2id = getattr(cfg, "label2id", None)
+        if label2id:
+            return set(label2id.keys())
+        id2label = getattr(cfg, "id2label", None)
+        if id2label:
+            return set(id2label.values())
+        return set()
 
     def _score_text(self, text: str) -> float:
         """Return injection score [0,1] for a single text chunk."""
