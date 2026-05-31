@@ -20,9 +20,13 @@ def _build_from_config(path: str) -> list:
     """Build scanner list from a YAML config file."""
     with open(path, encoding="utf-8") as fh:
         cfg = yaml.safe_load(fh) or {}
+    if not isinstance(cfg, dict):
+        raise ValueError(f"Config file must be a YAML mapping, got {type(cfg).__name__}")
     scanner_list = []
     seen_names: set = set()
-    for entry in cfg.get("input_scanners", []):
+    for i, entry in enumerate(cfg.get("input_scanners", [])):
+        if not isinstance(entry, dict):
+            raise ValueError(f"input_scanners[{i}] must be a mapping, got {type(entry).__name__}")
         scanner_type = entry.get("type", "")
         params = entry.get("params") or {}
         cls = _SCANNER_TYPES.get(scanner_type)
@@ -32,6 +36,8 @@ def _build_from_config(path: str) -> list:
             raise ValueError(f"Duplicate scanner type: {scanner_type!r}")
         seen_names.add(scanner_type)
         scanner_list.append(cls(**params))
+    if not scanner_list:
+        raise ValueError(f"CONFIG_FILE {path!r} defines no input_scanners")
     return scanner_list
 
 
