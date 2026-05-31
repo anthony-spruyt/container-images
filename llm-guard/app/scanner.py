@@ -1,12 +1,13 @@
 """HuggingFace text-classification pipeline wrapper."""
 import logging
+from typing import Any
 from transformers import pipeline
 
 import config
 
 logger = logging.getLogger(__name__)
 
-_PIPE = [None]  # mutable container — avoids module-level global statement
+_PIPE: list[Any] = [None]  # mutable container — avoids module-level global statement
 
 
 def load():
