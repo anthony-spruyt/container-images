@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 import config
-import scanner
+import pipeline
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,7 +23,7 @@ _STATE = {"ready": False}
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Load scanner resources at startup and mark the service ready."""
-    scanner.load()
+    pipeline.load()
     _STATE["ready"] = True
     yield
 
@@ -106,17 +106,21 @@ async def litellm_guardrail(req: LiteLLMRequest):
         return {"action": "NONE"}
 
     loop = asyncio.get_running_loop()
-    is_safe, score = await loop.run_in_executor(None, scanner.scan, prompt)
+    is_safe, scores, reason = await loop.run_in_executor(None, pipeline.scan, prompt)
 
     logger.info(
         "litellm scan",
-        extra={"call_id": _safe_id(req.litellm_call_id), "is_safe": is_safe, "score": score},
+        extra={
+            "call_id": _safe_id(req.litellm_call_id),
+            "is_safe": is_safe,
+            "scores": scores,
+        },
     )
 
     if not is_safe:
         return {
             "action": "BLOCKED",
-            "blocked_reason": f"prompt injection detected (score: {score})",
+            "blocked_reason": reason or "content blocked",
         }
     return {"action": "NONE"}
 
@@ -133,17 +137,17 @@ class ScanPromptRequest(BaseModel):
 @app.post("/scan/prompt")
 async def scan_prompt(req: ScanPromptRequest):
     """
-    Scan a prompt for injection; returns an llm-guard-api compatible result.
+    Scan a prompt; returns an llm-guard-api compatible result.
 
     Returns:
         dict: ``{"is_valid": bool, "sanitized_prompt": str, "scanners": {...}}``
     """
     loop = asyncio.get_running_loop()
-    is_safe, score = await loop.run_in_executor(None, scanner.scan, req.prompt)
+    is_safe, scores, _ = await loop.run_in_executor(None, pipeline.scan, req.prompt)
     return {
         "is_valid": is_safe,
         "sanitized_prompt": req.prompt,
-        "scanners": {"PromptInjection": score},
+        "scanners": scores,
     }
 
 

@@ -4,6 +4,7 @@ import os
 
 MODEL = os.environ.get("MODEL", "protectai/deberta-v3-base-prompt-injection-v2")
 INJECTION_LABEL = os.environ.get("INJECTION_LABEL", "INJECTION")
+CONFIG_FILE = os.environ.get("CONFIG_FILE", "")
 
 
 def _parse_threshold() -> float:
