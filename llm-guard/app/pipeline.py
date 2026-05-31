@@ -1,4 +1,4 @@
-"""Scanner pipeline — loads from CONFIG_FILE or ENV defaults."""
+"""Scanner pipeline — loads from the CONFIG_FILE YAML (required)."""
 import logging
 from typing import Optional
 
@@ -44,11 +44,6 @@ def _build_from_config(path: str) -> list:
     return scanner_list
 
 
-def _build_from_env() -> list:
-    """Build default PromptInjection scanner from environment variables."""
-    return [PromptInjectionScanner()]
-
-
 class _Pipeline:
     """Ordered list of scanners run sequentially against each prompt."""
 
@@ -57,13 +52,16 @@ class _Pipeline:
         self._scanners: list = []
 
     def load(self):
-        """Load all configured scanners."""
-        if config.CONFIG_FILE:
-            logger.info("loading scanner config", extra={"path": config.CONFIG_FILE})
-            self._scanners = _build_from_config(config.CONFIG_FILE)
-        else:
-            logger.info("no CONFIG_FILE set, using ENV defaults")
-            self._scanners = _build_from_env()
+        """Load all configured scanners from the CONFIG_FILE YAML.
+
+        CONFIG_FILE is required: there is no ENV fallback. A missing or empty
+        value fails closed (RuntimeError) rather than silently serving an
+        unconfigured pipeline.
+        """
+        if not config.CONFIG_FILE:
+            raise RuntimeError("CONFIG_FILE is required but not set")
+        logger.info("loading scanner config", extra={"path": config.CONFIG_FILE})
+        self._scanners = _build_from_config(config.CONFIG_FILE)
 
         for scanner in self._scanners:
             scanner.load()
