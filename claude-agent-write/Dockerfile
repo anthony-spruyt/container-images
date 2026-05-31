@@ -9,10 +9,19 @@ HEALTHCHECK NONE
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+USER root
+
+# libatomic1: pre-commit's nodeenv builds its own node binary (not the
+# nodejs.org prebuilt tarball in the read base), and that binary dynamically
+# links libatomic.so.1. Without it `pre-commit run` fails at hook-env install
+# with "libatomic.so.1: cannot open shared object file". Lives here because
+# pre-commit is added in this layer. Ref spruyt-labs#1878.
+RUN apt-get update && apt-get install -y --no-install-recommends libatomic1 \
+  && rm -rf /var/lib/apt/lists/*
+
 # Go (prebuilt tarball). Root needed to write under /usr/local.
 # renovate: depName=golang datasource=docker
 ARG GO_VERSION="1.26.3"
-USER root
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" | tar -C /usr/local -xz
 ENV PATH="/usr/local/go/bin:${PATH}"
