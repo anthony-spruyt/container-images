@@ -16,7 +16,9 @@ for bin in claude node python3 git npm jq gh rg; do
   echo "OK: $bin found at $(which "$bin")"
 done
 
+# Functional checks: exercise the binaries, do not just locate them.
 claude --version
+node -e "console.log(\"OK: node executes\")"
 safe-chain --version
 gh --version
 rg --version
