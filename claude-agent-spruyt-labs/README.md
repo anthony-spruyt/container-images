@@ -14,20 +14,7 @@ Built on [`claude-agent-write`](../claude-agent-write) (itself `FROM` [`claude-a
 
 ## Contents (added on top of claude-agent-write)
 
-| Component       | Purpose                       |
-| --------------- | ----------------------------- |
-| kubectl         | Kubernetes API operations     |
-| kustomize       | Kustomize manifests           |
-| helm            | Chart management              |
-| helmfile        | Declarative helm management   |
-| helm-diff       | Helm diff plugin              |
-| helm-schema-gen | Helm schema generation plugin |
-| cilium          | Cilium CNI operations         |
-| talosctl        | Talos Linux node management   |
-| flux            | GitOps toolkit                |
-| velero          | Backup inspection             |
-| cnpg plugin     | CloudNativePG operations      |
-| falcoctl        | Falco security runtime        |
+Cluster/GitOps tooling such as kubectl, helm, and flux. See the [Dockerfile](./Dockerfile) for the complete installed list.
 
 ## Build
 
