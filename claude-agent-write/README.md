@@ -8,14 +8,14 @@ Runtime image for Claude Code agents that implement issues, fix PRs, and commit 
 
 ## Base image
 
-Built on [`claude-agent-read`](../claude-agent-read), which provides the Ubuntu base plus Node.js, Python 3 (apt), git, jq, gh, ripgrep, safe-chain, agentmemory, and the Claude Code CLI. This image adds only the write-specific delta.
+Builds on [`claude-agent-read`](../claude-agent-read) (see its docs for the full inherited toolset, e.g. Node.js), adding only the write-specific delta.
 
 ## Contents (added on top of claude-agent-read)
 
-| Component  | Purpose            |
-| ---------- | ------------------ |
+| Component  | Purpose             |
+| ---------- | ------------------- |
 | Go         | Go language support |
-| pre-commit | Git hook framework |
+| pre-commit | Git hook framework  |
 
 ## Build
 
