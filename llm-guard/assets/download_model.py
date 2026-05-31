@@ -1,8 +1,10 @@
-"""Pre-download PromptInjection model into HuggingFace cache."""
+"""Pre-download model into HuggingFace cache at build time."""
 
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+import os
+from transformers import pipeline
 
-MODEL = "protectai/deberta-v3-base-prompt-injection-v2"
+MODEL = os.environ.get("MODEL", "protectai/deberta-v3-base-prompt-injection-v2")
 
-AutoModelForSequenceClassification.from_pretrained(MODEL)
-AutoTokenizer.from_pretrained(MODEL)
+print(f"Downloading model: {MODEL}")
+pipeline("text-classification", model=MODEL)
+print("Done.")
