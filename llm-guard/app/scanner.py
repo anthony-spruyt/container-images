@@ -37,7 +37,8 @@ class _Scanner:
         if self._pipe is None:
             raise RuntimeError("Scanner not loaded; call load() first")
         results = self._pipe(text)
-        scores = {r["label"]: r["score"] for r in results}
+        flat = results[0] if results and isinstance(results[0], list) else results
+        scores = {r["label"]: r["score"] for r in flat}
         injection_score = scores.get(config.INJECTION_LABEL, 0.0)
         is_safe = injection_score < config.THRESHOLD
         logger.info(
