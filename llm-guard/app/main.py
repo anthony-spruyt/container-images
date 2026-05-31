@@ -2,6 +2,7 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI
@@ -68,27 +69,33 @@ class _StructuredMsg(BaseModel):
 
 
 class LiteLLMRequest(BaseModel):
-    """Request body from a LiteLLM guardrail hook (custom or generic API format)."""
+    """Request body from a LiteLLM guardrail hook (custom or generic API format).
+
+    LiteLLM's Generic Guardrail API serialises the request with
+    ``model_dump(mode="json")``, so optional fields are sent as explicit
+    ``null`` rather than omitted. These fields must therefore be Optional —
+    a non-Optional ``list``/``str`` would reject the explicit null with a 422.
+    """
 
     model_config = {"extra": "ignore"}
 
-    texts: list[str] = []
-    structured_messages: list[_StructuredMsg] = []
-    litellm_call_id: str = ""
-    litellm_trace_id: str = ""
+    texts: Optional[list[str]] = None
+    structured_messages: Optional[list[_StructuredMsg]] = None
+    litellm_call_id: Optional[str] = None
+    litellm_trace_id: Optional[str] = None
 
 
 def _extract_prompt(req: LiteLLMRequest) -> str:
     """Build a single prompt string from a LiteLLM request."""
     if req.texts:
         return "\n".join(req.texts)
-    parts = [m.text() for m in req.structured_messages if m.role == "user"]
+    parts = [m.text() for m in (req.structured_messages or []) if m.role == "user"]
     return "\n".join(parts)
 
 
-def _safe_id(value: str) -> str:
-    """Strip newlines to prevent log injection."""
-    return value.replace("\n", " ").replace("\r", " ")
+def _safe_id(value: Optional[str]) -> str:
+    """Strip newlines to prevent log injection; treat None as empty."""
+    return (value or "").replace("\n", " ").replace("\r", " ")
 
 
 @app.post("/")
