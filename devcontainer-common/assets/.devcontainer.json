@@ -1,13 +1,16 @@
 {
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1.1.0@sha256:d22f50b70ed75339b4eed1ba9ecde3a1791f90e88d37936517e3bace0bbad671": {
-      "version": "2.92.0"
+      // renovate: depName=cli/cli datasource=github-releases
+      "version": "2.93.0"
     },
     "ghcr.io/devcontainers/features/node:2.0.0@sha256:fedd4c11f7adfb64283b578dddc7da906728daa25fa293351c9d913231acf12f": {
-      "version": "24.14.1"
+      // renovate: datasource=node-version depName=node
+      "version": "24.16.0"
     },
     "ghcr.io/devcontainers/features/python:1.8.0@sha256:fbcad6955caeecc5ad3f7886baf652e25cba5225a6c4c2287c536de2e5607511": {
-      "version": "3.13",
+      // renovate: datasource=github-releases depName=python/cpython versioning=pep440
+      "version": "3.14.5",
       "installTools": false
     }
   }
