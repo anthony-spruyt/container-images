@@ -9,8 +9,9 @@ RUN printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::http::
     && curl -fsSL https://raw.githubusercontent.com/MilkClouds/devcontainer-feature-installer/main/install-feature-cli.sh | bash
 
 COPY assets/.devcontainer.json /tmp/devcontainer.json
-RUN feature-install --features "$(jq -c '.features' /tmp/devcontainer.json)" \
-    && rm /tmp/devcontainer.json
+RUN sed '/^\s*\/\//d' /tmp/devcontainer.json | jq -c '.features' > /tmp/features.json \
+    && feature-install --features "$(cat /tmp/features.json)" \
+    && rm /tmp/devcontainer.json /tmp/features.json
 
 COPY assets/scripts/ /tmp/scripts/
 
