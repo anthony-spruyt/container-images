@@ -10,7 +10,7 @@ It is not investigation-only: it inherits the full write toolchain (Go, pre-comm
 
 ## Base image
 
-Built on [`claude-agent-write`](../claude-agent-write) (itself `FROM` [`claude-agent-read`](../claude-agent-read)). The Ubuntu base, Node.js, Python 3, git, jq, gh, ripgrep, safe-chain, agentmemory, Claude Code CLI, Go, and pre-commit all come from that chain. This image adds only the cluster tooling delta.
+Built on [`claude-agent-write`](../claude-agent-write) (itself `FROM` [`claude-agent-read`](../claude-agent-read)). The Ubuntu base, Node.js, Python 3, git, jq, gh, ripgrep, safe-chain, Claude Code CLI, Go, and pre-commit all come from that chain. This image adds only the cluster tooling delta.
 
 ## Contents (added on top of claude-agent-write)
 
