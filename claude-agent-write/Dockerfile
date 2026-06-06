@@ -2,7 +2,7 @@
 # Pinned to a digest by Renovate once claude-agent-read publishes; until then
 # :latest resolves the most recent read build.
 # renovate: datasource=docker depName=ghcr.io/anthony-spruyt/claude-agent-read versioning=semver
-FROM ghcr.io/anthony-spruyt/claude-agent-read:1.0.45@sha256:dbe28af3932bc327b82d249d2fa435915aba7246676326549432b9fa2edb971c
+FROM ghcr.io/anthony-spruyt/claude-agent-read:1.0.46@sha256:d8c5e8a65e51a102f98427fd8a5240f4c1b0eb6e05de8faaa38d584b0a484a4e
 
 # Ephemeral agent pod — lifespan managed by n8n spawner
 HEALTHCHECK NONE
