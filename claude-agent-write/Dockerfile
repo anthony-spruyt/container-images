@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libatomic1 \
 
 # Go (prebuilt tarball). Root needed to write under /usr/local.
 # renovate: depName=golang datasource=docker
-ARG GO_VERSION="1.26.3"
+ARG GO_VERSION="1.26.4"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" | tar -C /usr/local -xz
 ENV PATH="/usr/local/go/bin:${PATH}"
