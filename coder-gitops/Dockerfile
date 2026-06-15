@@ -9,7 +9,7 @@ FROM alpine:3.24@sha256:a2d49ea686c2adfe3c992e47dc3b5e7fa6e6b5055609400dc2acaeb2
 HEALTHCHECK NONE
 
 # renovate: datasource=github-releases depName=coder/coder
-ARG CODER_VERSION=v2.33.5
+ARG CODER_VERSION=v2.34.1
 
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
 ARG KUBECTL_VERSION=v1.36.1
