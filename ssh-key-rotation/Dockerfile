@@ -12,7 +12,7 @@
 #   FORCE_SYNC_ES_NAME    — ExternalSecret name to sync
 #
 # Pin to specific digest for supply chain security (renovate updates this)
-FROM alpine:3.24@sha256:a2d49ea686c2adfe3c992e47dc3b5e7fa6e6b5055609400dc2acaeb241c829f4
+FROM alpine:3.24@sha256:f5064d3e5f88c467c714509f491853ab2d951932c5cad699c0cb969dcec6f3b4
 
 # CronJob — runs to completion, no health check applicable
 HEALTHCHECK NONE
