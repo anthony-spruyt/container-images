@@ -93,7 +93,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 USER 1000
 
 # renovate: depName=databus23/helm-diff datasource=github-releases
-ARG HELM_DIFF_VERSION="v3.15.8"
+ARG HELM_DIFF_VERSION="v3.15.10"
 RUN helm plugin install https://github.com/databus23/helm-diff --verify=false --version "${HELM_DIFF_VERSION}"
 
 # renovate: depName=knechtionscoding/helm-schema-gen datasource=github-releases
