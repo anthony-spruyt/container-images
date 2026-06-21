@@ -2,8 +2,6 @@
 ARG PYTHON_VERSION=3.14-slim@sha256:44dd04494ee8f3b538294360e7c4b3acb87c8268e4d0a4828a6500b1eff50061
 FROM python:${PYTHON_VERSION}
 
-ARG MODEL=protectai/deberta-v3-base-prompt-injection-v2
-
 WORKDIR /app
 
 COPY app/requirements.txt .
@@ -11,11 +9,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ .
 
+# Model weights are NOT baked in. The scanner downloads them into HF_HOME on
+# first load (transformers pipeline() pulls from the Hub when the cache misses)
+# and reuses the cache thereafter. Mount a persistent volume at HF_HOME so the
+# download survives restarts. Keeping weights out of the image avoids a ~2.9GB
+# layer and the slow cold pull it caused on every tag bump.
 ENV HF_HOME=/app/.cache/huggingface
-
-# Pre-download the default model into the HF cache so the image runs offline.
-COPY assets/download_model.py /tmp/download_model.py
-RUN MODEL=${MODEL} python /tmp/download_model.py && rm /tmp/download_model.py
 
 RUN useradd -u 1000 -m appuser && chown -R 1000:1000 /app
 USER 1000:1000
