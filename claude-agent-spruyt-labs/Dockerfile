@@ -37,7 +37,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # helmfile
 # renovate: depName=helmfile/helmfile datasource=github-releases
-ARG HELMFILE_VERSION="v1.5.3"
+ARG HELMFILE_VERSION="v1.5.5"
 RUN ARCH="$(dpkg --print-architecture)" \
   && HELMFILE_VERSION_NUM="${HELMFILE_VERSION#v}" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/helmfile/helmfile/releases/download/${HELMFILE_VERSION}/helmfile_${HELMFILE_VERSION_NUM}_linux_${ARCH}.tar.gz" \
