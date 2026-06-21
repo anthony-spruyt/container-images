@@ -2,7 +2,8 @@
 #
 # Override by mounting your own file and pointing CONFIG_FILE at it
 # (e.g. CONFIG_FILE=/config/scanners.yml). This default uses only the
-# pre-baked PromptInjection model so the image runs fully offline.
+# PromptInjection model, downloaded into HF_HOME on first load (cached
+# thereafter); mount a persistent volume at HF_HOME to retain it.
 input_scanners:
   - type: PromptInjection
     params:

@@ -44,11 +44,23 @@ if [ $ELAPSED -ge $TIMEOUT ]; then
   exit 1
 fi
 
-echo "Test 3: Readiness check..."
-if curl -sf http://localhost:${PORT}/readyz >/dev/null 2>&1; then
-  echo "  /readyz OK"
-else
-  echo "  ERROR: /readyz failed"
+# /readyz returns 503 until pipeline.load() finishes. The model is no longer
+# baked into the image, so first load downloads it from the HF Hub into
+# HF_HOME — allow a generous timeout for the cold download in CI.
+echo "Test 3: Waiting for /readyz (max 600s, includes first-load model download)..."
+TIMEOUT=600
+ELAPSED=0
+while [[ $ELAPSED -lt $TIMEOUT ]]; do
+  if curl -sf http://localhost:${PORT}/readyz >/dev/null 2>&1; then
+    echo "  /readyz OK after ${ELAPSED}s"
+    break
+  fi
+  sleep 5
+  ELAPSED=$((ELAPSED + 5))
+done
+
+if [[ $ELAPSED -ge $TIMEOUT ]]; then
+  echo "  ERROR: Timeout waiting for /readyz" >&2
   docker logs "$CONTAINER_NAME"
   exit 1
 fi
