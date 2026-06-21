@@ -50,7 +50,7 @@ fi
 echo "Test 3: Waiting for /readyz (max 600s, includes first-load model download)..."
 TIMEOUT=600
 ELAPSED=0
-while [ $ELAPSED -lt $TIMEOUT ]; do
+while [[ $ELAPSED -lt $TIMEOUT ]]; do
   if curl -sf http://localhost:${PORT}/readyz >/dev/null 2>&1; then
     echo "  /readyz OK after ${ELAPSED}s"
     break
@@ -59,8 +59,8 @@ while [ $ELAPSED -lt $TIMEOUT ]; do
   ELAPSED=$((ELAPSED + 5))
 done
 
-if [ $ELAPSED -ge $TIMEOUT ]; then
-  echo "  ERROR: Timeout waiting for /readyz"
+if [[ $ELAPSED -ge $TIMEOUT ]]; then
+  echo "  ERROR: Timeout waiting for /readyz" >&2
   docker logs "$CONTAINER_NAME"
   exit 1
 fi
