@@ -45,7 +45,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # cilium
 # renovate: depName=cilium/cilium-cli datasource=github-releases
-ARG CILIUM_VERSION="v0.19.4"
+ARG CILIUM_VERSION="v0.19.5"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/cilium/cilium-cli/releases/download/${CILIUM_VERSION}/cilium-linux-${ARCH}.tar.gz" \
   | tar -xz -C /usr/local/bin
