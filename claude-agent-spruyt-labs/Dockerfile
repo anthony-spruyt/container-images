@@ -75,7 +75,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # cnpg kubectl plugin
 # renovate: depName=cloudnative-pg/cloudnative-pg datasource=github-releases
-ARG CNPG_VERSION="v1.29.1"
+ARG CNPG_VERSION="v1.30.0"
 RUN ARCH="$(uname -m)" \
   && CNPG_VERSION_NUM="${CNPG_VERSION#v}" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/cloudnative-pg/cloudnative-pg/releases/download/${CNPG_VERSION}/kubectl-cnpg_${CNPG_VERSION_NUM}_linux_${ARCH}.tar.gz" \
