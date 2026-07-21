@@ -46,7 +46,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 # ubuntu has no uid 1000 user; create one named "node" to match downstream
 # images and the n8n spawner's expected runtime user.
 # renovate: depName=@aikidosec/safe-chain datasource=npm
-ARG SAFE_CHAIN_VERSION="1.5.8"
+ARG SAFE_CHAIN_VERSION="1.5.13"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}" \
   && if getent passwd 1000 >/dev/null; then userdel -r "$(getent passwd 1000 | cut -d: -f1)"; fi \
   && useradd -m -u 1000 -s /bin/bash node
