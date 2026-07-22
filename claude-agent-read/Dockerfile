@@ -35,7 +35,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 
 # ripgrep
 # renovate: depName=BurntSushi/ripgrep datasource=github-releases
-ARG RIPGREP_VERSION="15.1.0"
+ARG RIPGREP_VERSION="15.2.0"
 RUN ARCH="$(dpkg --print-architecture)" \
   && case "${ARCH}" in amd64) RG_ARCH="x86_64-unknown-linux-musl";; arm64) RG_ARCH="aarch64-unknown-linux-gnu";; *) echo "unsupported: ${ARCH}"; exit 1;; esac \
   && curl -fsSL --retry 3 --retry-delay 5 \
