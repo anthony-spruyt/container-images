@@ -24,7 +24,7 @@ RUN chmod +x /tmp/scripts/*.sh \
        done
 
 # renovate: datasource=pypi depName=pre-commit
-ARG PRE_COMMIT_VERSION="4.6.1"
+ARG PRE_COMMIT_VERSION="4.6.2"
 # renovate: datasource=pypi depName=pipx
 ARG PIPX_VERSION="1.16.6"
 RUN export PIPX_HOME="/usr/local/py-utils" \
