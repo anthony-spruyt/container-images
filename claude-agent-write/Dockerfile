@@ -30,7 +30,7 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 # pre-commit builds node/python hook environments at runtime; python3 comes
 # from apt in the read base, so there is no fragile from-source Python build.
 # renovate: depName=pre-commit datasource=pypi
-ARG PRECOMMIT_VERSION="4.6.1"
+ARG PRECOMMIT_VERSION="4.6.2"
 USER 1000
 RUN pip install --no-cache-dir --break-system-packages pre-commit=="${PRECOMMIT_VERSION}"
 
