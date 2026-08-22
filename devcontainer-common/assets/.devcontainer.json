@@ -1,6 +1,6 @@
 {
   "features": {
-    "ghcr.io/devcontainers/features/github-cli:1.1.0@sha256:d22f50b70ed75339b4eed1ba9ecde3a1791f90e88d37936517e3bace0bbad671": {
+    "ghcr.io/devcontainers/features/github-cli:1.1.1@sha256:94879eebb6a0e4e2f197de9f12db7427cb4a25b82d93c55239ce8c8fc394a1b4": {
       // renovate: depName=cli/cli datasource=github-releases
       "version": "2.93.0"
     },
