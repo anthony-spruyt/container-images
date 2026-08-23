@@ -1,12 +1,24 @@
 #!/bin/bash
 # Test script for llm-guard container
-# Usage: ./test.sh <image-ref>
+# Usage: ./test.sh <image-ref> [flavor]
+#   flavor: cpu (default) or cuda — selects the torch build assertions.
+#           llm-guard-cuda/test.sh passes "cuda".
 
 set -euo pipefail
 
-IMAGE_REF="${1:?Usage: $0 <image-ref>}"
+IMAGE_REF="${1:?Usage: $0 <image-ref> [cpu|cuda]}"
+FLAVOR="${2:-cpu}"
+if [[ "$FLAVOR" != "cpu" && "$FLAVOR" != "cuda" ]]; then
+  echo "ERROR: unknown flavor '$FLAVOR' (expected cpu or cuda)" >&2
+  exit 1
+fi
 CONTAINER_NAME="llm-guard-test-$$"
 PORT=8080
+
+# Uncompressed size ceiling for the CPU image. The pre-split image (CUDA torch
+# pulled in from default PyPI) was ~7GB uncompressed, so this fails loudly if
+# the CUDA wheel ever comes back into the CPU variant.
+MAX_CPU_IMAGE_BYTES=$((2500 * 1000 * 1000))
 
 # cleanup removes the Docker container named by CONTAINER_NAME (if present) and suppresses any errors.
 cleanup() {
@@ -17,6 +29,7 @@ trap cleanup EXIT
 
 echo "=== LLM Guard Container Tests ==="
 echo "Image: $IMAGE_REF"
+echo "Flavor: $FLAVOR"
 echo ""
 
 echo "Test 1: Container startup..."
@@ -124,6 +137,48 @@ if [ "$ACTION" != "NONE" ]; then
   exit 1
 fi
 echo "  generic guardrail (explicit nulls) action=NONE OK"
+
+echo "Test 8: torch build matches flavor ($FLAVOR)..."
+# Direct regression guard for the image-size split: the CPU image must never
+# ship the CUDA wheel. torch.version.cuda is None on a +cpu build.
+TORCH_CUDA=$(docker exec "$CONTAINER_NAME" python -c "import torch; print(torch.version.cuda)")
+if [[ "$FLAVOR" == "cpu" ]]; then
+  if [[ "$TORCH_CUDA" != "None" ]]; then
+    echo "  ERROR: CPU image contains a CUDA torch build (torch.version.cuda=$TORCH_CUDA)" >&2
+    exit 1
+  fi
+else
+  if [[ "$TORCH_CUDA" == "None" ]]; then
+    echo "  ERROR: CUDA image contains a CPU-only torch build (torch.version.cuda=None)" >&2
+    exit 1
+  fi
+fi
+echo "  torch.version.cuda=$TORCH_CUDA OK"
+
+echo "Test 9: device resolution logged..."
+# CI runners have no GPU, so both flavors must resolve to -1. Catches
+# _resolve_device() throwing or mis-parsing SCANNER_DEVICE.
+# Logs are captured to a variable rather than piped into grep: under
+# `set -o pipefail`, `grep -q` exits on the first match, `docker logs` then
+# takes SIGPIPE and exits 141, and the pipeline reports failure even though
+# the line was found.
+CONTAINER_LOGS=$(docker logs "$CONTAINER_NAME" 2>&1)
+if ! grep -q 'loading model on device -1' <<<"$CONTAINER_LOGS"; then
+  echo "  ERROR: expected 'loading model on device -1' in logs" >&2
+  echo "$CONTAINER_LOGS"
+  exit 1
+fi
+echo "  device=-1 OK"
+
+if [[ "$FLAVOR" == "cpu" ]]; then
+  echo "Test 10: image size under ceiling..."
+  IMAGE_BYTES=$(docker image inspect "$IMAGE_REF" --format '{{.Size}}')
+  if [[ "$IMAGE_BYTES" -ge "$MAX_CPU_IMAGE_BYTES" ]]; then
+    echo "  ERROR: image is ${IMAGE_BYTES} bytes, ceiling is ${MAX_CPU_IMAGE_BYTES}" >&2
+    exit 1
+  fi
+  echo "  ${IMAGE_BYTES} bytes (ceiling ${MAX_CPU_IMAGE_BYTES}) OK"
+fi
 
 echo ""
 echo "=== All tests passed ==="

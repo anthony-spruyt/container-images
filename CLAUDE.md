@@ -50,6 +50,18 @@ auto_patch: true
 
 CI appends `.N` automatically (e.g., `1.1.0`, `1.1.1`, `1.1.2`). Do **not** include the patch segment in `version` — writing `"1.1.0"` with `auto_patch: true` would produce `1.1.0.0`.
 
+### Option 4: Variant of an existing image (`build_context`)
+
+For a variant that shares another image's sources but needs its own Dockerfile, set `build_context` to that image's directory. The variant directory then only needs a `Dockerfile` (plus optionally `test.sh`) — no copy of the shared `app/` or `assets/`:
+
+```yaml
+version: "1.0"
+auto_patch: true
+build_context: llm-guard
+```
+
+CI builds with `context: <build_context>` and `file: <image-name>/Dockerfile`, and change detection fans out — a change in the source directory rebuilds the variant too. `build_context` is ignored when the image also has an `upstream` (the upstream checkout wins).
+
 ### That's It
 
 - **No workflow updates needed** - upstream validation uses each image's own `metadata.yaml`
