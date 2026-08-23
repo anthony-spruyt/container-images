@@ -85,6 +85,24 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           INPUT_IMAGE: ${{ inputs.image }}
         run: |
+          # Variant images build from another image's directory via
+          # build_context in metadata.yaml and may have no sources of their
+          # own, so a change to the source directory must fan out to them.
+          add_build_context_dependents() {
+            local changed="$1"
+            local dependents=""
+            for metadata in */metadata.yaml; do
+              local ctx dir
+              ctx=$(yq -r '.build_context // ""' "$metadata")
+              [ -n "$ctx" ] || continue
+              dir="${metadata%/metadata.yaml}"
+              if echo "$changed" | grep -qxF "$ctx"; then
+                dependents="${dependents}${dir}"$'\n'
+              fi
+            done
+            printf '%s\n%s' "$changed" "$dependents" | sort -u | grep -v '^$' || true
+          }
+
           # Detect CI script changes (for test-ci-scripts job)
           detect_scripts() {
             local diff_cmd="$1"
@@ -118,6 +136,7 @@ jobs:
               grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|test\.sh|assets/|app/|metadata\.yaml|flavor\.yaml)' | \
               cut -d'/' -f1 | sort -u | \
               while read -r img; do if [ -d "$img" ]; then echo "$img"; fi; done)
+            DIRECT_CHANGES=$(add_build_context_dependents "$DIRECT_CHANGES")
 
             # If megalinter-factory changed, add all flavor directories
             if echo "$DIFF_FILES" | grep -qE '^megalinter-factory/'; then
@@ -144,6 +163,7 @@ jobs:
               grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|metadata\.yaml|flavor\.yaml|assets/|app/)' | \
               cut -d'/' -f1 | sort -u | \
               while read -r img; do if [ -d "$img" ]; then echo "$img"; fi; done)
+            DIRECT_CHANGES=$(add_build_context_dependents "$DIRECT_CHANGES")
 
             # If megalinter-factory changed, add all flavor directories
             if echo "$DIFF_FILES" | grep -qE '^megalinter-factory/'; then

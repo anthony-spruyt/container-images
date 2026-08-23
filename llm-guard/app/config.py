@@ -18,3 +18,7 @@ DEFAULT_THRESHOLD = 0.5
 CONFIG_FILE = os.environ.get("CONFIG_FILE", "")
 LISTEN_HOST = os.environ.get("LISTEN_HOST", "0.0.0.0")
 LISTEN_PORT = int(os.environ.get("LISTEN_PORT", "8080"))
+# Inference device index passed to the transformers pipeline: "-1" for CPU,
+# "0" (or higher) for a specific GPU. Empty means auto-detect — CUDA if the
+# installed torch build exposes it, CPU otherwise.
+SCANNER_DEVICE = os.environ.get("SCANNER_DEVICE", "")

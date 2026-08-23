@@ -1,6 +1,5 @@
 fastapi==0.141.1
 uvicorn[standard]==0.52.4
 transformers==5.15.0
-torch==2.13.0
 pydantic==2.13.4
 pyyaml==6.0.3

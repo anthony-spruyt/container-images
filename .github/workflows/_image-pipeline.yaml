@@ -281,9 +281,30 @@ jobs:
               cp "$IMAGE_NAME/Dockerfile" upstream/Dockerfile
             fi
             echo "path=upstream" >> "$GITHUB_OUTPUT"
-          else
-            echo "path=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+            echo "dockerfile=upstream/Dockerfile" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          # Optional build_context: build against another image's directory
+          # using this image's own Dockerfile (variant images sharing sources).
+          BUILD_CONTEXT=$(yq -r '.build_context // ""' "$IMAGE_NAME/metadata.yaml")
+          if [ -n "$BUILD_CONTEXT" ]; then
+            if ! echo "$BUILD_CONTEXT" | grep -qE '^[a-zA-Z0-9_-]+$'; then
+              echo "::error::Invalid build_context format in $IMAGE_NAME/metadata.yaml: $BUILD_CONTEXT"
+              exit 1
+            fi
+            if [ ! -d "$BUILD_CONTEXT" ]; then
+              echo "::error::build_context directory does not exist: $BUILD_CONTEXT"
+              exit 1
+            fi
+            echo "::notice::Building $IMAGE_NAME from context $BUILD_CONTEXT"
+            echo "path=$BUILD_CONTEXT" >> "$GITHUB_OUTPUT"
+            echo "dockerfile=$IMAGE_NAME/Dockerfile" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "path=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "dockerfile=$IMAGE_NAME/Dockerfile" >> "$GITHUB_OUTPUT"
 
       - name: Generate flavor files
         env:
@@ -297,10 +318,10 @@ jobs:
 
       - name: Verify Dockerfile exists
         env:
-          CONTEXT_PATH: ${{ steps.context.outputs.path }}
+          DOCKERFILE: ${{ steps.context.outputs.dockerfile }}
         run: |
-          if [ ! -f "$CONTEXT_PATH/Dockerfile" ]; then
-            echo "::error::No Dockerfile found at $CONTEXT_PATH/Dockerfile"
+          if [ ! -f "$DOCKERFILE" ]; then
+            echo "::error::No Dockerfile found at $DOCKERFILE"
             exit 1
           fi
 
@@ -330,6 +351,7 @@ jobs:
         uses: docker/build-push-action@83bfd93ab480705a7b99a2ed02765137f5ab55ba
         with:
           context: ${{ steps.context.outputs.path }}
+          file: ${{ steps.context.outputs.dockerfile }}
           push: false
           load: true
           tags: ${{ steps.docker-metadata.outputs.tags }}
@@ -389,6 +411,7 @@ jobs:
         uses: docker/build-push-action@83bfd93ab480705a7b99a2ed02765137f5ab55ba
         with:
           context: ${{ steps.context.outputs.path }}
+          file: ${{ steps.context.outputs.dockerfile }}
           push: true
           tags: ${{ steps.docker-metadata.outputs.tags }}
           labels: ${{ steps.docker-metadata.outputs.labels }}

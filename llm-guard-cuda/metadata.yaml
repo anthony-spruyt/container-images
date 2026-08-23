@@ -1,0 +1,6 @@
+---
+version: "1.0"
+auto_patch: true
+# Build from llm-guard/ so app/ is shared; only this directory's Dockerfile
+# (CUDA torch wheel) differs.
+build_context: llm-guard

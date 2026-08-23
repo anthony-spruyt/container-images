@@ -4,6 +4,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from typing import Optional
+import torch
 from transformers import Pipeline, pipeline
 
 import config
@@ -21,6 +22,19 @@ _INVISIBLE_CODEPOINTS = frozenset({
     0x2060,  # word joiner
     0xFEFF,  # zero-width no-break space / BOM
 })
+
+
+def _resolve_device() -> int:
+    """
+    Return the transformers pipeline device index.
+
+    ``config.SCANNER_DEVICE`` wins when set. Otherwise auto-detect: the CUDA
+    image ships a CUDA torch build and lands on GPU 0, while the CPU image
+    ships the CPU-only wheel, reports ``is_available()`` False, and stays on -1.
+    """
+    if config.SCANNER_DEVICE:
+        return int(config.SCANNER_DEVICE)
+    return 0 if torch.cuda.is_available() else -1
 
 
 @dataclass
@@ -58,11 +72,14 @@ class PromptInjectionScanner:
 
     def load(self):
         """Load the HuggingFace pipeline and validate the injection label exists."""
-        logger.info("loading model", extra={"model": self._model})
+        device = _resolve_device()
+        # Device goes in msg, not extra: the logging.basicConfig format in
+        # main.py only renders %(message)s, so extra= fields never surface.
+        logger.info("loading model on device %s", device, extra={"model": self._model})
         self._pipe = pipeline(
             "text-classification",
             model=self._model,
-            device=-1,
+            device=device,
             truncation=True,
             max_length=self._model_max_length,
             top_k=None,

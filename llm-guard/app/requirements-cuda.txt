@@ -1,0 +1,5 @@
+# --index-url REPLACES PyPI, so the resolved build is always the CUDA one
+# from this index. cu130 matches what default PyPI resolves to, so this
+# reproduces the pre-split image exactly.
+--index-url https://download.pytorch.org/whl/cu130
+torch==2.13.0

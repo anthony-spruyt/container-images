@@ -4,13 +4,14 @@ FROM python:${PYTHON_VERSION}
 
 WORKDIR /app
 
-# torch is installed first and from its own requirements file: --index-url
-# replaces PyPI wholesale, and the PyTorch index does not serve fastapi,
-# uvicorn, transformers or pyyaml. Torch first also keeps the largest, most
-# cache-stable layer at the bottom and splits what used to be one 2.7GB layer
-# into two, which containerd can pull in parallel.
-COPY app/requirements-cpu.txt .
-RUN pip install --no-cache-dir -r requirements-cpu.txt
+# Built from the llm-guard/ build context (metadata.yaml build_context), so
+# app/ is shared with the CPU image and only the torch requirements file
+# differs. torch is installed first and from its own requirements file:
+# --index-url replaces PyPI wholesale, and the PyTorch index does not serve
+# fastapi, uvicorn, transformers or pyyaml. Torch first also keeps the
+# largest, most cache-stable layer at the bottom.
+COPY app/requirements-cuda.txt .
+RUN pip install --no-cache-dir -r requirements-cuda.txt
 
 COPY app/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
