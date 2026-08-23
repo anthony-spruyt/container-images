@@ -142,13 +142,13 @@ echo "Test 8: torch build matches flavor ($FLAVOR)..."
 # Direct regression guard for the image-size split: the CPU image must never
 # ship the CUDA wheel. torch.version.cuda is None on a +cpu build.
 TORCH_CUDA=$(docker exec "$CONTAINER_NAME" python -c "import torch; print(torch.version.cuda)")
-if [ "$FLAVOR" = "cpu" ]; then
-  if [ "$TORCH_CUDA" != "None" ]; then
+if [[ "$FLAVOR" == "cpu" ]]; then
+  if [[ "$TORCH_CUDA" != "None" ]]; then
     echo "  ERROR: CPU image contains a CUDA torch build (torch.version.cuda=$TORCH_CUDA)" >&2
     exit 1
   fi
 else
-  if [ "$TORCH_CUDA" = "None" ]; then
+  if [[ "$TORCH_CUDA" == "None" ]]; then
     echo "  ERROR: CUDA image contains a CPU-only torch build (torch.version.cuda=None)" >&2
     exit 1
   fi
@@ -165,10 +165,10 @@ if ! docker logs "$CONTAINER_NAME" 2>&1 | grep -q 'loading model on device -1'; 
 fi
 echo "  device=-1 OK"
 
-if [ "$FLAVOR" = "cpu" ]; then
+if [[ "$FLAVOR" == "cpu" ]]; then
   echo "Test 10: image size under ceiling..."
   IMAGE_BYTES=$(docker image inspect "$IMAGE_REF" --format '{{.Size}}')
-  if [ "$IMAGE_BYTES" -ge "$MAX_CPU_IMAGE_BYTES" ]; then
+  if [[ "$IMAGE_BYTES" -ge "$MAX_CPU_IMAGE_BYTES" ]]; then
     echo "  ERROR: image is ${IMAGE_BYTES} bytes, ceiling is ${MAX_CPU_IMAGE_BYTES}" >&2
     exit 1
   fi

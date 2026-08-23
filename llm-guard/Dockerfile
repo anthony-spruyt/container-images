@@ -9,11 +9,15 @@ WORKDIR /app
 # uvicorn, transformers or pyyaml. Torch first also keeps the largest, most
 # cache-stable layer at the bottom and splits what used to be one 2.7GB layer
 # into two, which containerd can pull in parallel.
+# --only-binary :all: refuses source distributions outright: every dependency
+# here publishes a cp314/abi3 manylinux wheel, so a missing wheel means a
+# resolution mistake and should fail the build rather than silently run an
+# arbitrary setup.py at image-build time.
 COPY app/requirements-cpu.txt .
-RUN pip install --no-cache-dir -r requirements-cpu.txt
+RUN pip install --no-cache-dir --only-binary :all: -r requirements-cpu.txt
 
 COPY app/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --only-binary :all: -r requirements.txt
 
 COPY app/ .
 

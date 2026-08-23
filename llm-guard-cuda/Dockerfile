@@ -10,11 +10,16 @@ WORKDIR /app
 # --index-url replaces PyPI wholesale, and the PyTorch index does not serve
 # fastapi, uvicorn, transformers or pyyaml. Torch first also keeps the
 # largest, most cache-stable layer at the bottom.
+#
+# --only-binary :all: refuses source distributions outright: every dependency
+# here publishes a cp314/abi3 manylinux wheel, so a missing wheel means a
+# resolution mistake and should fail the build rather than silently run an
+# arbitrary setup.py at image-build time.
 COPY app/requirements-cuda.txt .
-RUN pip install --no-cache-dir -r requirements-cuda.txt
+RUN pip install --no-cache-dir --only-binary :all: -r requirements-cuda.txt
 
 COPY app/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --only-binary :all: -r requirements.txt
 
 COPY app/ .
 
