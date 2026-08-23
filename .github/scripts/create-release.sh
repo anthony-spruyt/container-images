@@ -120,11 +120,10 @@ else
 fi
 
 cat <<__RELEASE_NOTES_DELIM__ >/tmp/release-notes.md
-\`${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}\`
-\`${DIGEST}\`
+\`${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}@${DIGEST}\`
 
 \`\`\`bash
-docker pull ${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}
+docker pull ${REGISTRY}/${OWNER}/${IMAGE_NAME}:${TAG}@${DIGEST}
 \`\`\`
 
 **Upstream:** ${UPSTREAM_DISPLAY} | **Commit:** ${SHA} | **Run:** [#${RUN_NUMBER}](${SERVER_URL}/${REPO}/actions/runs/${RUN_ID})
