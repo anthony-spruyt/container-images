@@ -158,9 +158,14 @@ echo "  torch.version.cuda=$TORCH_CUDA OK"
 echo "Test 9: device resolution logged..."
 # CI runners have no GPU, so both flavors must resolve to -1. Catches
 # _resolve_device() throwing or mis-parsing SCANNER_DEVICE.
-if ! docker logs "$CONTAINER_NAME" 2>&1 | grep -q 'loading model on device -1'; then
+# Logs are captured to a variable rather than piped into grep: under
+# `set -o pipefail`, `grep -q` exits on the first match, `docker logs` then
+# takes SIGPIPE and exits 141, and the pipeline reports failure even though
+# the line was found.
+CONTAINER_LOGS=$(docker logs "$CONTAINER_NAME" 2>&1)
+if ! grep -q 'loading model on device -1' <<<"$CONTAINER_LOGS"; then
   echo "  ERROR: expected 'loading model on device -1' in logs" >&2
-  docker logs "$CONTAINER_NAME"
+  echo "$CONTAINER_LOGS"
   exit 1
 fi
 echo "  device=-1 OK"
