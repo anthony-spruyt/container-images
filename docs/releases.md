@@ -74,6 +74,15 @@ Notable settings:
 | `force-tag-creation`     | Creates the tag alongside the draft release                  |
 | `tag-separator: "-"`     | Matches the tags this repo already uses, so they round-trip  |
 | `include-v-in-tag`       | Per image. Preserves each image's existing `v`-or-not prefix |
+| `last-release-sha`       | Bounds history scanning — see below                          |
+
+### `last-release-sha`
+
+This repo has over 400 tags and releases. Release-please pages through them looking for each component's anchor and can give up before reaching one, then walks the full history instead — which surfaces years-old `feat:` commits and cuts a **minor** bump where a patch was correct.
+
+`last-release-sha` bounds that walk, so each image considers only commits after it.
+
+Leave it in place. It is not migration scaffolding, and removing it silently inflates version bumps.
 
 ## Adding an image
 
