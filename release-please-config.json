@@ -4,7 +4,6 @@
   "always-update": true,
   "draft": true,
   "force-tag-creation": true,
-  "last-release-sha": "3ae416ce3c7633c21840962f9c05d2231f7db630",
   "changelog-sections": [
     { "type": "feat", "section": "Features" },
     { "type": "fix", "section": "Bug Fixes" },
@@ -18,8 +17,9 @@
     "llm-guard-cuda": {
       "release-type": "simple",
       "component": "llm-guard-cuda",
-      "tag-separator": "/",
-      "include-component-in-tag": true
+      "tag-separator": "-",
+      "include-component-in-tag": true,
+      "include-v-in-tag": false
     }
   }
 }

@@ -4,11 +4,13 @@ Image versions live in `.release-please-manifest.json`. [release-please][rp] own
 
 ## Images
 
-| Image          | Git tag                 | Docker tag               |
-| -------------- | ----------------------- | ------------------------ |
-| llm-guard-cuda | `llm-guard-cuda/v1.0.7` | `1.0.7`, `1.0`, `latest` |
+| Image          | Git tag                | Docker tag               |
+| -------------- | ---------------------- | ------------------------ |
+| llm-guard-cuda | `llm-guard-cuda-1.0.7` | `1.0.7`, `1.0`, `latest` |
 
 Images not listed here are still on the legacy pipeline (`_image-pipeline.yaml`) and derive their version from `metadata.yaml`.
+
+Git tags keep the format this repo already used, so existing tags round-trip and release-please finds them as version anchors. Some images carry a `v` before the version and some do not; that inconsistency is preserved deliberately because downstream repos pin the docker tags.
 
 ## How a release happens
 
@@ -64,13 +66,14 @@ It never creates a release. If the tag does not exist, cut a new version instead
 
 Notable settings:
 
-| Setting                  | Why                                                        |
-| ------------------------ | ---------------------------------------------------------- |
-| `separate-pull-requests` | One release PR per image                                   |
-| `always-update`          | Keeps sibling release PRs from conflicting on the manifest |
-| `draft`                  | The release is published only after the image is pushed    |
-| `force-tag-creation`     | Creates the tag alongside the draft release                |
-| `tag-separator: "/"`     | Tags read `llm-guard-cuda/v1.0.7`                          |
+| Setting                  | Why                                                          |
+| ------------------------ | ------------------------------------------------------------ |
+| `separate-pull-requests` | One release PR per image                                     |
+| `always-update`          | Keeps sibling release PRs from conflicting on the manifest   |
+| `draft`                  | The release is published only after the image is pushed      |
+| `force-tag-creation`     | Creates the tag alongside the draft release                  |
+| `tag-separator: "-"`     | Matches the tags this repo already uses, so they round-trip  |
+| `include-v-in-tag`       | Per image. Preserves each image's existing `v`-or-not prefix |
 
 ## Adding an image
 

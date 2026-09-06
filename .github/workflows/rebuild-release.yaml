@@ -47,13 +47,15 @@ jobs:
           IMAGE: ${{ inputs.image }}
           VERSION: ${{ inputs.version }}
         run: |
+          # TAG_PREFIX is the v-or-not before the version, and is identical in
+          # the git tag and the docker tag.
           case "$IMAGE" in
             llm-guard-cuda) TAG_PREFIX="" ;;
             *) echo "::error::Unknown image $IMAGE"; exit 1 ;;
           esac
 
           {
-            echo "tag=${IMAGE}/v${VERSION}"
+            echo "tag=${IMAGE}-${TAG_PREFIX}${VERSION}"
             echo "tag-prefix=$TAG_PREFIX"
           } >> "$GITHUB_OUTPUT"
 
@@ -61,6 +63,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.image.outputs.tag }}
+          TAG_PREFIX: ${{ steps.image.outputs.tag-prefix }}
           IMAGE: ${{ inputs.image }}
           VERSION: ${{ inputs.version }}
         run: |
@@ -81,7 +84,7 @@ jobs:
 
           NEWEST=$(gh release list --limit 200 --json tagName,isDraft \
             --jq '.[] | select(.isDraft == false) | .tagName' \
-            | sed -n "s|^${IMAGE}/v||p" | sort -V | tail -n 1)
+            | sed -n "s|^${IMAGE}-${TAG_PREFIX}||p" | sort -V | tail -n 1)
 
           if [ -n "$NEWEST" ] && [ "$(printf '%s\n%s\n' "$NEWEST" "$VERSION" | sort -V | tail -n 1)" != "$VERSION" ]; then
             echo "::error::${IMAGE} ${NEWEST} is already published, so rebuilding ${VERSION} would move the latest and major.minor tags backwards. Cut a new version instead."
