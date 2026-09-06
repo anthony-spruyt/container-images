@@ -44,6 +44,9 @@ jobs:
           client-id: ${{ secrets.GARBO_CLIENT_ID }}
           private-key: ${{ secrets.GARBO_PRIVATE_KEY }}
 
+      - name: Checkout
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
       - name: Delete old releases and tags
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -51,6 +54,16 @@ jobs:
         run: |
           CUTOFF_DATE=$(date -d '4 weeks ago' +%s)
           KEEP_N=5
+
+          # Tags naming a version release-please still considers current must
+          # survive regardless of age: deleting one would make release-please
+          # lose its version anchor and recut a version that already shipped.
+          CURRENT_TAGS=$(jq -r '
+            to_entries[]
+            | "\(.key)-\(if (.key | startswith("megalinter-container-images")
+                or startswith("megalinter-spruyt-labs")
+                or startswith("megalinter-xfg")) then "v" else "" end)\(.value)"
+          ' .release-please-manifest.json)
 
           for PREFIX in megalinter-; do
             echo "Processing releases with prefix: $PREFIX"
@@ -73,6 +86,12 @@ jobs:
               # Keep N most recent regardless of age
               if [ "$COUNT" -le "$KEEP_N" ]; then
                 echo "Keeping (recent): $TAG"
+                continue
+              fi
+
+              # Keep whatever release-please currently points at
+              if echo "$CURRENT_TAGS" | grep -qxF "$TAG"; then
+                echo "Keeping (current release-please version): $TAG"
                 continue
               fi
 

@@ -21,7 +21,7 @@ Versions are owned by release-please, not by `metadata.yaml`. See [docs/releases
 2. Register the image in `release-please-config.json` and `.release-please-manifest.json`.
 3. Add its outputs and build job to `.github/workflows/release-please.yaml`, and add it to the `image` choice list in `.github/workflows/rebuild-release.yaml`.
 
-Images not yet migrated still carry `version:` (and sometimes `auto_patch: true`) in `metadata.yaml` and build via `_image-pipeline.yaml`. Do not add new images that way.
+`metadata.yaml` no longer carries a version at all — the manifest is the only source of truth.
 
 ### Variant of an existing image (`build_context`)
 
@@ -49,8 +49,10 @@ For upstream sources that Renovate cannot monitor (e.g., Alpine packages), use n
 
 ## Build Triggers
 
-- **Pull requests**: CI runs on all PRs to main; change detection picks images with modified Dockerfile/test.sh/assets/metadata.yaml/flavor.yaml
-- **Push to main**: Auto-builds on Dockerfile/metadata.yaml/flavor.yaml/assets changes (also triggers on megalinter-factory or CI script changes). Migrated images build without pushing — release-please publishes them.
+CI never pushes. Every publish goes through release-please — see [docs/releases.md](docs/releases.md).
+
+- **Pull requests**: CI runs on all PRs to main; change detection picks images with modified Dockerfile/test.sh/assets/metadata.yaml/flavor.yaml/.rebuild-stamp
+- **Push to main**: Builds changed images without pushing (also triggers on megalinter-factory changes)
 - **workflow_dispatch**: Manual trigger with an `image` input, for an on-demand build with no push
 
 ## Container Retention

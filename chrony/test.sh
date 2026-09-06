@@ -76,8 +76,18 @@ else
   echo "  WARNING: Could not verify source activity"
 fi
 
-# Test 5: Verify zero-capability mode works (--cap-drop=ALL)
-echo "Test 5: Zero-capability mode (--cap-drop=ALL)..."
+# Test 5: Verify the packaged chrony version is recorded in the image
+echo "Test 5: Upstream chrony version recorded..."
+UPSTREAM_VERSION=$(docker exec "$CONTAINER_NAME" cat /etc/chrony-upstream-version 2>/dev/null || true)
+if [[ -n "$UPSTREAM_VERSION" ]]; then
+  echo "  Packaged chrony: $UPSTREAM_VERSION"
+else
+  echo "  ERROR: /etc/chrony-upstream-version is missing or empty" >&2
+  exit 1
+fi
+
+# Test 6: Verify zero-capability mode works (--cap-drop=ALL)
+echo "Test 6: Zero-capability mode (--cap-drop=ALL)..."
 docker run -d \
   --name "$CONTAINER_NAME_ZEROCAP" \
   --cap-drop=ALL \

@@ -1,3 +1,16 @@
 {
-  "llm-guard-cuda": "1.0.7"
+  "chrony": "5.0.0",
+  "claude-agent-read": "1.0.81",
+  "claude-agent-spruyt-labs": "1.0.80",
+  "claude-agent-write": "1.0.73",
+  "coder-gitops": "1.0.22",
+  "devcontainer-common": "1.2.34",
+  "llm-guard": "1.0.33",
+  "llm-guard-cuda": "1.0.7",
+  "megalinter-container-images": "10.0.52",
+  "megalinter-firemerge": "1.0.19",
+  "megalinter-spruyt-labs": "1.0.36",
+  "megalinter-sungather": "1.0.19",
+  "megalinter-xfg": "1.0.45",
+  "ssh-key-rotation": "2.0.5"
 }

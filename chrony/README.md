@@ -2,6 +2,18 @@
 
 Minimal chrony NTP server container designed for Kubernetes deployments with zero Linux capabilities required.
 
+## Versioning
+
+The image tag is an independent semver line owned by release-please (see [docs/releases.md](../docs/releases.md)). It is **not** the chrony version.
+
+chrony itself comes from Alpine's `chrony` package, tracking whatever the pinned Alpine base image ships. The packaged version is recorded inside the image at `/etc/chrony-upstream-version`:
+
+```bash
+docker run --rm --entrypoint cat ghcr.io/anthony-spruyt/chrony:latest /etc/chrony-upstream-version
+```
+
+Tags up to and including `4.8-r7` were the Alpine package version. The semver line starts at `5.0.0`; the major bump marks the change in tag meaning, not a change in behaviour.
+
 ## Features
 
 - Runs entirely as non-root user (uid 1000) - no root required
@@ -93,18 +105,19 @@ This is ideal for Kubernetes since nodes have their own time sync. If you need c
 
 ## n8n Release Watcher
 
-The `n8n-release-watcher.json` workflow automatically detects new chrony package versions in Alpine Linux and triggers a container build.
+The `n8n-release-watcher.json` workflow detects new chrony package versions in Alpine Linux and opens an issue.
+
+It opens an issue rather than triggering a build: the image version is an independent semver line owned by release-please, so picking up a new Alpine package is a commit, not a version override.
 
 ### What it does
 
 1. Checks daily (11PM AEST) for chrony package updates in Alpine Linux
 2. Dynamically reads the Alpine version from this repo's Dockerfile
 3. Fetches the corresponding APKBUILD from Alpine's Git repository
-4. Compares the package version with the last processed version (stored in workflow static data)
+4. Compares the package version against `chrony/.alpine-chrony-version`
 5. If a new version is found:
-   - Triggers the container build workflow
+   - Opens an issue describing the update and the PR to raise
    - Sends an email notification
-   - Updates the stored version
 
 ### Import into n8n
 
@@ -117,12 +130,10 @@ The `n8n-release-watcher.json` workflow automatically detects new chrony package
 
 #### 1. GitHub Personal Access Token (Header Auth)
 
-Create a GitHub PAT with `repo` and `workflow` scopes:
-
 1. Go to GitHub > Settings > Developer settings > Personal access tokens > Fine-grained tokens
 2. Create a new token with:
    - **Repository access:** `anthony-spruyt/container-images`
-   - **Permissions:** Actions (Read and write)
+   - **Permissions:** Issues (Read and write)
 3. In n8n, go to **Credentials** > **Add Credential** > **Header Auth**
 4. Configure:
    - **Name:** `GitHub PAT`
@@ -141,7 +152,7 @@ Create a GitHub PAT with `repo` and `workflow` scopes:
 
 ### Configuration After Import
 
-1. Open the **Trigger Build Workflow** node and select your GitHub PAT credential
+1. Open the **Open Issue** node and select your GitHub PAT credential
 2. Open the **Send Notification** node:
    - Select your SMTP credential
    - Update `fromEmail` to your sender address
@@ -156,8 +167,9 @@ Create a GitHub PAT with `repo` and `workflow` scopes:
    - **Get Dockerfile:** Should return Dockerfile content
    - **Parse Alpine Version:** Shows extracted Alpine version (e.g., `3.23`)
    - **Get Alpine APKBUILD:** Should return APKBUILD content
-   - **Check New Version:** Shows `isNew: true` on first run
-   - **Trigger Build Workflow:** Should return HTTP 204 (success)
+   - **Get Recorded Version:** Returns the contents of `chrony/.alpine-chrony-version`
+   - **Check New Version:** Shows `isNew: true` when Alpine is ahead of the recorded version
+   - **Open Issue:** Should return HTTP 201 with the created issue
    - **Send Notification:** Sends email to configured recipient
 
 On subsequent runs, `isNew` will be `false` until Alpine updates the chrony package.

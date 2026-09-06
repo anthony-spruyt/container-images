@@ -20,9 +20,48 @@ jobs:
       contents: write
       pull-requests: write
     outputs:
+      chrony-released: ${{ steps.release.outputs['chrony--release_created'] }}
+      chrony-version: ${{ steps.release.outputs['chrony--version'] }}
+      chrony-tag: ${{ steps.release.outputs['chrony--tag_name'] }}
+      claude-agent-read-released: ${{ steps.release.outputs['claude-agent-read--release_created'] }}
+      claude-agent-read-version: ${{ steps.release.outputs['claude-agent-read--version'] }}
+      claude-agent-read-tag: ${{ steps.release.outputs['claude-agent-read--tag_name'] }}
+      claude-agent-spruyt-labs-released: ${{ steps.release.outputs['claude-agent-spruyt-labs--release_created'] }}
+      claude-agent-spruyt-labs-version: ${{ steps.release.outputs['claude-agent-spruyt-labs--version'] }}
+      claude-agent-spruyt-labs-tag: ${{ steps.release.outputs['claude-agent-spruyt-labs--tag_name'] }}
+      claude-agent-write-released: ${{ steps.release.outputs['claude-agent-write--release_created'] }}
+      claude-agent-write-version: ${{ steps.release.outputs['claude-agent-write--version'] }}
+      claude-agent-write-tag: ${{ steps.release.outputs['claude-agent-write--tag_name'] }}
+      coder-gitops-released: ${{ steps.release.outputs['coder-gitops--release_created'] }}
+      coder-gitops-version: ${{ steps.release.outputs['coder-gitops--version'] }}
+      coder-gitops-tag: ${{ steps.release.outputs['coder-gitops--tag_name'] }}
+      devcontainer-common-released: ${{ steps.release.outputs['devcontainer-common--release_created'] }}
+      devcontainer-common-version: ${{ steps.release.outputs['devcontainer-common--version'] }}
+      devcontainer-common-tag: ${{ steps.release.outputs['devcontainer-common--tag_name'] }}
+      llm-guard-released: ${{ steps.release.outputs['llm-guard--release_created'] }}
+      llm-guard-version: ${{ steps.release.outputs['llm-guard--version'] }}
+      llm-guard-tag: ${{ steps.release.outputs['llm-guard--tag_name'] }}
       llm-guard-cuda-released: ${{ steps.release.outputs['llm-guard-cuda--release_created'] }}
       llm-guard-cuda-version: ${{ steps.release.outputs['llm-guard-cuda--version'] }}
       llm-guard-cuda-tag: ${{ steps.release.outputs['llm-guard-cuda--tag_name'] }}
+      megalinter-container-images-released: ${{ steps.release.outputs['megalinter-container-images--release_created'] }}
+      megalinter-container-images-version: ${{ steps.release.outputs['megalinter-container-images--version'] }}
+      megalinter-container-images-tag: ${{ steps.release.outputs['megalinter-container-images--tag_name'] }}
+      megalinter-firemerge-released: ${{ steps.release.outputs['megalinter-firemerge--release_created'] }}
+      megalinter-firemerge-version: ${{ steps.release.outputs['megalinter-firemerge--version'] }}
+      megalinter-firemerge-tag: ${{ steps.release.outputs['megalinter-firemerge--tag_name'] }}
+      megalinter-spruyt-labs-released: ${{ steps.release.outputs['megalinter-spruyt-labs--release_created'] }}
+      megalinter-spruyt-labs-version: ${{ steps.release.outputs['megalinter-spruyt-labs--version'] }}
+      megalinter-spruyt-labs-tag: ${{ steps.release.outputs['megalinter-spruyt-labs--tag_name'] }}
+      megalinter-sungather-released: ${{ steps.release.outputs['megalinter-sungather--release_created'] }}
+      megalinter-sungather-version: ${{ steps.release.outputs['megalinter-sungather--version'] }}
+      megalinter-sungather-tag: ${{ steps.release.outputs['megalinter-sungather--tag_name'] }}
+      megalinter-xfg-released: ${{ steps.release.outputs['megalinter-xfg--release_created'] }}
+      megalinter-xfg-version: ${{ steps.release.outputs['megalinter-xfg--version'] }}
+      megalinter-xfg-tag: ${{ steps.release.outputs['megalinter-xfg--tag_name'] }}
+      ssh-key-rotation-released: ${{ steps.release.outputs['ssh-key-rotation--release_created'] }}
+      ssh-key-rotation-version: ${{ steps.release.outputs['ssh-key-rotation--version'] }}
+      ssh-key-rotation-tag: ${{ steps.release.outputs['ssh-key-rotation--tag_name'] }}
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
@@ -46,6 +85,132 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  chrony:
+    name: chrony
+    needs: release-please
+    if: needs.release-please.outputs.chrony-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: chrony
+      push: true
+      version: ${{ needs.release-please.outputs.chrony-version }}
+      tag-name: ${{ needs.release-please.outputs.chrony-tag }}
+
+  claude-agent-read:
+    name: claude-agent-read
+    needs: release-please
+    if: needs.release-please.outputs.claude-agent-read-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: claude-agent-read
+      push: true
+      version: ${{ needs.release-please.outputs.claude-agent-read-version }}
+      tag-name: ${{ needs.release-please.outputs.claude-agent-read-tag }}
+
+  claude-agent-spruyt-labs:
+    name: claude-agent-spruyt-labs
+    needs: release-please
+    if: needs.release-please.outputs.claude-agent-spruyt-labs-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: claude-agent-spruyt-labs
+      push: true
+      version: ${{ needs.release-please.outputs.claude-agent-spruyt-labs-version }}
+      tag-name: ${{ needs.release-please.outputs.claude-agent-spruyt-labs-tag }}
+
+  claude-agent-write:
+    name: claude-agent-write
+    needs: release-please
+    if: needs.release-please.outputs.claude-agent-write-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: claude-agent-write
+      push: true
+      version: ${{ needs.release-please.outputs.claude-agent-write-version }}
+      tag-name: ${{ needs.release-please.outputs.claude-agent-write-tag }}
+
+  coder-gitops:
+    name: coder-gitops
+    needs: release-please
+    if: needs.release-please.outputs.coder-gitops-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: coder-gitops
+      push: true
+      version: ${{ needs.release-please.outputs.coder-gitops-version }}
+      tag-name: ${{ needs.release-please.outputs.coder-gitops-tag }}
+
+  devcontainer-common:
+    name: devcontainer-common
+    needs: release-please
+    if: needs.release-please.outputs.devcontainer-common-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: devcontainer-common
+      push: true
+      version: ${{ needs.release-please.outputs.devcontainer-common-version }}
+      tag-name: ${{ needs.release-please.outputs.devcontainer-common-tag }}
+
+  llm-guard:
+    name: llm-guard
+    needs: release-please
+    if: needs.release-please.outputs.llm-guard-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: llm-guard
+      push: true
+      version: ${{ needs.release-please.outputs.llm-guard-version }}
+      tag-name: ${{ needs.release-please.outputs.llm-guard-tag }}
+
   llm-guard-cuda:
     name: llm-guard-cuda
     needs: release-please
@@ -63,3 +228,114 @@ jobs:
       push: true
       version: ${{ needs.release-please.outputs.llm-guard-cuda-version }}
       tag-name: ${{ needs.release-please.outputs.llm-guard-cuda-tag }}
+
+  megalinter-container-images:
+    name: megalinter-container-images
+    needs: release-please
+    if: needs.release-please.outputs.megalinter-container-images-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: megalinter-container-images
+      push: true
+      version: ${{ needs.release-please.outputs.megalinter-container-images-version }}
+      tag-name: ${{ needs.release-please.outputs.megalinter-container-images-tag }}
+      tag-prefix: "v"
+
+  megalinter-firemerge:
+    name: megalinter-firemerge
+    needs: release-please
+    if: needs.release-please.outputs.megalinter-firemerge-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: megalinter-firemerge
+      push: true
+      version: ${{ needs.release-please.outputs.megalinter-firemerge-version }}
+      tag-name: ${{ needs.release-please.outputs.megalinter-firemerge-tag }}
+
+  megalinter-spruyt-labs:
+    name: megalinter-spruyt-labs
+    needs: release-please
+    if: needs.release-please.outputs.megalinter-spruyt-labs-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: megalinter-spruyt-labs
+      push: true
+      version: ${{ needs.release-please.outputs.megalinter-spruyt-labs-version }}
+      tag-name: ${{ needs.release-please.outputs.megalinter-spruyt-labs-tag }}
+      tag-prefix: "v"
+
+  megalinter-sungather:
+    name: megalinter-sungather
+    needs: release-please
+    if: needs.release-please.outputs.megalinter-sungather-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: megalinter-sungather
+      push: true
+      version: ${{ needs.release-please.outputs.megalinter-sungather-version }}
+      tag-name: ${{ needs.release-please.outputs.megalinter-sungather-tag }}
+
+  megalinter-xfg:
+    name: megalinter-xfg
+    needs: release-please
+    if: needs.release-please.outputs.megalinter-xfg-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: megalinter-xfg
+      push: true
+      version: ${{ needs.release-please.outputs.megalinter-xfg-version }}
+      tag-name: ${{ needs.release-please.outputs.megalinter-xfg-tag }}
+      tag-prefix: "v"
+
+  ssh-key-rotation:
+    name: ssh-key-rotation
+    needs: release-please
+    if: needs.release-please.outputs.ssh-key-rotation-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: ssh-key-rotation
+      push: true
+      version: ${{ needs.release-please.outputs.ssh-key-rotation-version }}
+      tag-name: ${{ needs.release-please.outputs.ssh-key-rotation-tag }}

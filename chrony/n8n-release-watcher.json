@@ -83,16 +83,17 @@
     },
     {
       "parameters": {
-        "url": "=https://api.github.com/repos/anthony-spruyt/container-images/git/matching-refs/tags/chrony-{{ $json.pkgver }}",
+        "url": "https://raw.githubusercontent.com/anthony-spruyt/container-images/main/chrony/.alpine-chrony-version",
         "options": {
           "response": {
             "response": {
-              "responseFormat": "text"
+              "responseFormat": "text",
+              "neverError": true
             }
           }
         }
       },
-      "name": "Check Matching Tags",
+      "name": "Get Recorded Version",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -102,7 +103,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Get version info from Parse APKBUILD node\nconst pkgver = $('Parse APKBUILD').item.json.pkgver;\nconst pkgrel = $('Parse APKBUILD').item.json.pkgrel;\nconst fullVersion = $('Parse APKBUILD').item.json.fullVersion;\nconst alpineVersion = $('Parse APKBUILD').item.json.alpineVersion;\n\n// Parse matching git refs from GitHub API (returned as text to handle empty arrays)\nconst responseText = $input.first().json.data;\nconst refs = JSON.parse(responseText);\n\n// Check if any matching ref corresponds to this pkgver\n// Matches chrony-{pkgver} and chrony-{pkgver}-rN (pkgrel variants)\nconst releasePattern = new RegExp(`^refs/tags/chrony-${pkgver}(-r[0-9]+)?$`);\nconst existingRef = refs.find(r => releasePattern.test(r.ref));\n\nconst isNew = !existingRef;\n\nreturn [{\n  json: {\n    isNew: isNew,\n    version: pkgver,\n    fullVersion: fullVersion,\n    pkgver: pkgver,\n    pkgrel: pkgrel,\n    existingTag: existingRef ? existingRef.ref.replace('refs/tags/', '') : null,\n    alpineVersion: alpineVersion\n  }\n}];"
+        "jsCode": "// The image tag is now an independent semver line, so the Alpine package\n// version is tracked in chrony/.alpine-chrony-version instead of in tags.\nconst { pkgver, pkgrel, fullVersion, alpineVersion } = $('Parse APKBUILD').item.json;\n\nconst raw = $input.first().json.data;\nconst recorded = typeof raw === 'string' ? raw.trim() : '';\nconst known = /^[0-9][0-9.]*-r[0-9]+$/.test(recorded) ? recorded : null;\n\nreturn [{\n  json: {\n    isNew: known !== fullVersion,\n    version: pkgver,\n    fullVersion: fullVersion,\n    pkgver: pkgver,\n    pkgrel: pkgrel,\n    recordedVersion: known,\n    alpineVersion: alpineVersion,\n  },\n}];"
       },
       "name": "Check New Version",
       "type": "n8n-nodes-base.code",
@@ -145,9 +146,9 @@
     },
     {
       "parameters": {
-        "jsCode": "// Update static data with the new version (kept for backwards compatibility)\nconst staticData = $getWorkflowStaticData('global');\nconst version = $('Check New Version').item.json.fullVersion;\nstaticData.lastVersion_chrony = version;\n\nreturn [{\n  json: {\n    success: true,\n    version: version,\n    message: `Updated last version to ${version}`\n  }\n}];"
+        "jsCode": "// Build the issue body for a human to action; the workflow no longer\n// dispatches a build, because release-please owns versions now.\nconst { fullVersion, recordedVersion, alpineVersion } = $('Check New Version').item.json;\n\nconst body = [\n  'Alpine ' + alpineVersion + ' now ships chrony `' + fullVersion + '`.',\n  '',\n  'Recorded in `chrony/.alpine-chrony-version`: `' + (recordedVersion || 'none') + '`.',\n  '',\n  'To pick it up, open a PR that:',\n  '',\n  '1. updates `chrony/.alpine-chrony-version` to `' + fullVersion + '`',\n  '2. uses a conventional commit so release-please cuts a patch release, e.g.',\n  '   `fix(chrony): pick up chrony ' + fullVersion + ' from Alpine`',\n  '',\n  'The image tag is an independent semver line and does not encode this version.',\n].join('\\n');\n\nreturn [{\n  json: {\n    title: 'chrony ' + fullVersion + ' available in Alpine ' + alpineVersion,\n    body: body,\n  },\n}];"
       },
-      "name": "Update State",
+      "name": "Build Issue",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -158,7 +159,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/ci.yaml/dispatches",
+        "url": "https://api.github.com/repos/anthony-spruyt/container-images/issues",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -172,10 +173,10 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"ref\": \"main\",\n  \"inputs\": {\n    \"image\": \"chrony\",\n    \"version\": \"{{ $('Check New Version').item.json.version }}\",\n    \"dry_run\": \"false\"\n  }\n}",
+        "jsonBody": "={\n  \"title\": {{ JSON.stringify($json.title) }},\n  \"body\": {{ JSON.stringify($json.body) }},\n  \"labels\": [\"dependencies\"]\n}",
         "options": {}
       },
-      "name": "Trigger Build Workflow",
+      "name": "Open Issue",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -193,7 +194,7 @@
       "parameters": {
         "fromEmail": "noreply@example.com",
         "toEmail": "CONFIGURE_ME@example.com",
-        "subject": "=Chrony {{ $('Check New Version').item.json.fullVersion }} - Build triggered",
+        "subject": "=Chrony {{ $('Check New Version').item.json.fullVersion }} - issue opened",
         "options": {}
       },
       "name": "Send Notification",
@@ -261,14 +262,14 @@
       "main": [
         [
           {
-            "node": "Check Matching Tags",
+            "node": "Get Recorded Version",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Check Matching Tags": {
+    "Get Recorded Version": {
       "main": [
         [
           {
@@ -294,25 +295,25 @@
       "main": [
         [
           {
-            "node": "Update State",
+            "node": "Build Issue",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Update State": {
+    "Build Issue": {
       "main": [
         [
           {
-            "node": "Trigger Build Workflow",
+            "node": "Open Issue",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Trigger Build Workflow": {
+    "Open Issue": {
       "main": [
         [
           {

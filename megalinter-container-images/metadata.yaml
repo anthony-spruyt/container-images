@@ -1,9 +1,5 @@
 ---
 # Custom MegaLinter flavor: container-images
 # MegaLinter for container/infrastructure repositories
-#
-# Version is managed independently of upstream - update manually for major changes.
-# auto_patch: true enables automatic patch version increments on rebuild.
 
-version: "v10.0"
-auto_patch: true
+# Version lives in .release-please-manifest.json — release-please owns it.

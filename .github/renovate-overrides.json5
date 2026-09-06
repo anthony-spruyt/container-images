@@ -9,8 +9,95 @@
       "schedule": ["before 9am on monday"],
       "groupName": "renovate-cli",
       "group": {
-        "commitMessageTopic": "Renovate CLI"
-      }
-    }
-  ]
+        "commitMessageTopic": "Renovate CLI",
+      },
+    },
+    // release-please writes a CHANGELOG.md per image directory. Without
+    // sourceDirectory Renovate looks for release notes at the repo root and
+    // finds none, so updates to our own images render with an empty body.
+    {
+      "description": "Release notes for own images: chrony",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/chrony"],
+      "sourceDirectory": "chrony",
+    },
+    {
+      "description": "Release notes for own images: claude-agent-read",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/claude-agent-read"],
+      "sourceDirectory": "claude-agent-read",
+    },
+    {
+      "description": "Release notes for own images: claude-agent-spruyt-labs",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/claude-agent-spruyt-labs"],
+      "sourceDirectory": "claude-agent-spruyt-labs",
+    },
+    {
+      "description": "Release notes for own images: claude-agent-write",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/claude-agent-write"],
+      "sourceDirectory": "claude-agent-write",
+    },
+    {
+      "description": "Release notes for own images: coder-gitops",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/coder-gitops"],
+      "sourceDirectory": "coder-gitops",
+    },
+    {
+      "description": "Release notes for own images: devcontainer-common",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/devcontainer-common"],
+      "sourceDirectory": "devcontainer-common",
+    },
+    {
+      "description": "Release notes for own images: llm-guard",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/llm-guard"],
+      "sourceDirectory": "llm-guard",
+    },
+    {
+      "description": "Release notes for own images: llm-guard-cuda",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/llm-guard-cuda"],
+      "sourceDirectory": "llm-guard-cuda",
+    },
+    {
+      "description": "Release notes for own images: megalinter-container-images",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-container-images"],
+      "sourceDirectory": "megalinter-container-images",
+    },
+    {
+      "description": "Release notes for own images: megalinter-firemerge",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-firemerge"],
+      "sourceDirectory": "megalinter-firemerge",
+    },
+    {
+      "description": "Release notes for own images: megalinter-spruyt-labs",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-spruyt-labs"],
+      "sourceDirectory": "megalinter-spruyt-labs",
+    },
+    {
+      "description": "Release notes for own images: megalinter-sungather",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-sungather"],
+      "sourceDirectory": "megalinter-sungather",
+    },
+    {
+      "description": "Release notes for own images: megalinter-xfg",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-xfg"],
+      "sourceDirectory": "megalinter-xfg",
+    },
+    {
+      "description": "Release notes for own images: ssh-key-rotation",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/ssh-key-rotation"],
+      "sourceDirectory": "ssh-key-rotation",
+    },
+  ],
 }

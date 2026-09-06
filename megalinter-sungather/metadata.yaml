@@ -1,2 +1,2 @@
-version: "1.0"
-auto_patch: true
+---
+# Version lives in .release-please-manifest.json — release-please owns it.

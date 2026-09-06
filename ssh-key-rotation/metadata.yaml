@@ -3,5 +3,4 @@
 # Generic image for rotating SSH auth + signing keys on any GitHub user account.
 # Runs under PSA restricted (non-root, read-only root filesystem).
 
-version: "2.0"
-auto_patch: true
+# Version lives in .release-please-manifest.json — release-please owns it.
