@@ -106,7 +106,10 @@ jobs:
         run: |
           if [ -f "$IMAGE_NAME/flavor.yaml" ]; then
             echo "::notice::Found flavor.yaml, generating Dockerfile and test.sh"
-            pip install -q pyyaml jinja2
+            # --require-hashes pins the exact wheels; --only-binary blocks
+            # setup.py execution from source distributions
+            pip install -q --require-hashes --only-binary :all: \
+              -r megalinter-factory/requirements.txt
             python megalinter-factory/generate.py "$IMAGE_NAME"
           fi
 
