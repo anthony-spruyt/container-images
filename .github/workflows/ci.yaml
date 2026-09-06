@@ -21,6 +21,7 @@ on:
       # CI scripts (trigger script tests)
       - ".github/scripts/**"
       - ".github/workflows/_image-pipeline.yaml"
+      - ".github/workflows/_build-image.yaml"
       - "test-images/**"
   workflow_dispatch:
     inputs:
@@ -28,15 +29,6 @@ on:
         description: "Image to build (directory name, e.g., 'chrony')"
         required: true
         type: string
-      version:
-        description: "Version tag (optional, uses metadata.yaml version if not specified)"
-        required: false
-        type: string
-      dry_run:
-        description: "Dry run mode - build and scan but skip push and release"
-        required: false
-        type: boolean
-        default: true
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -66,7 +58,8 @@ jobs:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      images: ${{ steps.detect.outputs.images }}
+      images: ${{ steps.split.outputs.legacy }}
+      pilot-images: ${{ steps.split.outputs.pilot }}
       scripts: ${{ steps.detect.outputs.scripts }}
     steps:
       - name: Harden Runner
@@ -182,6 +175,23 @@ jobs:
             echo "Changed images: ${CHANGED:-[]}, Scripts changed: $SCRIPTS"
           fi
 
+      # Images listed in .release-please-manifest.json build via
+      # _build-image.yaml; the rest stay on the legacy pipeline until the
+      # migration completes.
+      - name: Split migrated images from legacy ones
+        id: split
+        env:
+          IMAGES: ${{ steps.detect.outputs.images }}
+        run: |
+          MIGRATED=$(jq -r 'keys[]' .release-please-manifest.json)
+          PILOT=$(echo "$IMAGES" | jq -c --arg m "$MIGRATED" \
+            '[.[] | select(. as $i | ($m | split("\n")) | index($i))]')
+          LEGACY=$(echo "$IMAGES" | jq -c --arg m "$MIGRATED" \
+            '[.[] | select(. as $i | (($m | split("\n")) | index($i)) | not)]')
+          echo "pilot=$PILOT" >> "$GITHUB_OUTPUT"
+          echo "legacy=$LEGACY" >> "$GITHUB_OUTPUT"
+          echo "Migrated: $PILOT, Legacy: $LEGACY"
+
   test-ci-scripts:
     name: Test CI Scripts
     needs: [detect-changes, lint]
@@ -222,10 +232,39 @@ jobs:
     secrets: inherit
     with:
       image: ${{ matrix.image }}
-      # Only push/release on main push or manual dispatch with dry_run=false
-      push: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true') }}
-      create-release: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true') }}
-      version-override: ${{ inputs.version || '' }}
+      # Only push/release on main push. Releases for migrated images are cut by
+      # release-please, never here.
+      push: ${{ github.event_name == 'push' }}
+      create-release: ${{ github.event_name == 'push' }}
+
+  # Migrated images: build only, never push. release-please owns publishing.
+  # This job must declare the same permissions _build-image.yaml requests —
+  # a narrower set fails the whole workflow file at run creation, it does not
+  # downgrade.
+  build-check:
+    name: Build ${{ matrix.image }}
+    needs: [detect-changes, lint]
+    if: |
+      always() &&
+      needs.detect-changes.outputs.pilot-images != '[]' &&
+      (needs.lint.result == 'success' || needs.lint.result == 'skipped')
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJson(needs.detect-changes.outputs.pilot-images) }}
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: ${{ matrix.image }}
+      push: false
+      version: ""
+      tag-name: ""
 
   # Summary job for branch protection - add jobs to 'needs' array
   summary:
@@ -234,5 +273,6 @@ jobs:
       - lint
       - test-ci-scripts
       - build
+      - build-check
     if: "always()"
     uses: "anthony-spruyt/repo-operator/.github/workflows/_summary.yaml@main"
