@@ -10,7 +10,7 @@
 #   NOCLIENTLOG  - Disable client logging (default: false)
 #   TZ           - Timezone (default: UTC)
 
-# Pin to specific digest for supply chain security (dependabot will update this)
+# Pin to specific digest for supply chain security (renovate will update this)
 FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 
 # Install chrony and timezone data, upgrade base packages for security patches
