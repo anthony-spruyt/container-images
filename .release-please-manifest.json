@@ -9,7 +9,7 @@
   "llm-guard-cuda": "1.0.7",
   "megalinter-container-images": "10.0.53",
   "megalinter-firemerge": "1.0.19",
-  "megalinter-spruyt-labs": "1.0.36",
+  "megalinter-spruyt-labs": "1.0.37",
   "megalinter-sungather": "1.0.19",
   "megalinter-xfg": "1.0.45",
   "ssh-key-rotation": "2.0.6"
