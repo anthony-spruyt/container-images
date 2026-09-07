@@ -4,7 +4,7 @@
   "claude-agent-spruyt-labs": "1.0.80",
   "claude-agent-write": "1.0.74",
   "coder-gitops": "1.0.23",
-  "devcontainer-common": "1.2.34",
+  "devcontainer-common": "1.2.35",
   "llm-guard": "1.0.33",
   "llm-guard-cuda": "1.0.8",
   "megalinter-container-images": "10.0.53",
