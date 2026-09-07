@@ -1,6 +1,6 @@
 # Releases
 
-Image versions live in `.release-please-manifest.json`. [release-please][rp] owns them: it opens a release PR per image, and merging that PR creates the tag and a **draft** release. The image is built and pushed from the tag, and only then is the release published. A published release always has an image behind it.
+Image versions live in `.release-please-manifest.json`. [release-please][rp] owns them: it opens one release PR covering every image with pending changes, and merging that PR creates a tag and a **draft** release for each of them. The image is built and pushed from the tag, and only then is the release published. A published release always has an image behind it.
 
 ## Images
 
@@ -26,10 +26,10 @@ Git tags keep the format this repo already used, so existing tags round-trip and
 ## How a release happens
 
 1. You merge a conventional commit that touches an image directory.
-2. `Release Please` runs on `main` and opens (or updates) a release PR for that image, labelled `autorelease: pending`.
+2. `Release Please` runs on `main` and opens (or updates) a single release PR, labelled `autorelease: pending`, covering every image with pending changes.
 3. Mergify auto-merges the release PR once `summary / Check Results` passes.
-4. Merging creates the git tag and a **draft** GitHub release.
-5. The same workflow run builds the image from that tag, pushes it to GHCR, attests provenance, and publishes the release with the image ref and digest appended.
+4. Merging creates a git tag and a **draft** GitHub release per image in the PR.
+5. The same workflow run builds each image from its tag, pushes it to GHCR, attests provenance, and publishes that image's release with the ref and digest appended. Build jobs key off per-component outputs, so one PR still yields one tag, release, and build per image.
 
 If step 5 fails, the release stays a draft and no image is published. Recover with [Rebuild Release](#rebuild-release).
 
@@ -85,15 +85,14 @@ It never creates a release. If the tag does not exist, cut a new version instead
 
 Notable settings:
 
-| Setting                  | Why                                                          |
-| ------------------------ | ------------------------------------------------------------ |
-| `separate-pull-requests` | One release PR per image                                     |
-| `always-update`          | Keeps sibling release PRs from conflicting on the manifest   |
-| `draft`                  | The release is published only after the image is pushed      |
-| `force-tag-creation`     | Creates the tag alongside the draft release                  |
-| `tag-separator: "-"`     | Matches the tags this repo already uses, so they round-trip  |
-| `include-v-in-tag`       | Per image. Preserves each image's existing `v`-or-not prefix |
-| `last-release-sha`       | Bounds history scanning — see below                          |
+| Setting              | Why                                                          |
+| -------------------- | ------------------------------------------------------------ |
+| `always-update`      | Keeps the open release PR current as commits land            |
+| `draft`              | The release is published only after the image is pushed      |
+| `force-tag-creation` | Creates the tag alongside the draft release                  |
+| `tag-separator: "-"` | Matches the tags this repo already uses, so they round-trip  |
+| `include-v-in-tag`   | Per image. Preserves each image's existing `v`-or-not prefix |
+| `last-release-sha`   | Bounds history scanning — see below                          |
 
 ### `last-release-sha`
 
