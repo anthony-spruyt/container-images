@@ -1,0 +1,65 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/github-workflow.json
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    name: Release please
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      llm-guard-cuda-released: ${{ steps.release.outputs['llm-guard-cuda--release_created'] }}
+      llm-guard-cuda-version: ${{ steps.release.outputs['llm-guard-cuda--version'] }}
+      llm-guard-cuda-tag: ${{ steps.release.outputs['llm-guard-cuda--tag_name'] }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        with:
+          egress-policy: audit
+
+      # GITHUB_TOKEN cannot open pull requests here, and its pull requests would
+      # not trigger the status checks that pr-rules requires.
+      - name: Mint app token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.RELEASE_PLEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
+
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  llm-guard-cuda:
+    name: llm-guard-cuda
+    needs: release-please
+    if: needs.release-please.outputs.llm-guard-cuda-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: llm-guard-cuda
+      push: true
+      version: ${{ needs.release-please.outputs.llm-guard-cuda-version }}
+      tag-name: ${{ needs.release-please.outputs.llm-guard-cuda-tag }}

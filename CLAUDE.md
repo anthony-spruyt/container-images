@@ -15,57 +15,25 @@ pre-commit run --all-files   # Run pre-commit hooks manually
 
 ## Adding a New Image
 
-### Option 1: From Upstream Source
+Versions are owned by release-please, not by `metadata.yaml`. See [docs/releases.md](docs/releases.md).
 
-Create `<image-name>/metadata.yaml`:
+1. Create `<image-name>/Dockerfile` and `<image-name>/metadata.yaml`. `metadata.yaml` carries only build settings — no `version:`.
+2. Register the image in `release-please-config.json` and `.release-please-manifest.json`.
+3. Add its outputs and build job to `.github/workflows/release-please.yaml`, and add it to the `image` choice list in `.github/workflows/rebuild-release.yaml`.
 
-```yaml
-upstream: owner/repo
-# renovate: datasource=github-tags depName=owner/repo
-version: "1.0.0"
-```
+Images not yet migrated still carry `version:` (and sometimes `auto_patch: true`) in `metadata.yaml` and build via `_image-pipeline.yaml`. Do not add new images that way.
 
-The Renovate annotation enables automatic version tracking. Supported datasources:
-
-- `github-tags` - GitHub repository tags
-- `github-releases` - GitHub releases
-- `docker` - Docker Hub or container registries
-
-### Option 2: Local Dockerfile (no upstream)
-
-Create `<image-name>/Dockerfile` and `<image-name>/metadata.yaml`:
-
-```yaml
-version: "1.0.0"
-```
-
-### Option 3: Auto-patched version (no upstream)
-
-For images where CI should auto-increment the patch version on each build, specify only the base version and set `auto_patch: true`:
-
-```yaml
-version: "1.1"
-auto_patch: true
-```
-
-CI appends `.N` automatically (e.g., `1.1.0`, `1.1.1`, `1.1.2`). Do **not** include the patch segment in `version` — writing `"1.1.0"` with `auto_patch: true` would produce `1.1.0.0`.
-
-### Option 4: Variant of an existing image (`build_context`)
+### Variant of an existing image (`build_context`)
 
 For a variant that shares another image's sources but needs its own Dockerfile, set `build_context` to that image's directory. The variant directory then only needs a `Dockerfile` (plus optionally `test.sh`) — no copy of the shared `app/` or `assets/`:
 
 ```yaml
-version: "1.0"
-auto_patch: true
 build_context: llm-guard
 ```
 
-CI builds with `context: <build_context>` and `file: <image-name>/Dockerfile`, and change detection fans out — a change in the source directory rebuilds the variant too. `build_context` is ignored when the image also has an `upstream` (the upstream checkout wins).
+CI builds with `context: <build_context>` and `file: <image-name>/Dockerfile`, and change detection fans out — a change in the source directory rebuilds the variant too.
 
-### That's It
-
-- **No workflow updates needed** - upstream validation uses each image's own `metadata.yaml`
-- **Renovate tracking** - add `# renovate:` annotations to `metadata.yaml` for automatic version updates
+Note that release-please only sees the variant's own directory, so a source-only change does not cut a release for the variant. The weekly rebuild covers it; to release immediately, include a commit touching the variant's directory.
 
 ### Optional: Add CI Tests
 
@@ -82,8 +50,8 @@ For upstream sources that Renovate cannot monitor (e.g., Alpine packages), use n
 ## Build Triggers
 
 - **Pull requests**: CI runs on all PRs to main; change detection picks images with modified Dockerfile/test.sh/assets/metadata.yaml/flavor.yaml
-- **Push to main**: Auto-builds on Dockerfile/metadata.yaml/flavor.yaml/assets changes (also triggers on megalinter-factory or CI script changes)
-- **workflow_dispatch**: Manual trigger with `image`, `version`, and `dry_run` inputs
+- **Push to main**: Auto-builds on Dockerfile/metadata.yaml/flavor.yaml/assets changes (also triggers on megalinter-factory or CI script changes). Migrated images build without pushing — release-please publishes them.
+- **workflow_dispatch**: Manual trigger with an `image` input, for an on-demand build with no push
 
 ## Container Retention
 
