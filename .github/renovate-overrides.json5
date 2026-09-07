@@ -2,6 +2,21 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "packageRules": [
+    // The feature image and the gh release it installs are separate packages,
+    // so Renovate opens two PRs that must land together or the image ships a
+    // feature version mismatched with the gh binary it pins.
+    {
+      "description": "Group github-cli feature image with the gh release it installs",
+      "matchPackageNames": [
+        "ghcr.io/devcontainers/features/github-cli",
+        "cli/cli",
+      ],
+      "matchDatasources": ["docker", "github-releases"],
+      "groupName": "github-cli",
+      "group": {
+        "commitMessageTopic": "GitHub CLI (feature + gh)",
+      },
+    },
     {
       "description": "Batch renovate CLI updates weekly (releases multiple times daily)",
       "matchPackageNames": ["renovate"],
