@@ -12,6 +12,18 @@
         "commitMessageTopic": "Renovate CLI",
       },
     },
+    // torch is pinned per-variant from a different PyTorch index (+cpu vs
+    // +cu130), so Renovate sees two packages and opens two PRs. The pins must
+    // move together or the CPU and CUDA images drift apart.
+    {
+      "description": "Group torch CPU and CUDA variant updates into one PR",
+      "matchManagers": ["pip_requirements"],
+      "matchPackageNames": ["torch"],
+      "groupName": "torch",
+      "group": {
+        "commitMessageTopic": "torch (cpu + cuda)",
+      },
+    },
     // release-please writes a CHANGELOG.md per image directory. Without
     // sourceDirectory Renovate looks for release notes at the repo root and
     // finds none, so updates to our own images render with an empty body.
