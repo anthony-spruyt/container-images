@@ -1,8 +1,0 @@
----
-# Chrony - Minimal NTP server with zero capabilities
-# Custom image for Kubernetes deployments requiring least privilege
-#
-# The image version is its own semver line and is unrelated to the Alpine
-# chrony package version; see README.md.
-
-# Version lives in .release-please-manifest.json — release-please owns it.

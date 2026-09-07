@@ -2,7 +2,7 @@
 """
 MegaLinter Flavor Factory - Generator Script
 
-Generates Dockerfile, test.sh, and metadata.yaml from a flavor.yaml configuration.
+Generates Dockerfile and test.sh from a flavor.yaml configuration.
 Extracts linter information directly from MegaLinter's descriptors.
 
 Usage:
@@ -205,7 +205,7 @@ def resolve_linters(
 
 
 def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disable=too-many-locals
-    """Generate Dockerfile, test.sh, and metadata.yaml from flavor.yaml."""
+    """Generate Dockerfile and test.sh from flavor.yaml."""
     flavor_yaml_path = flavor_dir / "flavor.yaml"
     templates_dir = factory_dir / "templates"
 
@@ -318,25 +318,6 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disa
     testsh_path.write_text(testsh_content)
     testsh_path.chmod(0o755)
     print(f"Generated: {testsh_path}")
-
-    # Generate metadata.yaml only if it doesn't exist (bootstrap only)
-    # Version is managed independently - user controls it, auto_patch handles increments
-    metadata_path = flavor_dir / "metadata.yaml"
-    if not metadata_path.exists():
-        metadata_content = f"""---
-# Custom MegaLinter flavor: {flavor.get('name', 'unknown')}
-# {flavor.get('description', '')}
-#
-# Version is managed independently of upstream - update manually for major changes.
-# auto_patch: true enables automatic patch version increments on rebuild.
-
-version: "v1.0"
-auto_patch: true
-"""
-        metadata_path.write_text(metadata_content)
-        print(f"Generated: {metadata_path}")
-    else:
-        print(f"Skipped: {metadata_path} (already exists, version managed independently)")
 
     print(f"\nSuccessfully generated files for {flavor.get('name', 'unknown')} flavor")
     print(f"  Base flavor: {flavor.get('base_flavor', 'ci_light')}")

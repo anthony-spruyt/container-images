@@ -81,7 +81,11 @@ jobs:
         run: |
           # Optional build_context: build against another image's directory
           # using this image's own Dockerfile (variant images sharing sources).
-          BUILD_CONTEXT=$(yq -r '.build_context // ""' "$IMAGE_NAME/metadata.yaml")
+          # metadata.yaml is optional and only variant images carry one.
+          BUILD_CONTEXT=""
+          if [ -f "$IMAGE_NAME/metadata.yaml" ]; then
+            BUILD_CONTEXT=$(yq -r '.build_context // ""' "$IMAGE_NAME/metadata.yaml")
+          fi
           if [ -n "$BUILD_CONTEXT" ]; then
             if ! echo "$BUILD_CONTEXT" | grep -qE '^[a-zA-Z0-9_-]+$'; then
               echo "::error::Invalid build_context format in $IMAGE_NAME/metadata.yaml: $BUILD_CONTEXT"

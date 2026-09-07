@@ -1,5 +1,0 @@
----
-# Custom MegaLinter flavor: container-images
-# MegaLinter for container/infrastructure repositories
-
-# Version lives in .release-please-manifest.json — release-please owns it.

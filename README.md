@@ -21,9 +21,9 @@ docker pull ghcr.io/anthony-spruyt/chrony:latest
 
 ## Adding a New Image
 
-Versions are owned by release-please, not by `metadata.yaml`. See [docs/releases.md](docs/releases.md).
+Versions are owned by release-please. See [docs/releases.md](docs/releases.md).
 
-1. Create a directory named after the image, containing a `Dockerfile` and a `metadata.yaml`. `metadata.yaml` holds build settings only — no version.
+1. Create a directory named after the image, containing a `Dockerfile`.
 
 2. Register the image in `release-please-config.json` and `.release-please-manifest.json`.
 
@@ -33,7 +33,7 @@ Merging a conventional commit that touches the directory then opens a release PR
 
 ### Variant of an Existing Image
 
-To share another image's sources but use your own `Dockerfile`, set `build_context` in `metadata.yaml`:
+To share another image's sources but use your own `Dockerfile`, add a `metadata.yaml` setting `build_context`:
 
 ```yaml
 build_context: llm-guard
@@ -85,7 +85,7 @@ The command will:
      - PYTHON_BANDIT
    ```
 
-3. Commit `flavor.yaml` - CI generates Dockerfile, test.sh, and metadata.yaml, then builds automatically
+3. Commit `flavor.yaml` - CI generates Dockerfile and test.sh, then builds automatically
 
 ### Available Linters
 
@@ -121,7 +121,7 @@ CI builds but never pushes. Every publish goes through release-please — see [d
 
 ### Automatic
 
-Pushing changes to `metadata.yaml`, `Dockerfile`, `flavor.yaml`, `assets/`, or `.rebuild-stamp` builds the affected images. Changes to `megalinter-factory/` build all flavors. Publishing happens when the resulting release PR merges.
+Pushing changes to `Dockerfile`, `flavor.yaml`, `assets/`, `metadata.yaml`, or `.rebuild-stamp` builds the affected images. Changes to `megalinter-factory/` build all flavors. Publishing happens when the resulting release PR merges.
 
 ### Manual
 
@@ -141,7 +141,7 @@ To republish a release whose build failed after tagging, use the `Rebuild Releas
 
 Renovate updates dependencies *inside* an image (base images, packages). The resulting commit lands on main and release-please cuts a patch release for that image.
 
-Image versions themselves are never set by Renovate or by `metadata.yaml`; they live in `.release-please-manifest.json`.
+Image versions themselves are never set by Renovate; they live in `.release-please-manifest.json`.
 
 ### n8n Workflow (Special Cases)
 

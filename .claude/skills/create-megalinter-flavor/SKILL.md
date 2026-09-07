@@ -138,21 +138,9 @@ custom_linters:
 docker buildx imagetools inspect oxsecurity/megalinter-ci_light:v9.3.0 --format '{{json .Manifest}}' | jq -r '.digest'
 ```
 
-### 5b: Create metadata.yaml
+### 5b: Register with release-please
 
-Create `megalinter-<name>/metadata.yaml`:
-
-```yaml
----
-# Custom MegaLinter flavor: <name>
-# <description>
-
-# Version lives in .release-please-manifest.json — release-please owns it.
-```
-
-### 5c: Register with release-please
-
-Versions are owned by release-please, not `metadata.yaml`. See [docs/releases.md](../../../docs/releases.md).
+Versions are owned by release-please. See [docs/releases.md](../../../docs/releases.md).
 
 1. Add `megalinter-<name>` to `packages` in `release-please-config.json`, copying an existing flavor's entry. New flavors have no `v` prefix, so set `"include-v-in-tag": false`.
 2. Add `"megalinter-<name>": "1.0.0"` to `.release-please-manifest.json`.
@@ -186,7 +174,6 @@ Inform the user:
 
 1. Configuration files created:
    - `megalinter-<name>/flavor.yaml` - flavor configuration
-   - `megalinter-<name>/metadata.yaml` - CI versioning
 2. Added to `.trivy-images.yaml` for daily vulnerability scanning
 3. Linter versions will be extracted from MegaLinter at build time
 4. Next steps:

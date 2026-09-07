@@ -1,5 +1,0 @@
----
-# coder-gitops - Coder CLI + kubectl for GitOps-managed Coder
-# template sync and session-token rotation Jobs.
-
-# Version lives in .release-please-manifest.json — release-please owns it.

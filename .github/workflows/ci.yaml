@@ -82,6 +82,7 @@ jobs:
             local dependents=""
             for metadata in */metadata.yaml; do
               local ctx dir
+              [ -f "$metadata" ] || continue
               ctx=$(yq -r '.build_context // ""' "$metadata")
               [ -n "$ctx" ] || continue
               dir="${metadata%/metadata.yaml}"

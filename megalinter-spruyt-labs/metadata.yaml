@@ -1,5 +1,0 @@
----
-# Custom MegaLinter flavor: spruyt-labs
-# MegaLinter for spruyt-labs - Go, Terraform, TypeScript, and infrastructure repositories
-
-# Version lives in .release-please-manifest.json — release-please owns it.
