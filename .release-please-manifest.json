@@ -3,7 +3,7 @@
   "claude-agent-read": "1.0.81",
   "claude-agent-spruyt-labs": "1.0.80",
   "claude-agent-write": "1.0.73",
-  "coder-gitops": "1.0.22",
+  "coder-gitops": "1.0.23",
   "devcontainer-common": "1.2.34",
   "llm-guard": "1.0.33",
   "llm-guard-cuda": "1.0.7",
