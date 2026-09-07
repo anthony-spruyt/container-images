@@ -1,6 +1,0 @@
----
-# coder-gitops - Coder CLI + kubectl for GitOps-managed Coder
-# template sync and session-token rotation Jobs.
-
-version: "1.0"
-auto_patch: true

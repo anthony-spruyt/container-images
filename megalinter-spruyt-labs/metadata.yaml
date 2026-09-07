@@ -1,9 +1,0 @@
----
-# Custom MegaLinter flavor: spruyt-labs
-# MegaLinter for spruyt-labs - Go, Terraform, TypeScript, and infrastructure repositories
-#
-# Version is managed independently of upstream - update manually for major changes.
-# auto_patch: true enables automatic patch version increments on rebuild.
-
-version: "v1.0"
-auto_patch: true

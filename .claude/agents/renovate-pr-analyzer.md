@@ -27,7 +27,7 @@ This repo builds container images from upstream sources or custom Dockerfiles, p
 
 ```
 <image-name>/
-├── metadata.yaml     # Version, upstream source, renovate annotation
+├── metadata.yaml     # build_context, for variant images only (optional)
 ├── flavor.yaml       # MegaLinter flavor config (megalinter-* images only)
 ├── Dockerfile        # Build instructions (may be generated for flavors)
 ├── test.sh           # CI tests run after build
@@ -78,15 +78,15 @@ gh pr diff <number> --repo <repo>
 
 Classify dependency type from labels and changed files:
 
-| Label / File Pattern                         | Type              | Upstream Source                |
-| -------------------------------------------- | ----------------- | ------------------------------ |
-| `renovate/script` + `metadata.yaml` changed  | upstream-source   | GitHub repo from metadata.yaml |
-| `renovate/script` + `flavor.yaml` changed    | docker-base-image | Container registry project     |
-| `renovate/github-actions` + workflow changed | github-actions    | Action's GitHub repo           |
-| `renovate/script` + `.devcontainer/` changed | script-dep        | Tool's GitHub repo             |
-| `renovate/devcontainer`                      | devcontainer-dep  | Devcontainer feature repo      |
-| `.pre-commit-config.yaml` changed            | pre-commit        | Hook's GitHub repo             |
-| None of above                                | other             | Best-effort search             |
+| Label / File Pattern                         | Type              | Upstream Source                 |
+| -------------------------------------------- | ----------------- | ------------------------------- |
+| `renovate/script` + `Dockerfile` changed     | upstream-source   | GitHub repo from the pinned ARG |
+| `renovate/script` + `flavor.yaml` changed    | docker-base-image | Container registry project      |
+| `renovate/github-actions` + workflow changed | github-actions    | Action's GitHub repo            |
+| `renovate/script` + `.devcontainer/` changed | script-dep        | Tool's GitHub repo              |
+| `renovate/devcontainer`                      | devcontainer-dep  | Devcontainer feature repo       |
+| `.pre-commit-config.yaml` changed            | pre-commit        | Hook's GitHub repo              |
+| None of above                                | other             | Best-effort search              |
 
 Extract old and new version from diff. Classify semver change: patch, minor, major, digest, or date.
 
@@ -126,7 +126,7 @@ Check for `blocked` label issues mentioning this dependency. If found, minimum v
 
 A breaking change only matters if it affects what we actually use.
 
-#### For upstream source updates (metadata.yaml):
+#### For upstream source updates (Dockerfile ARG bumps):
 
 1. Read `<image>/Dockerfile` — check if build references changed features, paths, APIs
 2. Read `<image>/test.sh` — check if tests rely on changed CLI behavior or output

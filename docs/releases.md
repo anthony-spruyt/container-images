@@ -4,11 +4,22 @@ Image versions live in `.release-please-manifest.json`. [release-please][rp] own
 
 ## Images
 
-| Image          | Git tag                | Docker tag               |
-| -------------- | ---------------------- | ------------------------ |
-| llm-guard-cuda | `llm-guard-cuda-1.0.7` | `1.0.7`, `1.0`, `latest` |
-
-Images not listed here are still on the legacy pipeline (`_image-pipeline.yaml`) and derive their version from `metadata.yaml`.
+| Image                       | Git tag                                | Docker tag                    |
+| --------------------------- | -------------------------------------- | ----------------------------- |
+| chrony                      | `chrony-5.0.0`                         | `5.0.0`, `5.0`, `latest`      |
+| claude-agent-read           | `claude-agent-read-1.0.81`             | `1.0.81`, `1.0`, `latest`     |
+| claude-agent-spruyt-labs    | `claude-agent-spruyt-labs-1.0.80`      | `1.0.80`, `1.0`, `latest`     |
+| claude-agent-write          | `claude-agent-write-1.0.73`            | `1.0.73`, `1.0`, `latest`     |
+| coder-gitops                | `coder-gitops-1.0.22`                  | `1.0.22`, `1.0`, `latest`     |
+| devcontainer-common         | `devcontainer-common-1.2.34`           | `1.2.34`, `1.2`, `latest`     |
+| llm-guard                   | `llm-guard-1.0.33`                     | `1.0.33`, `1.0`, `latest`     |
+| llm-guard-cuda              | `llm-guard-cuda-1.0.7`                 | `1.0.7`, `1.0`, `latest`      |
+| megalinter-container-images | `megalinter-container-images-v10.0.52` | `v10.0.52`, `v10.0`, `latest` |
+| megalinter-firemerge        | `megalinter-firemerge-1.0.19`          | `1.0.19`, `1.0`, `latest`     |
+| megalinter-spruyt-labs      | `megalinter-spruyt-labs-v1.0.36`       | `v1.0.36`, `v1.0`, `latest`   |
+| megalinter-sungather        | `megalinter-sungather-1.0.19`          | `1.0.19`, `1.0`, `latest`     |
+| megalinter-xfg              | `megalinter-xfg-v1.0.45`               | `v1.0.45`, `v1.0`, `latest`   |
+| ssh-key-rotation            | `ssh-key-rotation-2.0.5`               | `2.0.5`, `2.0`, `latest`      |
 
 Git tags keep the format this repo already used, so existing tags round-trip and release-please finds them as version anchors. Some images carry a `v` before the version and some do not; that inconsistency is preserved deliberately because downstream repos pin the docker tags.
 
@@ -43,6 +54,14 @@ Release-As: 2.0.0
 ## Pull request checks
 
 On a PR, changed images build via `_build-image.yaml` with `push: false`. Nothing is pushed and no release is touched. `<image>/test.sh` runs against the locally loaded image if it exists.
+
+## Weekly MegaLinter flavor refresh
+
+Flavor linter versions are resolved at build time, so a flavor only needs a reason to rebuild. `Rebuild MegaLinter Flavors` runs weekly and writes today's date to `megalinter-<name>/.rebuild-stamp`, then opens one PR. Mergify merges it, release-please cuts a `chore` patch release per flavor, and the images rebuild.
+
+## Variant images
+
+`llm-guard-cuda` builds from `llm-guard/` via `build_context`, but release-please only watches `llm-guard-cuda/`'s own path. A change confined to `llm-guard/app/` therefore releases `llm-guard` but not the CUDA variant. The CUDA variant picks the change up on its next release; to ship it immediately, include a commit that touches `llm-guard-cuda/`.
 
 ## Rebuild Release
 

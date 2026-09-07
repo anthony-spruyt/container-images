@@ -16,11 +16,9 @@ on:
       - "**/flavor.yaml"
       - "**/assets/**"
       - "**/app/**"
+      - "**/.rebuild-stamp"
       # MegaLinter factory (triggers all flavor rebuilds)
       - "megalinter-factory/**"
-      # CI scripts (trigger script tests)
-      - ".github/scripts/**"
-      - ".github/workflows/_image-pipeline.yaml"
       - ".github/workflows/_build-image.yaml"
       - "test-images/**"
   workflow_dispatch:
@@ -58,9 +56,7 @@ jobs:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      images: ${{ steps.split.outputs.legacy }}
-      pilot-images: ${{ steps.split.outputs.pilot }}
-      scripts: ${{ steps.detect.outputs.scripts }}
+      images: ${{ steps.detect.outputs.images }}
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
@@ -72,7 +68,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect changed images and scripts
+      - name: Detect changed images
         id: detect
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -86,6 +82,7 @@ jobs:
             local dependents=""
             for metadata in */metadata.yaml; do
               local ctx dir
+              [ -f "$metadata" ] || continue
               ctx=$(yq -r '.build_context // ""' "$metadata")
               [ -n "$ctx" ] || continue
               dir="${metadata%/metadata.yaml}"
@@ -96,18 +93,8 @@ jobs:
             printf '%s\n%s' "$changed" "$dependents" | sort -u | grep -v '^$' || true
           }
 
-          # Detect CI script changes (for test-ci-scripts job)
-          detect_scripts() {
-            local diff_cmd="$1"
-            if $diff_cmd | grep -qE '^\.github/scripts/|^\.github/workflows/_image-pipeline\.yaml|^test-images/'; then
-              echo "true"
-            else
-              echo "false"
-            fi
-          }
-
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            # Manual dispatch: use specified image, no script tests
+            # Manual dispatch: use specified image
             if ! echo "$INPUT_IMAGE" | grep -qE '^[a-zA-Z0-9_-]+$'; then
               echo "::error::Invalid image name format"
               exit 1
@@ -117,105 +104,40 @@ jobs:
               exit 1
             fi
             echo "images=[\"$INPUT_IMAGE\"]" >> "$GITHUB_OUTPUT"
-            echo "scripts=false" >> "$GITHUB_OUTPUT"
             echo "Manual dispatch for image: $INPUT_IMAGE"
-
-          elif [ "$EVENT_NAME" = "pull_request" ]; then
-            # PR: compare against base branch
-            DIFF_FILES=$(git diff --name-only origin/main...HEAD)
-
-            # Collect changed images from direct file changes
-            DIRECT_CHANGES=$(echo "$DIFF_FILES" | \
-              grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|test\.sh|assets/|app/|metadata\.yaml|flavor\.yaml)' | \
-              cut -d'/' -f1 | sort -u | \
-              while read -r img; do if [ -d "$img" ]; then echo "$img"; fi; done)
-            DIRECT_CHANGES=$(add_build_context_dependents "$DIRECT_CHANGES")
-
-            # If megalinter-factory changed, add all flavor directories
-            if echo "$DIFF_FILES" | grep -qE '^megalinter-factory/'; then
-              echo "MegaLinter factory changed - adding all flavors to build"
-              FLAVOR_DIRS=$(find . -maxdepth 2 -name 'flavor.yaml' -printf '%h\n' | sed 's|^\./||')
-              ALL_IMAGES=$(printf '%s\n%s' "$DIRECT_CHANGES" "$FLAVOR_DIRS" | sort -u | grep -v '^$')
-            else
-              ALL_IMAGES="$DIRECT_CHANGES"
-            fi
-
-            CHANGED=$(echo "$ALL_IMAGES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
-            SCRIPTS=$(detect_scripts "echo \"$DIFF_FILES\"")
-
-            echo "images=${CHANGED:-[]}" >> "$GITHUB_OUTPUT"
-            echo "scripts=$SCRIPTS" >> "$GITHUB_OUTPUT"
-            echo "Changed images: ${CHANGED:-[]}, Scripts changed: $SCRIPTS"
-
-          else
-            # Push to main: compare against previous commit
-            DIFF_FILES=$(git diff --name-only HEAD~1 HEAD)
-
-            # Collect changed images from direct file changes
-            DIRECT_CHANGES=$(echo "$DIFF_FILES" | \
-              grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|metadata\.yaml|flavor\.yaml|assets/|app/)' | \
-              cut -d'/' -f1 | sort -u | \
-              while read -r img; do if [ -d "$img" ]; then echo "$img"; fi; done)
-            DIRECT_CHANGES=$(add_build_context_dependents "$DIRECT_CHANGES")
-
-            # If megalinter-factory changed, add all flavor directories
-            if echo "$DIFF_FILES" | grep -qE '^megalinter-factory/'; then
-              echo "MegaLinter factory changed - adding all flavors to build"
-              FLAVOR_DIRS=$(find . -maxdepth 2 -name 'flavor.yaml' -printf '%h\n' | sed 's|^\./||')
-              ALL_IMAGES=$(printf '%s\n%s' "$DIRECT_CHANGES" "$FLAVOR_DIRS" | sort -u | grep -v '^$')
-            else
-              ALL_IMAGES="$DIRECT_CHANGES"
-            fi
-
-            CHANGED=$(echo "$ALL_IMAGES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
-            SCRIPTS=$(detect_scripts "echo \"$DIFF_FILES\"")
-
-            echo "images=${CHANGED:-[]}" >> "$GITHUB_OUTPUT"
-            echo "scripts=$SCRIPTS" >> "$GITHUB_OUTPUT"
-            echo "Changed images: ${CHANGED:-[]}, Scripts changed: $SCRIPTS"
+            exit 0
           fi
 
-      # Images listed in .release-please-manifest.json build via
-      # _build-image.yaml; the rest stay on the legacy pipeline until the
-      # migration completes.
-      - name: Split migrated images from legacy ones
-        id: split
-        env:
-          IMAGES: ${{ steps.detect.outputs.images }}
-        run: |
-          MIGRATED=$(jq -r 'keys[]' .release-please-manifest.json)
-          PILOT=$(echo "$IMAGES" | jq -c --arg m "$MIGRATED" \
-            '[.[] | select(. as $i | ($m | split("\n")) | index($i))]')
-          LEGACY=$(echo "$IMAGES" | jq -c --arg m "$MIGRATED" \
-            '[.[] | select(. as $i | (($m | split("\n")) | index($i)) | not)]')
-          echo "pilot=$PILOT" >> "$GITHUB_OUTPUT"
-          echo "legacy=$LEGACY" >> "$GITHUB_OUTPUT"
-          echo "Migrated: $PILOT, Legacy: $LEGACY"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            DIFF_FILES=$(git diff --name-only origin/main...HEAD)
+          else
+            DIFF_FILES=$(git diff --name-only HEAD~1 HEAD)
+          fi
 
-  test-ci-scripts:
-    name: Test CI Scripts
-    needs: [detect-changes, lint]
-    runs-on: ubuntu-latest
-    # Run if CI scripts changed AND (lint passed OR lint was skipped)
-    if: |
-      always() &&
-      needs.detect-changes.outputs.scripts == 'true' &&
-      (needs.lint.result == 'success' || needs.lint.result == 'skipped')
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
-        with:
-          egress-policy: audit
+          # Collect changed images from direct file changes
+          DIRECT_CHANGES=$(echo "$DIFF_FILES" | \
+            grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|test\.sh|assets/|app/|metadata\.yaml|flavor\.yaml|\.rebuild-stamp)' | \
+            cut -d'/' -f1 | sort -u | \
+            while read -r img; do if [ -d "$img" ]; then echo "$img"; fi; done)
+          DIRECT_CHANGES=$(add_build_context_dependents "$DIRECT_CHANGES")
 
-      - name: Checkout
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+          # If megalinter-factory changed, add all flavor directories
+          if echo "$DIFF_FILES" | grep -qE '^megalinter-factory/'; then
+            echo "MegaLinter factory changed - adding all flavors to build"
+            FLAVOR_DIRS=$(find . -maxdepth 2 -name 'flavor.yaml' -printf '%h\n' | sed 's|^\./||')
+            ALL_IMAGES=$(printf '%s\n%s' "$DIRECT_CHANGES" "$FLAVOR_DIRS" | sort -u | grep -v '^$')
+          else
+            ALL_IMAGES="$DIRECT_CHANGES"
+          fi
 
-      - name: Test version fixtures
-        run: .github/scripts/test-version-fixtures.sh
+          CHANGED=$(echo "$ALL_IMAGES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "images=${CHANGED:-[]}" >> "$GITHUB_OUTPUT"
+          echo "Changed images: ${CHANGED:-[]}"
 
-      - name: Test changelog generation
-        run: .github/scripts/test-changelog.sh
-
+  # Build only, never push. release-please owns publishing.
+  # This job must declare the same permissions _build-image.yaml requests —
+  # a narrower set fails the whole workflow file at run creation, it does not
+  # downgrade.
   build:
     name: Build ${{ matrix.image }}
     needs: [detect-changes, lint]
@@ -228,30 +150,6 @@ jobs:
       fail-fast: false
       matrix:
         image: ${{ fromJson(needs.detect-changes.outputs.images) }}
-    uses: ./.github/workflows/_image-pipeline.yaml
-    secrets: inherit
-    with:
-      image: ${{ matrix.image }}
-      # Only push/release on main push. Releases for migrated images are cut by
-      # release-please, never here.
-      push: ${{ github.event_name == 'push' }}
-      create-release: ${{ github.event_name == 'push' }}
-
-  # Migrated images: build only, never push. release-please owns publishing.
-  # This job must declare the same permissions _build-image.yaml requests —
-  # a narrower set fails the whole workflow file at run creation, it does not
-  # downgrade.
-  build-check:
-    name: Build ${{ matrix.image }}
-    needs: [detect-changes, lint]
-    if: |
-      always() &&
-      needs.detect-changes.outputs.pilot-images != '[]' &&
-      (needs.lint.result == 'success' || needs.lint.result == 'skipped')
-    strategy:
-      fail-fast: false
-      matrix:
-        image: ${{ fromJson(needs.detect-changes.outputs.pilot-images) }}
     permissions:
       contents: write
       packages: write
@@ -271,8 +169,6 @@ jobs:
     needs:
       - detect-changes
       - lint
-      - test-ci-scripts
       - build
-      - build-check
     if: "always()"
     uses: "anthony-spruyt/repo-operator/.github/workflows/_summary.yaml@main"

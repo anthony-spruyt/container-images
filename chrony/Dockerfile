@@ -20,7 +20,8 @@ RUN apk upgrade --no-cache \
     && deluser chrony 2>/dev/null || true \
     && delgroup chrony 2>/dev/null || true \
     && addgroup -g 1000 chrony \
-    && adduser -D -u 1000 -G chrony -h /var/lib/chrony chrony
+    && adduser -D -u 1000 -G chrony -h /var/lib/chrony chrony \
+    && apk list --installed chrony > /etc/chrony-upstream-version
 
 # Create required directories with correct ownership
 # Mode 750 required by chronyd for command socket security
@@ -31,6 +32,11 @@ RUN mkdir -p /var/lib/chrony \
 # Copy startup script
 COPY assets/startup.sh /usr/local/bin/startup.sh
 RUN chmod +x /usr/local/bin/startup.sh
+
+LABEL org.opencontainers.image.title="chrony" \
+    org.opencontainers.image.description="Minimal chrony NTP server requiring zero Linux capabilities" \
+    org.opencontainers.image.source="https://github.com/anthony-spruyt/container-images" \
+    org.opencontainers.image.licenses="MIT"
 
 # Environment defaults
 ENV NTP_SERVERS="time.cloudflare.com" \
