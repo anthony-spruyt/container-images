@@ -2,4 +2,4 @@
 # Do not switch to --extra-index-url: pip could resolve torch from PyPI
 # and pull the ~2.5GB nvidia-*/triton dependency set back in.
 --index-url https://download.pytorch.org/whl/cpu
-torch==2.13.0
+torch==2.14.0+cpu
