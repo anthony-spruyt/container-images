@@ -6,7 +6,7 @@ Minimal chrony NTP server container designed for Kubernetes deployments with zer
 
 The image tag is an independent semver line owned by release-please (see [docs/releases.md](../docs/releases.md)). It is **not** the chrony version.
 
-chrony itself comes from Alpine's `chrony` package, tracking whatever the pinned Alpine base image ships. The packaged version is recorded inside the image at `/etc/chrony-upstream-version`:
+chrony itself comes from Alpine's `chrony-nts` package (the NTS-enabled provider of `chrony`), tracking whatever the pinned Alpine base image ships. The packaged version is recorded inside the image at `/etc/chrony-upstream-version`:
 
 ```bash
 docker run --rm --entrypoint cat ghcr.io/anthony-spruyt/chrony:latest /etc/chrony-upstream-version
