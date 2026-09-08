@@ -7,11 +7,12 @@ set -euo pipefail
 IMAGE_REF="${1:?Usage: $0 <image-ref>}"
 CONTAINER_NAME="chrony-test-$$"
 CONTAINER_NAME_ZEROCAP="chrony-test-zerocap-$$"
+CONTAINER_NAME_NTS="chrony-test-nts-$$"
 TEST_PORT=11123
 
 cleanup() {
   echo "Cleaning up..."
-  docker rm -f "$CONTAINER_NAME" "$CONTAINER_NAME_ZEROCAP" 2>/dev/null || true
+  docker rm -f "$CONTAINER_NAME" "$CONTAINER_NAME_ZEROCAP" "$CONTAINER_NAME_NTS" 2>/dev/null || true
 }
 trap cleanup EXIT
 
@@ -86,8 +87,68 @@ else
   exit 1
 fi
 
-# Test 6: Verify zero-capability mode works (--cap-drop=ALL)
-echo "Test 6: Zero-capability mode (--cap-drop=ALL)..."
+# Test 6: Verify chronyd is built with NTS support
+echo "Test 6: chronyd built with NTS..."
+CHRONYD_FLAGS=$(docker run --rm --entrypoint chronyd "$IMAGE_REF" --version 2>&1 || true)
+echo "  $CHRONYD_FLAGS"
+if grep -q '+NTS' <<<"$CHRONYD_FLAGS"; then
+  echo "  chronyd reports +NTS"
+else
+  echo "  ERROR: chronyd built without NTS support (expected +NTS)" >&2
+  echo "  Alpine splits NTS into the chrony-nts package - check the Dockerfile apk add" >&2
+  exit 1
+fi
+
+# Test 7: Verify the container actually stays up with ENABLE_NTS=true
+echo "Test 7: ENABLE_NTS=true startup..."
+docker run -d \
+  --name "$CONTAINER_NAME_NTS" \
+  -e NTP_SERVERS="time.cloudflare.com" \
+  -e ENABLE_NTS="true" \
+  "$IMAGE_REF"
+
+ELAPSED=0
+while [[ $ELAPSED -lt $TIMEOUT ]]; do
+  STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$CONTAINER_NAME_NTS" 2>/dev/null || echo "starting")
+  case "$STATUS" in
+  healthy)
+    echo "  NTS container is healthy after ${ELAPSED}s"
+    break
+    ;;
+  unhealthy)
+    echo "  ERROR: NTS container became unhealthy" >&2
+    docker logs "$CONTAINER_NAME_NTS" >&2
+    exit 1
+    ;;
+  *)
+    sleep 2
+    ELAPSED=$((ELAPSED + 2))
+    ;;
+  esac
+done
+
+if [[ $ELAPSED -ge $TIMEOUT ]]; then
+  echo "  ERROR: Timeout waiting for NTS container to become healthy" >&2
+  docker logs "$CONTAINER_NAME_NTS" >&2
+  exit 1
+fi
+
+# chronyd exits quietly on "Missing NTS support", so assert it is still running
+if [[ "$(docker inspect --format='{{.State.Running}}' "$CONTAINER_NAME_NTS")" != "true" ]]; then
+  echo "  ERROR: NTS container is not running" >&2
+  docker logs "$CONTAINER_NAME_NTS" >&2
+  exit 1
+fi
+
+if docker logs "$CONTAINER_NAME_NTS" 2>&1 | grep -qi "Missing NTS support"; then
+  echo "  ERROR: chronyd reported 'Missing NTS support'" >&2
+  docker logs "$CONTAINER_NAME_NTS" >&2
+  exit 1
+fi
+echo "  ENABLE_NTS=true starts and stays healthy"
+
+# Test 8: Verify zero-capability mode works (--cap-drop=ALL)
+echo "Test 8: Zero-capability mode (--cap-drop=ALL)..."
 docker run -d \
   --name "$CONTAINER_NAME_ZEROCAP" \
   --cap-drop=ALL \

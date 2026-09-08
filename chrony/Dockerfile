@@ -13,15 +13,19 @@
 # Pin to specific digest for supply chain security (renovate will update this)
 FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 
+SHELL ["/bin/ash", "-o", "pipefail", "-c"]
+
 # Install chrony and timezone data, upgrade base packages for security patches
+# chrony-nts, not chrony - the base package is built --disable-nts
 # Note: chrony package creates its own user/group, we'll replace them with UID/GID 1000
 RUN apk upgrade --no-cache \
-    && apk add --no-cache chrony tzdata \
+    && apk add --no-cache chrony-nts tzdata \
     && deluser chrony 2>/dev/null || true \
     && delgroup chrony 2>/dev/null || true \
     && addgroup -g 1000 chrony \
     && adduser -D -u 1000 -G chrony -h /var/lib/chrony chrony \
-    && apk list --installed chrony > /etc/chrony-upstream-version
+    && apk list --installed chrony-nts > /etc/chrony-upstream-version \
+    && chronyd --version | grep -q '+NTS'
 
 # Create required directories with correct ownership
 # Mode 750 required by chronyd for command socket security
