@@ -60,7 +60,7 @@ Old container images and releases are automatically cleaned up weekly:
 - Images older than 4 weeks are deleted
 - GitHub releases and tags older than 4 weeks are deleted
 - 5 most recent versions always kept
-- Targets: `megalinter-*`
+- Targets: every image registered in `release-please-config.json`
 - Workflow: `.github/workflows/container-retention.yaml`
 
 ## Commits
