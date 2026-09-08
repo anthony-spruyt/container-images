@@ -108,7 +108,7 @@ docker run -d \
   "$IMAGE_REF"
 
 ELAPSED=0
-while [ $ELAPSED -lt $TIMEOUT ]; do
+while [[ $ELAPSED -lt $TIMEOUT ]]; do
   STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$CONTAINER_NAME_NTS" 2>/dev/null || echo "starting")
   case "$STATUS" in
   healthy)
@@ -116,8 +116,8 @@ while [ $ELAPSED -lt $TIMEOUT ]; do
     break
     ;;
   unhealthy)
-    echo "  ERROR: NTS container became unhealthy"
-    docker logs "$CONTAINER_NAME_NTS"
+    echo "  ERROR: NTS container became unhealthy" >&2
+    docker logs "$CONTAINER_NAME_NTS" >&2
     exit 1
     ;;
   *)
@@ -127,22 +127,22 @@ while [ $ELAPSED -lt $TIMEOUT ]; do
   esac
 done
 
-if [ $ELAPSED -ge $TIMEOUT ]; then
-  echo "  ERROR: Timeout waiting for NTS container to become healthy"
-  docker logs "$CONTAINER_NAME_NTS"
+if [[ $ELAPSED -ge $TIMEOUT ]]; then
+  echo "  ERROR: Timeout waiting for NTS container to become healthy" >&2
+  docker logs "$CONTAINER_NAME_NTS" >&2
   exit 1
 fi
 
 # chronyd exits quietly on "Missing NTS support", so assert it is still running
-if [ "$(docker inspect --format='{{.State.Running}}' "$CONTAINER_NAME_NTS")" != "true" ]; then
-  echo "  ERROR: NTS container is not running"
-  docker logs "$CONTAINER_NAME_NTS"
+if [[ "$(docker inspect --format='{{.State.Running}}' "$CONTAINER_NAME_NTS")" != "true" ]]; then
+  echo "  ERROR: NTS container is not running" >&2
+  docker logs "$CONTAINER_NAME_NTS" >&2
   exit 1
 fi
 
 if docker logs "$CONTAINER_NAME_NTS" 2>&1 | grep -qi "Missing NTS support"; then
-  echo "  ERROR: chronyd reported 'Missing NTS support'"
-  docker logs "$CONTAINER_NAME_NTS"
+  echo "  ERROR: chronyd reported 'Missing NTS support'" >&2
+  docker logs "$CONTAINER_NAME_NTS" >&2
   exit 1
 fi
 echo "  ENABLE_NTS=true starts and stays healthy"
