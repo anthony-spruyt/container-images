@@ -14,9 +14,7 @@
 FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 
 # Install chrony and timezone data, upgrade base packages for security patches
-# Alpine 3.24 split NTS/SHA/AES out of the base `chrony` package: `chrony` is
-# built --disable-nts, and `chrony-nts` is the NTS-enabled provider of the same
-# binaries. ENABLE_NTS=true needs chrony-nts or chronyd exits "Missing NTS support".
+# chrony-nts, not chrony - the base package is built --disable-nts
 # Note: chrony package creates its own user/group, we'll replace them with UID/GID 1000
 RUN apk upgrade --no-cache \
     && apk add --no-cache chrony-nts tzdata \
