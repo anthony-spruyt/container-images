@@ -45,10 +45,6 @@ Create `<image-name>/.trivyignore` for per-image vulnerability/secret ignores (p
 
 For upstream sources that Renovate cannot monitor (e.g., Alpine packages), use n8n workflows. See `chrony/n8n-release-watcher.json` for an example that monitors Alpine package versions.
 
-## Base Image Minor Bumps
-
-Distros re-split packages between minor versions, so a base image bump can silently drop a documented feature. Check the package layout of every installed package, and assert the feature rather than the package name — e.g. `chronyd --version | grep -q '+NTS'`.
-
 ## Build Triggers
 
 CI never pushes. Every publish goes through release-please — see [docs/releases.md](docs/releases.md).
