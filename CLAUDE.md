@@ -45,6 +45,13 @@ Create `<image-name>/.trivyignore` for per-image vulnerability/secret ignores (p
 
 For upstream sources that Renovate cannot monitor (e.g., Alpine packages), use n8n workflows. See `chrony/n8n-release-watcher.json` for an example that monitors Alpine package versions.
 
+## Base Image Minor Bumps
+
+A distro minor bump is not automatically a no-op. Distros re-split packages between minor versions, and a rename or subpackage split silently drops a feature the image documents. When a base image moves a minor version, check the package layout for every package the Dockerfile installs — Alpine 3.23 → 3.24 moved chrony's NTS support into a separate `chrony-nts` subpackage, and the image kept
+building and passing tests without it.
+
+Assert the feature, not the package: prefer a build-time or `test.sh` check on the binary's own capability output (e.g. `chronyd --version | grep -q '+NTS'`) so a future re-split fails the build.
+
 ## Build Triggers
 
 CI never pushes. Every publish goes through release-please — see [docs/releases.md](docs/releases.md).
