@@ -15,12 +15,24 @@ on:
 jobs:
   cleanup-containers:
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      contents: read
     steps:
+      - name: Checkout
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      # The retention token is account-wide, so name every package explicitly
+      # rather than globbing - a wildcard would reach images owned by other
+      # repositories.
+      - name: Collect packages
+        id: packages
+        run: |
+          echo "list=$(jq -r '.packages | keys | join(",")' release-please-config.json)" >> "$GITHUB_OUTPUT"
+
       - uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
         with:
           token: ${{ secrets.CONTAINER_RETENTION_TOKEN }}
-          package: megalinter-*
+          package: ${{ steps.packages.outputs.list }}
           expand-packages: true
           older-than: 4 weeks
           keep-n-tagged: 5
@@ -58,20 +70,22 @@ jobs:
           # Tags naming a version release-please still considers current must
           # survive regardless of age: deleting one would make release-please
           # lose its version anchor and recut a version that already shipped.
-          CURRENT_TAGS=$(jq -r '
+          CURRENT_TAGS=$(jq -r --slurpfile cfg release-please-config.json '
             to_entries[]
-            | "\(.key)-\(if (.key | startswith("megalinter-container-images")
-                or startswith("megalinter-spruyt-labs")
-                or startswith("megalinter-xfg")) then "v" else "" end)\(.value)"
+            | .key as $c
+            | "\($c)-\(if $cfg[0].packages[$c]["include-v-in-tag"] then "v" else "" end)\(.value)"
           ' .release-please-manifest.json)
 
-          for PREFIX in megalinter-; do
-            echo "Processing releases with prefix: $PREFIX"
+          COMPONENTS=$(jq -r '.packages | keys[]' release-please-config.json)
 
-            # Get all releases for this prefix, sorted by date (newest first)
+          for COMPONENT in $COMPONENTS; do
+            echo "Processing releases for component: $COMPONENT"
+
+            # Anchor on the version that follows, so llm-guard does not swallow
+            # the releases belonging to llm-guard-cuda.
             RELEASES=$(gh release list --repo ${{ github.repository }} --limit 1000 \
               --json tagName,createdAt \
-              --jq ".[] | select(.tagName | startswith(\"$PREFIX\"))")
+              --jq ".[] | select(.tagName | test(\"^${COMPONENT}-v?[0-9]\"))")
 
             # Count and track for keeping N most recent
             COUNT=0
