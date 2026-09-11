@@ -16,7 +16,7 @@ USER root
 # links libatomic.so.1. Without it `pre-commit run` fails at hook-env install
 # with "libatomic.so.1: cannot open shared object file". Lives here because
 # pre-commit is added in this layer. Ref spruyt-labs#1878.
-RUN apt-get update && apt-get install -y --no-install-recommends libatomic1 \
+RUN apt-get update -o APT::Update::Error-Mode=any && apt-get install -y --no-install-recommends libatomic1 \
   && rm -rf /var/lib/apt/lists/*
 
 # Go (prebuilt tarball). Root needed to write under /usr/local.
