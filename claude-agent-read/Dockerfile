@@ -8,8 +8,23 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # System deps. xz-utils is required to extract the node .tar.xz tarball below
 # (node:24-slim provided it implicitly; ubuntu minimal does not).
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  ca-certificates curl git openssh-client jq python3 python3-pip \
+# archive.ubuntu.com times out intermittently on GitHub runners. Without
+# Error-Mode=any, apt-get update only warns on an unreachable mirror and the
+# install fails later with a confusing "has no installation candidate".
+RUN { echo 'Acquire::Retries "5";'; \
+  echo 'Acquire::http::Timeout "30";'; \
+  echo 'Acquire::http::Pipeline-Depth "0";'; \
+  echo 'Acquire::Retries::Delay::Maximum "10";'; \
+  } > /etc/apt/apt.conf.d/80-retries; \
+  ok=""; \
+  for attempt in 1 2 3 4 5; do \
+  if apt-get update -o APT::Update::Error-Mode=any; then ok=1; break; fi; \
+  echo "apt-get update failed (attempt ${attempt}), retrying"; \
+  sleep $((attempt * 10)); \
+  done; \
+  [[ -n "${ok}" ]] \
+  && apt-get install -y --no-install-recommends \
+  ca-certificates curl git jq openssh-client python3 python3-pip \
   xz-utils \
   && rm -rf /var/lib/apt/lists/*
 
