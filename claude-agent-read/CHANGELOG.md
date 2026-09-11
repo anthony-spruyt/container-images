@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.87](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.0.86...claude-agent-read-1.0.87) (2026-09-11)
+
+
+### Bug Fixes
+
+* **claude-agent:** fail apt-get update when a mirror is unreachable ([#1659](https://github.com/anthony-spruyt/container-images/issues/1659)) ([b232e06](https://github.com/anthony-spruyt/container-images/commit/b232e06ef75aa6983f0b21703e8794154c07d97a))
+
 ## [1.0.86](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.0.85...claude-agent-read-1.0.86) (2026-09-11)
 
 
