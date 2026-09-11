@@ -15,8 +15,14 @@ RUN { echo 'Acquire::Retries "5";'; \
   echo 'Acquire::http::Timeout "30";'; \
   echo 'Acquire::http::Pipeline-Depth "0";'; \
   echo 'Acquire::Retries::Delay::Maximum "10";'; \
-  } > /etc/apt/apt.conf.d/80-retries \
-  && apt-get update -o APT::Update::Error-Mode=any \
+  } > /etc/apt/apt.conf.d/80-retries; \
+  ok=""; \
+  for attempt in 1 2 3 4 5; do \
+  if apt-get update -o APT::Update::Error-Mode=any; then ok=1; break; fi; \
+  echo "apt-get update failed (attempt ${attempt}), retrying"; \
+  sleep $((attempt * 10)); \
+  done; \
+  [[ -n "${ok}" ]] \
   && apt-get install -y --no-install-recommends \
   ca-certificates curl git jq openssh-client python3 python3-pip \
   xz-utils \
