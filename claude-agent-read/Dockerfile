@@ -6,16 +6,19 @@ HEALTHCHECK NONE
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# archive.ubuntu.com times out intermittently on GitHub runners. Without
-# Error-Mode=any, apt-get update only warns on an unreachable mirror and the
-# install below fails later with a confusing "has no installation candidate".
-RUN printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::http::Pipeline-Depth "0";\nAcquire::Retries::Delay::Maximum "10";\n' \
-  > /etc/apt/apt.conf.d/80-retries
-
 # System deps. xz-utils is required to extract the node .tar.xz tarball below
 # (node:24-slim provided it implicitly; ubuntu minimal does not).
-RUN apt-get update -o APT::Update::Error-Mode=any && apt-get install -y --no-install-recommends \
-  ca-certificates curl git openssh-client jq python3 python3-pip \
+# archive.ubuntu.com times out intermittently on GitHub runners. Without
+# Error-Mode=any, apt-get update only warns on an unreachable mirror and the
+# install fails later with a confusing "has no installation candidate".
+RUN { echo 'Acquire::Retries "5";'; \
+  echo 'Acquire::http::Timeout "30";'; \
+  echo 'Acquire::http::Pipeline-Depth "0";'; \
+  echo 'Acquire::Retries::Delay::Maximum "10";'; \
+  } > /etc/apt/apt.conf.d/80-retries \
+  && apt-get update -o APT::Update::Error-Mode=any \
+  && apt-get install -y --no-install-recommends \
+  ca-certificates curl git jq openssh-client python3 python3-pip \
   xz-utils \
   && rm -rf /var/lib/apt/lists/*
 
