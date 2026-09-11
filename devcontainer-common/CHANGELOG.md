@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.38](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-1.2.37...devcontainer-common-1.2.38) (2026-09-11)
+
+
+### Dependencies
+
+* **deps:** update container image mcr.microsoft.com/devcontainers/base to jammy ([#1630](https://github.com/anthony-spruyt/container-images/issues/1630)) ([7250cd0](https://github.com/anthony-spruyt/container-images/commit/7250cd0e2a4d7baaa91fbd9ca38e190138f08039))
+
 ## [1.2.37](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-1.2.36...devcontainer-common-1.2.37) (2026-09-09)
 
 
