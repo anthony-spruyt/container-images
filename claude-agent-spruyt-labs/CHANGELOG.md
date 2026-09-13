@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.87](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.86...claude-agent-spruyt-labs-1.0.87) (2026-09-13)
+
+
+### Dependencies
+
+* **deps:** update container image ghcr.io/anthony-spruyt/claude-agent-write to v1.0.82 ([#1687](https://github.com/anthony-spruyt/container-images/issues/1687)) ([f34ab64](https://github.com/anthony-spruyt/container-images/commit/f34ab64dc672264380db5f93bc6363f4f02afda7))
+
 ## [1.0.86](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.85...claude-agent-spruyt-labs-1.0.86) (2026-09-11)
 
 
