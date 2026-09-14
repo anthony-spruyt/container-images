@@ -30,7 +30,7 @@ RUN { echo 'Acquire::Retries "5";'; \
 
 # Node.js (prebuilt binary tarball — Renovate tracks via node-version datasource)
 # renovate: depName=node datasource=node versioning=node
-ARG NODE_VERSION="24.20.0"
+ARG NODE_VERSION="24.21.0"
 RUN ARCH="$(dpkg --print-architecture)" \
   && case "${ARCH}" in amd64) ARCH=x64;; arm64) ARCH=arm64;; *) echo "unsupported: ${ARCH}"; exit 1;; esac \
   && TARBALL="node-v${NODE_VERSION}-linux-${ARCH}.tar.xz" \
