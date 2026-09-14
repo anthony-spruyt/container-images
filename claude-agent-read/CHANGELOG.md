@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.90](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.0.89...claude-agent-read-1.0.90) (2026-09-14)
+
+
+### Dependencies
+
+* **deps:** update node.js to v24.21.0 ([#1691](https://github.com/anthony-spruyt/container-images/issues/1691)) ([f267a4c](https://github.com/anthony-spruyt/container-images/commit/f267a4c9e934da796f3482fe196466a6b2524192))
+
 ## [1.0.89](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.0.88...claude-agent-read-1.0.89) (2026-09-13)
 
 
