@@ -1,10 +1,10 @@
 {
   "chrony": "5.0.2",
-  "claude-agent-read": "1.0.89",
+  "claude-agent-read": "1.0.90",
   "claude-agent-spruyt-labs": "1.0.87",
   "claude-agent-write": "1.0.82",
   "coder-gitops": "1.0.23",
-  "devcontainer-common": "1.2.38",
+  "devcontainer-common": "1.2.39",
   "llm-guard": "1.0.34",
   "llm-guard-cuda": "1.0.8",
   "megalinter-container-images": "10.0.53",
