@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.92](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.0.91...claude-agent-read-1.0.92) (2026-09-15)
+
+
+### Dependencies
+
+* **deps:** update dependency @aikidosec/safe-chain to v1.5.18 ([#1707](https://github.com/anthony-spruyt/container-images/issues/1707)) ([dcdc012](https://github.com/anthony-spruyt/container-images/commit/dcdc01211f5b0c7bffd05269f271fc7dc2aa6192))
+
 ## [1.0.91](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.0.90...claude-agent-read-1.0.91) (2026-09-15)
 
 
