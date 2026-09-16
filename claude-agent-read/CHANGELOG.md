@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.93](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.0.92...claude-agent-read-1.0.93) (2026-09-16)
+
+
+### Dependencies
+
+* **deps:** update container image ubuntu to resolute ([#1716](https://github.com/anthony-spruyt/container-images/issues/1716)) ([02e78cf](https://github.com/anthony-spruyt/container-images/commit/02e78cf586be843a53c2aa4aa009f5b1a6b2b559))
+
 ## [1.0.92](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.0.91...claude-agent-read-1.0.92) (2026-09-15)
 
 
