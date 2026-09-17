@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.35](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.0.34...llm-guard-1.0.35) (2026-09-17)
+
+
+### Dependencies
+
+* **deps:** update dependency transformers to v5.17.0 ([#1726](https://github.com/anthony-spruyt/container-images/issues/1726)) ([b3745ce](https://github.com/anthony-spruyt/container-images/commit/b3745ce6ba8c6892d4234248ec3cd9e1da875fdd))
+
 ## [1.0.34](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.0.33...llm-guard-1.0.34) (2026-09-07)
 
 
