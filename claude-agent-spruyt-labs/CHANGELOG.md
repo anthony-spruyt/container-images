@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.89](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.88...claude-agent-spruyt-labs-1.0.89) (2026-09-18)
+
+
+### Dependencies
+
+* **deps:** update dependency databus23/helm-diff to v3.15.13 ([#1746](https://github.com/anthony-spruyt/container-images/issues/1746)) ([08e59c6](https://github.com/anthony-spruyt/container-images/commit/08e59c6ed2f07dc448faf5848ac3e58e0aa91cd1))
+* **deps:** update dependency helm/helm to v4.3.0 ([#1728](https://github.com/anthony-spruyt/container-images/issues/1728)) ([ca38e13](https://github.com/anthony-spruyt/container-images/commit/ca38e1318195d2f5a5414362b011ea50270bbb35))
+
 ## [1.0.88](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.87...claude-agent-spruyt-labs-1.0.88) (2026-09-17)
 
 
