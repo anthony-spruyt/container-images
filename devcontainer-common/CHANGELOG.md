@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.42](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-1.2.41...devcontainer-common-1.2.42) (2026-09-18)
+
+
+### Dependencies
+
+* **deps:** update dependency @aikidosec/safe-chain to v1.5.20 ([#1731](https://github.com/anthony-spruyt/container-images/issues/1731)) ([6e85262](https://github.com/anthony-spruyt/container-images/commit/6e85262c9f35fecd7c60f533bf398f82a4407047))
+
 ## [1.2.41](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-1.2.40...devcontainer-common-1.2.41) (2026-09-15)
 
 

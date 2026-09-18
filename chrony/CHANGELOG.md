@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.0.3](https://github.com/anthony-spruyt/container-images/compare/chrony-5.0.2...chrony-5.0.3) (2026-09-18)
+
+
+### Dependencies
+
+* **deps:** update container image alpine to 3.24 ([#1743](https://github.com/anthony-spruyt/container-images/issues/1743)) ([c5caef1](https://github.com/anthony-spruyt/container-images/commit/c5caef1858a2c1b3a36d3d492b891344868147fa))
+
 ## [5.0.2](https://github.com/anthony-spruyt/container-images/compare/chrony-5.0.1...chrony-5.0.2) (2026-09-08)
 
 
