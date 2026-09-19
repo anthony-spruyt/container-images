@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.40](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v1.0.39...megalinter-spruyt-labs-v1.0.40) (2026-09-19)
+
+
+### Dependencies
+
+* **megalinter-spruyt-labs:** rebase onto MegaLinter v10.1.0 ([#1789](https://github.com/anthony-spruyt/container-images/issues/1789)) ([38acb56](https://github.com/anthony-spruyt/container-images/commit/38acb565ff31f0c34f004f2eb88dd5da28058602))
+
 ## [1.0.39](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v1.0.38...megalinter-spruyt-labs-v1.0.39) (2026-09-18)
 
 
