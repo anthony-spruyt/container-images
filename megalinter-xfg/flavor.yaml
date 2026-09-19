@@ -23,3 +23,11 @@ custom_linters:
   - SPELL_LYCHEE
   - TYPESCRIPT_ES
   - TYPESCRIPT_PRETTIER
+
+# Must be top-level: eslint plugins vendor globals nested, out of NODE_PATH reach
+# renovate: datasource=npm depName=globals
+globals_version: "17.12.0"
+
+extra_dockerfile: |
+  ARG GLOBALS_VERSION={{ flavor.globals_version }}
+  RUN npm install -g globals@${GLOBALS_VERSION} && npm cache clean --force && rm -rf /root/.npm/_cacache
