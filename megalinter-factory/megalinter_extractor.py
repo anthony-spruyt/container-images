@@ -170,7 +170,46 @@ def parse_dockerfile_instructions(
     return result
 
 
-def extract_linter_info(descriptors_dir: Path) -> dict:  # pylint: disable=too-many-locals
+def load_shared_linters(descriptors_dir: Path) -> dict[str, dict]:
+    """
+    Load shared linter definitions referenced by descriptors via 'extends'.
+
+    Args:
+        descriptors_dir: Path to MegaLinter descriptors directory
+
+    Returns:
+        Dictionary mapping shared file stems (e.g. 'prettier') to their contents
+    """
+    shared = {}
+
+    for shared_file in (descriptors_dir / "shared").glob("*.megalinter-linter.yml"):
+        name = shared_file.name.removesuffix(".megalinter-linter.yml")
+        shared[name] = yaml.safe_load(shared_file.read_text()) or {}
+
+    return shared
+
+
+def resolve_extends(linter: dict, shared_linters: dict[str, dict]) -> dict:
+    """
+    Merge a shared linter definition under a linter's own keys.
+
+    Matches upstream precedence: the linter's own keys win over the shared ones.
+
+    Args:
+        linter: A linter entry from a descriptor's 'linters' list
+        shared_linters: Lookup produced by load_shared_linters()
+
+    Returns:
+        The merged linter definition
+    """
+    base_name = linter.get("extends")
+    if not base_name:
+        return linter
+
+    return {**shared_linters.get(base_name, {}), **linter}
+
+
+def extract_linter_info(descriptors_dir: Path) -> dict:  # pylint: disable=too-many-locals,too-many-statements
     """
     Extract all linter info from MegaLinter descriptors.
 
@@ -181,11 +220,13 @@ def extract_linter_info(descriptors_dir: Path) -> dict:  # pylint: disable=too-m
         Dictionary mapping linter keys to their installation info
     """
     linters = {}
+    shared_linters = load_shared_linters(descriptors_dir)
 
     for desc_file in descriptors_dir.glob("*.megalinter-descriptor.yml"):
         desc = yaml.safe_load(desc_file.read_text())
 
-        for linter in desc.get("linters", []):
+        for raw_linter in desc.get("linters", []):
+            linter = resolve_extends(raw_linter, shared_linters)
             # Use the 'name' field as the linter key - this is the actual key MegaLinter uses
             # e.g., JAVASCRIPT_ES, TYPESCRIPT_ES, ACTION_ACTIONLINT
             # Falls back to constructing from descriptor_id + linter_name if 'name' not present
@@ -400,6 +441,7 @@ def extract_base_flavor_linters(descriptors_dir: Path) -> dict[str, list[str]]:
 
     # Initialize flavor lists
     flavor_linters: dict[str, list[str]] = {flavor: [] for flavor in common_flavors}
+    shared_linters = load_shared_linters(descriptors_dir)
 
     for desc_file in descriptors_dir.glob("*.megalinter-descriptor.yml"):
         desc = yaml.safe_load(desc_file.read_text())
@@ -408,7 +450,8 @@ def extract_base_flavor_linters(descriptors_dir: Path) -> dict[str, list[str]]:
         # Get descriptor-level flavors (applies to all linters unless overridden)
         descriptor_flavors = set(desc.get("descriptor_flavors", []))
 
-        for linter in desc.get("linters", []):
+        for raw_linter in desc.get("linters", []):
+            linter = resolve_extends(raw_linter, shared_linters)
             # Use the 'name' field as the linter key (same as extract_linter_info)
             linter_name = linter.get("linter_name", "").upper().replace("-", "_")
             linter_key = linter.get("name", f"{descriptor_id}_{linter_name}")

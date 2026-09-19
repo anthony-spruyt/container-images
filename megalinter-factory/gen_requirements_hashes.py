@@ -1,6 +1,6 @@
-"""Regenerate megalinter-factory/requirements.txt with sha256 wheel hashes.
+"""Regenerate the megalinter-factory requirements files with sha256 wheel hashes.
 
-Run after bumping a version in PKGS:
+Run after bumping a version in PKGS or TEST_PKGS:
 
     python megalinter-factory/gen_requirements_hashes.py
 """
@@ -12,12 +12,28 @@ import urllib.request
 # markupsafe is a jinja2 dependency; --require-hashes needs every transitive one.
 PKGS = {"jinja2": "3.1.6", "markupsafe": "3.0.3", "pyyaml": "6.0.3"}
 
+# pytest's runtime dependencies are listed for --require-hashes.
+TEST_PKGS = {
+    "pytest": "9.1.1",
+    "iniconfig": "2.3.0",
+    "packaging": "25.0",
+    "pluggy": "1.6.0",
+    "pygments": "2.19.2",
+}
+
 REQUIREMENTS = pathlib.Path(__file__).with_name("requirements.txt")
+TEST_REQUIREMENTS = pathlib.Path(__file__).with_name("requirements-test.txt")
 
 HEADER = """# Pinned with hashes so only these exact wheels can be installed.
 # Regenerate after a version bump:
 #   python megalinter-factory/gen_requirements_hashes.py
 # markupsafe is a jinja2 dependency and must be listed for --require-hashes.
+"""
+
+TEST_HEADER = """# Test-only dependencies, pinned with hashes.
+# Regenerate after a version bump:
+#   python megalinter-factory/gen_requirements_hashes.py
+# Everything after pytest is a pytest dependency that --require-hashes needs.
 """
 
 
@@ -48,17 +64,23 @@ def wheel_hashes(name: str, version: str) -> list[str]:
     return digests
 
 
-def main() -> None:
-    """Write requirements.txt with a pinned, hashed entry per package."""
+def write_requirements(path: pathlib.Path, header: str, pkgs: dict[str, str]) -> None:
+    """Write a requirements file with a pinned, hashed entry per package."""
     entries = []
-    for name, version in PKGS.items():
+    for name, version in pkgs.items():
         digests = wheel_hashes(name, version)
         hashes = " \\\n".join(f"    --hash=sha256:{d}" for d in digests)
         entries.append(f"{name}=={version} \\\n{hashes}")
         print(f"{name}=={version}: {len(digests)} wheel hashes")
 
-    REQUIREMENTS.write_text(HEADER + "\n".join(entries) + "\n", encoding="utf-8")
-    print(f"Wrote {REQUIREMENTS}")
+    path.write_text(header + "\n".join(entries) + "\n", encoding="utf-8")
+    print(f"Wrote {path}")
+
+
+def main() -> None:
+    """Write both requirements files."""
+    write_requirements(REQUIREMENTS, HEADER, PKGS)
+    write_requirements(TEST_REQUIREMENTS, TEST_HEADER, TEST_PKGS)
 
 
 if __name__ == "__main__":

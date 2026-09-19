@@ -140,8 +140,11 @@ def resolve_linters(
         extracted = extracted_linters.get(linter_key, {})
 
         if not extracted:
-            print(f"Warning: Linter {linter_key} not found in MegaLinter descriptors")
-            continue
+            raise ValueError(
+                f"Linter {linter_key} not found in MegaLinter descriptors. "
+                "Shipping the image without it would silently drop a linter - "
+                "remove it from custom_linters or fix the key."
+            )
 
         # Get version command
         version_cmd = linter_config.get(

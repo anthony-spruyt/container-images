@@ -52,6 +52,25 @@ jobs:
     uses: "anthony-spruyt/repo-operator/.github/workflows/_lint.yaml@main"
     secrets: "inherit"
 
+  factory-tests:
+    name: MegaLinter Factory Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Run tests
+        run: |
+          pip install -q --require-hashes --only-binary :all: \
+            -r megalinter-factory/requirements.txt \
+            -r megalinter-factory/requirements-test.txt
+          python -m pytest megalinter-factory/ -q
+
   detect-changes:
     name: Detect Changes
     runs-on: ubuntu-latest
@@ -140,11 +159,12 @@ jobs:
   # downgrade.
   build:
     name: Build ${{ matrix.image }}
-    needs: [detect-changes, lint]
+    needs: [detect-changes, lint, factory-tests]
     # Run if we have images AND (lint passed OR lint was skipped for renovate)
     if: |
       always() &&
       needs.detect-changes.outputs.images != '[]' &&
+      needs.factory-tests.result == 'success' &&
       (needs.lint.result == 'success' || needs.lint.result == 'skipped')
     strategy:
       fail-fast: false
@@ -168,6 +188,7 @@ jobs:
   summary:
     needs:
       - detect-changes
+      - factory-tests
       - lint
       - build
     if: "always()"
