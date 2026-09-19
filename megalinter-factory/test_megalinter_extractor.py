@@ -1,5 +1,6 @@
 """Tests for megalinter_extractor descriptor parsing."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -69,6 +70,27 @@ linters:
 """
 
 
+# Mirrors upstream's generated manifest: the authoritative flavor -> linters map.
+# REPOSITORY_BETTERLEAKS declares `all_flavors`, so upstream puts it in every flavor.
+ALL_FLAVORS = {
+    "ci_light": {
+        "label": "Optimized for CI items",
+        "descriptors": ["JAVASCRIPT"],
+        "linters": ["JAVASCRIPT_PRETTIER", "REPOSITORY_BETTERLEAKS"],
+    },
+    "go": {
+        "label": "Optimized for GO based projects",
+        "descriptors": ["GO"],
+        "linters": ["GO_GOLANGCI_LINT", "GO_REVIVE", "REPOSITORY_BETTERLEAKS"],
+    },
+    "javascript": {
+        "label": "Optimized for JAVASCRIPT based projects",
+        "descriptors": ["JAVASCRIPT"],
+        "linters": ["JAVASCRIPT_BIOME", "JAVASCRIPT_PRETTIER", "REPOSITORY_BETTERLEAKS"],
+    },
+}
+
+
 @pytest.fixture(name="descriptors_dir")
 def descriptors_dir_fixture(tmp_path: Path) -> Path:
     """Build a minimal descriptors tree mirroring MegaLinter v10 layout."""
@@ -79,6 +101,7 @@ def descriptors_dir_fixture(tmp_path: Path) -> Path:
     (shared / "biome.megalinter-linter.yml").write_text(SHARED_BIOME)
     (tmp_path / "javascript.megalinter-descriptor.yml").write_text(JAVASCRIPT_DESCRIPTOR)
     (tmp_path / "typescript.megalinter-descriptor.yml").write_text(TYPESCRIPT_DESCRIPTOR)
+    (tmp_path / "all_flavors.json").write_text(json.dumps(ALL_FLAVORS))
     return tmp_path
 
 
@@ -123,10 +146,25 @@ def test_has_download_install_run(text: str, expected: bool) -> None:
     assert has_download_install_run(text) is expected
 
 
-def test_shared_descriptor_flavors_are_honoured(descriptors_dir: Path) -> None:
-    """descriptor_flavors on a shared file overrides the descriptor default."""
+def test_flavor_linters_come_from_the_manifest(descriptors_dir: Path) -> None:
+    """Flavor membership is read from upstream's generated all_flavors.json."""
     flavors = extract_base_flavor_linters(descriptors_dir)
 
     assert "JAVASCRIPT_BIOME" in flavors["javascript"]
     assert "JAVASCRIPT_BIOME" not in flavors["ci_light"]
     assert "JAVASCRIPT_PRETTIER" in flavors["ci_light"]
+
+
+def test_all_flavors_linters_land_in_every_flavor(descriptors_dir: Path) -> None:
+    """A linter declaring `all_flavors` is in every flavor, not one named that."""
+    flavors = extract_base_flavor_linters(descriptors_dir)
+
+    assert "REPOSITORY_BETTERLEAKS" in flavors["go"]
+    assert "REPOSITORY_BETTERLEAKS" in flavors["ci_light"]
+
+
+def test_unknown_flavor_is_absent(descriptors_dir: Path) -> None:
+    """A flavor the manifest does not list resolves to no linters."""
+    flavors = extract_base_flavor_linters(descriptors_dir)
+
+    assert flavors.get("rust", []) == []
