@@ -6,24 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       image:
-        description: "Image to rebuild"
+        description: "Image to rebuild (directory name, e.g., 'chrony')"
         required: true
-        type: choice
-        options:
-          - chrony
-          - claude-agent-read
-          - claude-agent-spruyt-labs
-          - claude-agent-write
-          - coder-gitops
-          - devcontainer-common
-          - llm-guard
-          - llm-guard-cuda
-          - megalinter-container-images
-          - megalinter-firemerge
-          - megalinter-spruyt-labs
-          - megalinter-sungather
-          - megalinter-xfg
-          - ssh-key-rotation
+        type: string
       version:
         description: "Version to rebuild, without a leading v (e.g., 1.0.7)"
         required: true
@@ -60,25 +45,24 @@ jobs:
           IMAGE: ${{ inputs.image }}
           VERSION: ${{ inputs.version }}
         run: |
+          if ! echo "$IMAGE" | grep -qE '^[a-zA-Z0-9_-]+$'; then
+            echo "::error::Invalid image name format: $IMAGE"
+            exit 1
+          fi
+
+          if ! jq -e --arg i "$IMAGE" '.packages | has($i)' \
+            release-please-config.json > /dev/null; then
+            echo "::error::$IMAGE is not a release-please package. Add it to release-please-config.json first."
+            exit 1
+          fi
+
           # TAG_PREFIX is the v-or-not before the version, and is identical in
           # the git tag and the docker tag.
-          case "$IMAGE" in
-            chrony)                      TAG_PREFIX="" ;;
-            claude-agent-read)           TAG_PREFIX="" ;;
-            claude-agent-spruyt-labs)    TAG_PREFIX="" ;;
-            claude-agent-write)          TAG_PREFIX="" ;;
-            coder-gitops)                TAG_PREFIX="" ;;
-            devcontainer-common)         TAG_PREFIX="" ;;
-            llm-guard)                   TAG_PREFIX="" ;;
-            llm-guard-cuda)              TAG_PREFIX="" ;;
-            megalinter-container-images) TAG_PREFIX="v" ;;
-            megalinter-firemerge)        TAG_PREFIX="" ;;
-            megalinter-spruyt-labs)      TAG_PREFIX="v" ;;
-            megalinter-sungather)        TAG_PREFIX="" ;;
-            megalinter-xfg)              TAG_PREFIX="v" ;;
-            ssh-key-rotation)            TAG_PREFIX="" ;;
-            *) echo "::error::Unknown image $IMAGE"; exit 1 ;;
-          esac
+          TAG_PREFIX=""
+          if jq -e --arg i "$IMAGE" '.packages[$i]["include-v-in-tag"]' \
+            release-please-config.json > /dev/null; then
+            TAG_PREFIX="v"
+          fi
 
           {
             echo "tag=${IMAGE}-${TAG_PREFIX}${VERSION}"

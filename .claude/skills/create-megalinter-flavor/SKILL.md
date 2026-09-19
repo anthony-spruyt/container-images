@@ -144,7 +144,7 @@ Versions are owned by release-please. See [docs/releases.md](../../../docs/relea
 
 1. Add `megalinter-<name>` to `packages` in `release-please-config.json`, copying an existing flavor's entry. New flavors have no `v` prefix, so set `"include-v-in-tag": false`.
 2. Add `"megalinter-<name>": "1.0.0"` to `.release-please-manifest.json`.
-3. Add a build job to `.github/workflows/release-please.yaml` and add the flavor to the `image` choice list in `.github/workflows/rebuild-release.yaml`.
+3. Add a build job to `.github/workflows/release-please.yaml`.
 4. Add a `sourceDirectory` rule for `ghcr.io/anthony-spruyt/megalinter-<name>` to `.github/renovate-overrides.json5` so Renovate renders its release notes.
 
 ## Step 6: Add to Trivy Daily Scan
