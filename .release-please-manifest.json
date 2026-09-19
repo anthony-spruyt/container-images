@@ -11,6 +11,6 @@
   "megalinter-firemerge": "2.0.0",
   "megalinter-spruyt-labs": "2.0.0",
   "megalinter-sungather": "2.0.0",
-  "megalinter-xfg": "2.0.0",
+  "megalinter-xfg": "2.0.1",
   "ssh-key-rotation": "2.0.9"
 }
