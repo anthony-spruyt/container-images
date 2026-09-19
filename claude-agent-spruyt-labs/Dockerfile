@@ -10,7 +10,7 @@ HEALTHCHECK NONE
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # SRE binaries install under /usr/local/bin — needs root.
-USER root
+USER 0
 
 # kubectl
 # renovate: depName=kubernetes/kubernetes datasource=github-releases

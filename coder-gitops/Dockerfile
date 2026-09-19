@@ -52,5 +52,5 @@ RUN ARCH="$(apk --print-arch)" \
 COPY assets/push-templates.sh assets/rotate-token.sh /usr/local/bin/
 RUN chmod 0755 /usr/local/bin/push-templates.sh /usr/local/bin/rotate-token.sh
 
-USER coder
+USER 1000
 WORKDIR /home/coder

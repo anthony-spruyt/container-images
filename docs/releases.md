@@ -2,26 +2,16 @@
 
 Image versions live in `.release-please-manifest.json`. [release-please][rp] owns them: it opens one release PR covering every image with pending changes, and merging that PR creates a tag and a **draft** release for each of them. The image is built and pushed from the tag, and only then is the release published. A published release always has an image behind it.
 
-## Images
+## Tag format
 
-| Image                       | Git tag                                | Docker tag                    |
-| --------------------------- | -------------------------------------- | ----------------------------- |
-| chrony                      | `chrony-5.0.0`                         | `5.0.0`, `5.0`, `latest`      |
-| claude-agent-read           | `claude-agent-read-1.0.81`             | `1.0.81`, `1.0`, `latest`     |
-| claude-agent-spruyt-labs    | `claude-agent-spruyt-labs-1.0.80`      | `1.0.80`, `1.0`, `latest`     |
-| claude-agent-write          | `claude-agent-write-1.0.73`            | `1.0.73`, `1.0`, `latest`     |
-| coder-gitops                | `coder-gitops-1.0.22`                  | `1.0.22`, `1.0`, `latest`     |
-| devcontainer-common         | `devcontainer-common-1.2.34`           | `1.2.34`, `1.2`, `latest`     |
-| llm-guard                   | `llm-guard-1.0.33`                     | `1.0.33`, `1.0`, `latest`     |
-| llm-guard-cuda              | `llm-guard-cuda-1.0.7`                 | `1.0.7`, `1.0`, `latest`      |
-| megalinter-container-images | `megalinter-container-images-v10.0.52` | `v10.0.52`, `v10.0`, `latest` |
-| megalinter-firemerge        | `megalinter-firemerge-1.0.19`          | `1.0.19`, `1.0`, `latest`     |
-| megalinter-spruyt-labs      | `megalinter-spruyt-labs-v1.0.36`       | `v1.0.36`, `v1.0`, `latest`   |
-| megalinter-sungather        | `megalinter-sungather-1.0.19`          | `1.0.19`, `1.0`, `latest`     |
-| megalinter-xfg              | `megalinter-xfg-v1.0.45`               | `v1.0.45`, `v1.0`, `latest`   |
-| ssh-key-rotation            | `ssh-key-rotation-2.0.5`               | `2.0.5`, `2.0`, `latest`      |
+A release tags `<image>-<version>` and pushes the docker tags `<version>`, `<major>.<minor>`, and `latest`:
 
-Git tags keep the format this repo already used, so existing tags round-trip and release-please finds them as version anchors. Some images carry a `v` before the version and some do not; that inconsistency is preserved deliberately because downstream repos pin the docker tags.
+```text
+chrony-5.0.4                    -> 5.0.4, 5.0, latest
+megalinter-xfg-v1.0.47          -> v1.0.47, v1.0, latest
+```
+
+Git tags keep the format this repo already used, so existing tags round-trip and release-please finds them as version anchors. Some images carry a `v` before the version and some do not; that inconsistency is preserved deliberately because downstream repos pin the docker tags. Whether a given image takes the `v` is set by `include-v-in-tag` in `release-please-config.json`.
 
 ## How a release happens
 
