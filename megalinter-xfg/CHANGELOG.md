@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/anthony-spruyt/container-images/compare/megalinter-xfg-v2.0.0...megalinter-xfg-v2.0.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* **megalinter-xfg:** install globals for eslint flat config ([#1861](https://github.com/anthony-spruyt/container-images/issues/1861)) ([ba43dc9](https://github.com/anthony-spruyt/container-images/commit/ba43dc9a40c60b4da58afef3d7b6083496701973))
+
 ## [2.0.0](https://github.com/anthony-spruyt/container-images/compare/megalinter-xfg-v1.0.47...megalinter-xfg-v2.0.0) (2026-09-19)
 
 
