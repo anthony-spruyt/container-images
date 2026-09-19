@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.25](https://github.com/anthony-spruyt/container-images/compare/coder-gitops-1.0.24...coder-gitops-1.0.25) (2026-09-19)
+
+
+### Dependencies
+
+* **deps:** update container image alpine to 3.24 ([#1763](https://github.com/anthony-spruyt/container-images/issues/1763)) ([3ff2824](https://github.com/anthony-spruyt/container-images/commit/3ff28246fa853435d3d30af03c6a0395d867ff9e))
+
 ## [1.0.24](https://github.com/anthony-spruyt/container-images/compare/coder-gitops-1.0.23...coder-gitops-1.0.24) (2026-09-18)
 
 
