@@ -51,15 +51,16 @@ If linters were provided as arguments, validate each one exists in MegaLinter (c
 
 **Important**: Some linters are already included in the `ci_light` base flavor. The extractor output shows `ci_light has N linters` - these DON'T need to be in `custom_linters`. Only add linters that aren't in the base flavor.
 
-Linters already in `ci_light` (24 total):
+Linters already in `ci_light` as of MegaLinter v10.1.0 (23 total) — the extractor output is authoritative if it disagrees:
 
 - BASH_SHELLCHECK, BASH_SHFMT
 - DOCKERFILE_HADOLINT
-- JSON_JSONLINT, JSON_PRETTIER, JSON_V8R, JSON_ESLINT_PLUGIN_JSONC
+- JSON_JSONLINT, JSON_PRETTIER, JSON_V8R
 - YAML_YAMLLINT, YAML_PRETTIER, YAML_V8R
-- REPOSITORY_GITLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY, REPOSITORY_TRIVY_SBOM
+- REPOSITORY_BETTERLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY, REPOSITORY_TRIVY_SBOM
 - REPOSITORY_GRYPE, REPOSITORY_SYFT, REPOSITORY_TRUFFLEHOG, REPOSITORY_LS_LINT, REPOSITORY_GIT_DIFF
-- COPYPASTE_JSCPD, MAKEFILE_CHECKMAKE, XML_XMLLINT, ENV_DOTENV_LINTER, GROOVY_NPM_GROOVY_LINT
+- REPOSITORY_OSV_SCANNER
+- COPYPASTE_JSCPD, XML_XMLLINT, ENV_DOTENV_LINTER, GROOVY_NPM_GROOVY_LINT
 
 **NOT in `ci_light`** (must be added as custom_linters):
 
