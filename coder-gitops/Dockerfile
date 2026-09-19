@@ -8,8 +8,13 @@ FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cab
 # Job/CronJob — runs to completion, no health check applicable
 HEALTHCHECK NONE
 
-# renovate: datasource=github-releases depName=coder/coder
-ARG CODER_VERSION=v2.36.3
+# Stable channel only. Coder publishes mainline and stable under the same tag
+# namespace with indistinguishable semver, so github-releases ranks mainline
+# highest; custom.coder-stable reads the GitHub "latest release" pointer, which
+# is what Coder's own install.sh follows for --stable. Bare semver, no leading
+# "v" — the tag is reassembled below.
+# renovate: datasource=custom.coder-stable depName=coder
+ARG CODER_VERSION=2.36.6
 
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
 ARG KUBECTL_VERSION=v1.36.4
@@ -41,9 +46,8 @@ RUN ARCH="$(apk --print-arch)" \
          aarch64) CODER_ARCH=arm64 ;; \
          *) echo "Unsupported arch: ${ARCH}" >&2; exit 1 ;; \
        esac \
-    && CODER_VER_NUM="${CODER_VERSION#v}" \
     && curl -fsSL -o /tmp/coder.tar.gz \
-         "https://github.com/coder/coder/releases/download/${CODER_VERSION}/coder_${CODER_VER_NUM}_linux_${CODER_ARCH}.tar.gz" \
+         "https://github.com/coder/coder/releases/download/v${CODER_VERSION}/coder_${CODER_VERSION}_linux_${CODER_ARCH}.tar.gz" \
     && tar -xzf /tmp/coder.tar.gz -C /tmp ./coder \
     && mv /tmp/coder /usr/local/bin/coder \
     && chmod 0755 /usr/local/bin/coder \
