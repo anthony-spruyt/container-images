@@ -2,7 +2,7 @@
   "chrony": "5.0.4",
   "claude-agent-read": "1.0.96",
   "claude-agent-spruyt-labs": "1.0.91",
-  "claude-agent-write": "1.0.84",
+  "claude-agent-write": "1.0.85",
   "coder-gitops": "1.0.25",
   "devcontainer-common": "1.2.42",
   "llm-guard": "1.0.35",
