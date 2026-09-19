@@ -11,6 +11,7 @@ Usage:
     print(linters["ACTION_ACTIONLINT"])
 """
 
+import json
 import re
 import shutil
 import subprocess
@@ -472,64 +473,22 @@ def extract_base_flavor_linters(descriptors_dir: Path) -> dict[str, list[str]]:
     """
     Extract which linters are included in each base MegaLinter flavor.
 
+    Reads upstream's generated all_flavors.json rather than re-deriving membership
+    from descriptor_flavors keys. Deriving it gets `all_flavors` wrong: that value
+    means "every flavor", not a flavor named all_flavors, so linters declaring it
+    (REPOSITORY_BETTERLEAKS among them) went missing from every base list.
+
     Args:
         descriptors_dir: Path to MegaLinter descriptors directory
 
     Returns:
-        Dictionary mapping flavor names to lists of linter keys
+        Dictionary mapping flavor names to sorted lists of linter keys
     """
-    common_flavors = [
-        "ci_light",
-        "cupcake",
-        "documentation",
-        "dotnet",
-        "dotnetweb",
-        "go",
-        "java",
-        "javascript",
-        "php",
-        "python",
-        "ruby",
-        "rust",
-        "salesforce",
-        "security",
-        "swift",
-        "terraform",
-        "formatters",
-        "c_cpp",
-    ]
+    manifest = json.loads((descriptors_dir / "all_flavors.json").read_text())
 
-    # Initialize flavor lists
-    flavor_linters: dict[str, list[str]] = {flavor: [] for flavor in common_flavors}
-    shared_linters = load_shared_linters(descriptors_dir)
-
-    for desc_file in descriptors_dir.glob("*.megalinter-descriptor.yml"):
-        desc = yaml.safe_load(desc_file.read_text())
-        descriptor_id = desc.get("descriptor_id", "").upper()
-
-        # Get descriptor-level flavors (applies to all linters unless overridden)
-        descriptor_flavors = set(desc.get("descriptor_flavors", []))
-
-        for raw_linter in desc.get("linters", []):
-            linter = resolve_extends(raw_linter, shared_linters)
-            # Use the 'name' field as the linter key (same as extract_linter_info)
-            linter_name = linter.get("linter_name", "").upper().replace("-", "_")
-            linter_key = linter.get("name", f"{descriptor_id}_{linter_name}")
-
-            # Linter-level descriptor_flavors overrides descriptor-level if present
-            linter_flavors = linter.get("descriptor_flavors")
-            if linter_flavors is not None:
-                effective_flavors = set(linter_flavors)
-            else:
-                effective_flavors = descriptor_flavors
-
-            # Check if linter is in each flavor
-            # Note: "all_flavors" is a flavor name (the full MegaLinter), not "all flavors"
-            for flavor in common_flavors:
-                if flavor in effective_flavors:
-                    flavor_linters[flavor].append(linter_key)
-
-    return flavor_linters
+    return {
+        flavor: sorted(info.get("linters", [])) for flavor, info in manifest.items()
+    }
 
 
 def get_megalinter_linters(cache_dir: Path | None = None) -> dict:
