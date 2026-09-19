@@ -10,15 +10,15 @@ name: firemerge
 description: "MegaLinter flavor for firemerge - Python FastAPI backend + React TypeScript frontend"
 
 # Upstream MegaLinter base image (Renovate tracks this)
-# renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
-upstream_image: "oxsecurity/megalinter-ci_light:v9.4.0@sha256:54e221da51b3fb959dfd4fc5e21920e0a0fa339ba68e0e9162b894a01a52ed34"
+# renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-ci_light
+upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:v10.1.0@sha256:e40b320afe3152cd0e856019ff9c74a827d179ed45512148e5790871c3d08259"
 
 # Additional linters not in base flavor
 # Just list linter keys - versions come from MegaLinter automatically
 #
 # Note: The following requested linters are already in ci_light base:
 #   BASH_SHELLCHECK, BASH_SHFMT, JSON_JSONLINT, YAML_YAMLLINT,
-#   REPOSITORY_GITLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY,
+#   REPOSITORY_BETTERLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY,
 #   DOCKERFILE_HADOLINT
 custom_linters:
   - ACTION_ACTIONLINT
