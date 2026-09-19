@@ -49,7 +49,7 @@ RUN ARCH="$(apk --print-arch)" \
 COPY assets/rotate-ssh-key.sh /usr/local/bin/rotate-ssh-key.sh
 RUN chmod 0755 /usr/local/bin/rotate-ssh-key.sh
 
-USER rotator
+USER 1000
 WORKDIR /home/rotator
 
 ENTRYPOINT ["/usr/local/bin/rotate-ssh-key.sh"]

@@ -9,7 +9,7 @@ HEALTHCHECK NONE
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-USER root
+USER 0
 
 # libatomic1: pre-commit's nodeenv builds its own node binary (not the
 # nodejs.org prebuilt tarball in the read base), and that binary dynamically
