@@ -1,9 +1,9 @@
 {
-  "chrony": "5.0.4",
+  "chrony": "5.0.5",
   "claude-agent-read": "1.0.97",
-  "claude-agent-spruyt-labs": "1.0.92",
-  "claude-agent-write": "1.0.85",
-  "coder-gitops": "1.0.25",
+  "claude-agent-spruyt-labs": "1.0.93",
+  "claude-agent-write": "1.0.86",
+  "coder-gitops": "1.0.26",
   "devcontainer-common": "1.2.42",
   "llm-guard": "1.0.36",
   "llm-guard-cuda": "1.0.9",
@@ -12,5 +12,5 @@
   "megalinter-spruyt-labs": "1.0.40",
   "megalinter-sungather": "1.0.21",
   "megalinter-xfg": "1.0.47",
-  "ssh-key-rotation": "2.0.8"
+  "ssh-key-rotation": "2.0.9"
 }

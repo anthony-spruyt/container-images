@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.9](https://github.com/anthony-spruyt/container-images/compare/ssh-key-rotation-2.0.8...ssh-key-rotation-2.0.9) (2026-09-19)
+
+
+### Bug Fixes
+
+* satisfy hadolint 2.15.1 rules from the MegaLinter v10 base ([#1817](https://github.com/anthony-spruyt/container-images/issues/1817)) ([16ca1ae](https://github.com/anthony-spruyt/container-images/commit/16ca1aebb8eb2ddff6682935909b3772a3556ec3))
+
 ## [2.0.8](https://github.com/anthony-spruyt/container-images/compare/ssh-key-rotation-2.0.7...ssh-key-rotation-2.0.8) (2026-09-19)
 
 
