@@ -1,5 +1,16 @@
 # Changelog
 
+## [11.0.0](https://github.com/anthony-spruyt/container-images/compare/megalinter-container-images-v10.0.53...megalinter-container-images-v11.0.0) (2026-09-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* **megalinter-container-images:** MegaLinter v10 removes REPOSITORY_GITLEAKS. Consumers must migrate to REPOSITORY_BETTERLEAKS before bumping this image pin.
+
+### Dependencies
+
+* **megalinter-container-images:** rebase onto MegaLinter v10.1.0 ([#1783](https://github.com/anthony-spruyt/container-images/issues/1783)) ([c900ebc](https://github.com/anthony-spruyt/container-images/commit/c900ebc14886e4acfa7e6679a010e64284e4ae22))
+
 ## [10.0.53](https://github.com/anthony-spruyt/container-images/compare/megalinter-container-images-v10.0.52...megalinter-container-images-v10.0.53) (2026-09-07)
 
 
