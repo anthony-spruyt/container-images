@@ -55,9 +55,9 @@ EXPOSE 1123/udp
 
 # Health check (uses socket in /var/lib/chrony to avoid /run permissions)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD chronyc -h /var/lib/chrony/chrony.sock -n tracking || exit 1
+    CMD ["chronyc", "-h", "/var/lib/chrony/chrony.sock", "-n", "tracking"]
 
 # Run as chrony user - use -U flag to bypass superuser check
-USER chrony
+USER 1000
 
 ENTRYPOINT ["/usr/local/bin/startup.sh"]
