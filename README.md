@@ -27,7 +27,7 @@ Versions are owned by release-please. See [docs/releases.md](docs/releases.md).
 
 2. Register the image in `release-please-config.json` and `.release-please-manifest.json`.
 
-3. Add a build job to `.github/workflows/release-please.yaml` and add the image to the `image` choice list in `.github/workflows/rebuild-release.yaml`.
+3. Add a build job to `.github/workflows/release-please.yaml`.
 
 Merging a conventional commit that touches the directory then opens a release PR; merging that cuts the tag and publishes the image.
 

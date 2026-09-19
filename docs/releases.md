@@ -65,7 +65,11 @@ Flavor linter versions are resolved at build time, so a flavor only needs a reas
 
 ## Rebuild Release
 
-`Rebuild Release` (`.github/workflows/rebuild-release.yaml`) is the recovery path for a release that was tagged but whose build failed. Dispatch it with the image and the version (no leading `v`). It refuses to run unless all three hold:
+For a release that was tagged but whose build failed, try `gh run rerun <run-id> --failed` first. It re-runs the build job against the same tag and is the cheapest fix.
+
+`Rebuild Release` (`.github/workflows/rebuild-release.yaml`) covers what a re-run cannot: runs older than 30 days, runs that hit GitHub's 50 re-run cap, and full re-runs — release-please does not re-emit `release_created` on a second pass, so the build job is skipped.
+
+Dispatch it with the image directory name and the version (no leading `v`). The `v`-or-not prefix is read from `include-v-in-tag` in `release-please-config.json`, so an image needs no registration here beyond being a release-please package. It refuses to run unless all three hold:
 
 - the git tag exists
 - the release is still a draft
@@ -107,7 +111,6 @@ Leave it in place. It is not migration scaffolding, and removing it silently inf
 1. Add the directory to `packages` in `release-please-config.json`.
 2. Add its current version to `.release-please-manifest.json`.
 3. Add outputs and a build job to `.github/workflows/release-please.yaml`.
-4. Add it to the `image` choice list in `.github/workflows/rebuild-release.yaml`.
 
 ## Troubleshooting
 
@@ -115,7 +118,7 @@ Leave it in place. It is not migration scaffolding, and removing it silently inf
 
 **Release PR is not auto-merging.** Mergify requires the author to be `repo-operator-release-bot[bot]`, the branch to start with `release-please--branches--`, and the PR to touch `.release-please-manifest.json`. All three come from the app token — a `GITHUB_TOKEN` release PR will not satisfy them and will not trigger status checks either.
 
-**A release is stuck as a draft.** The build failed after tagging. Fix the cause, then dispatch `Rebuild Release` for that image and version.
+**A release is stuck as a draft.** The build failed after tagging. Fix the cause, then re-drive the build — see [Rebuild Release](#rebuild-release).
 
 **Renovate shows no release notes for an own image.** The image needs a `sourceDirectory` package rule in `.github/renovate-overrides.json5` pointing at its directory.
 

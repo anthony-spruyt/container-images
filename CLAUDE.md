@@ -19,7 +19,7 @@ Versions are owned by release-please. See [docs/releases.md](docs/releases.md).
 
 1. Create `<image-name>/Dockerfile`.
 2. Register the image in `release-please-config.json` and `.release-please-manifest.json`.
-3. Add its outputs and build job to `.github/workflows/release-please.yaml`, and add it to the `image` choice list in `.github/workflows/rebuild-release.yaml`.
+3. Add its outputs and build job to `.github/workflows/release-please.yaml`.
 
 ### Variant of an existing image (`build_context`)
 
