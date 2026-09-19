@@ -323,6 +323,29 @@ def detect_gem(_linter_info: dict, install: dict) -> dict | None:
     }
 
 
+def has_download_install_run(dockerfile_text: str) -> bool:
+    """
+    Report whether any RUN line downloads and then runs an install script.
+
+    Scans positionally rather than with a `.*X.*Y` regex, which backtracks
+    super-linearly on long lines.
+    """
+    for line in dockerfile_text.splitlines():
+        lowered = line.lower()
+        if not (run_match := re.search(r"run\s+", lowered)):
+            continue
+
+        found = (lowered.find(tool, run_match.end()) for tool in ("wget", "curl"))
+        download = min((pos for pos in found if pos != -1), default=-1)
+        if download == -1:
+            continue
+
+        if any(lowered.find(marker, download) != -1 for marker in ("install", ".sh")):
+            return True
+
+    return False
+
+
 def detect_script(linter_info: dict, install: dict) -> dict | None:
     """Detect a linter installed by a wget/curl install script, such as Trivy."""
     dockerfile = install.get("dockerfile", [])
@@ -330,7 +353,7 @@ def detect_script(linter_info: dict, install: dict) -> dict | None:
         return None
 
     dockerfile_text = "\n".join(str(line) for line in dockerfile)
-    if not re.search(r"RUN\s+.*(?:wget|curl).*(?:install|\.sh)", dockerfile_text, re.IGNORECASE):
+    if not has_download_install_run(dockerfile_text):
         return None
 
     # Try the most specific version ARG naming first, then fall back

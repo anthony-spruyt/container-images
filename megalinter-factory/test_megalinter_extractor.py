@@ -4,7 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from megalinter_extractor import extract_base_flavor_linters, extract_linter_info
+from megalinter_extractor import (
+    extract_base_flavor_linters,
+    extract_linter_info,
+    has_download_install_run,
+)
 
 SHARED_PRETTIER = """---
 linter_name: prettier
@@ -97,6 +101,26 @@ def test_own_keys_win_over_shared(descriptors_dir: Path) -> None:
     assert linters["JAVASCRIPT_ES"]["package"] == "eslint"
     assert linters["JAVASCRIPT_ES"]["version"] == "9.40.0"
     assert "@microsoft/eslint-formatter-sarif" in linters["JAVASCRIPT_ES"]["npm_packages"]
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("RUN wget -q https://example.com/install.sh | sh", True),
+        ("RUN curl -sfL https://example.com/install.sh | sh -s -- -b /usr/bin", True),
+        # A bare `| sh` pipe has no 'install' or '.sh' marker and does not match
+        ("RUN curl -sfL https://example.com/get | sh", False),
+        ("RUN WGET_OPTS=x wget https://example.com/x.SH", True),
+        ("RUN apk add --no-cache curl", False),
+        ("RUN npm install -g markdownlint-cli", False),
+        # The download must follow RUN on the same line, not precede it
+        ("# curl install\nRUN echo hi", False),
+        ("COPY --from=x /usr/bin/wget /usr/bin/install.sh", False),
+    ],
+)
+def test_has_download_install_run(text: str, expected: bool) -> None:
+    """Install-script detection matches a RUN that downloads then installs."""
+    assert has_download_install_run(text) is expected
 
 
 def test_shared_descriptor_flavors_are_honoured(descriptors_dir: Path) -> None:
