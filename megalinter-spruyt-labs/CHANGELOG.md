@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v1.0.40...megalinter-spruyt-labs-v2.0.0) (2026-09-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* **megalinter:** MegaLinter v10 removes REPOSITORY_GITLEAKS. Replace it with REPOSITORY_BETTERLEAKS in ENABLE_LINTERS before bumping this image pin, or secret scanning stops without failing.
+
+### Features
+
+* **megalinter:** mark the v10 gitleaks removal as breaking on the four remaining flavors ([#1821](https://github.com/anthony-spruyt/container-images/issues/1821)) ([bc1fa86](https://github.com/anthony-spruyt/container-images/commit/bc1fa860e03b47d184e6a7ebe07896904207812b))
+
 ## [1.0.40](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v1.0.39...megalinter-spruyt-labs-v1.0.40) (2026-09-19)
 
 
