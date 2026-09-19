@@ -8,9 +8,9 @@
   "llm-guard": "1.0.36",
   "llm-guard-cuda": "1.0.9",
   "megalinter-container-images": "11.0.0",
-  "megalinter-firemerge": "1.0.21",
-  "megalinter-spruyt-labs": "1.0.40",
-  "megalinter-sungather": "1.0.21",
-  "megalinter-xfg": "1.0.47",
+  "megalinter-firemerge": "2.0.0",
+  "megalinter-spruyt-labs": "2.0.0",
+  "megalinter-sungather": "2.0.0",
+  "megalinter-xfg": "2.0.0",
   "ssh-key-rotation": "2.0.9"
 }
