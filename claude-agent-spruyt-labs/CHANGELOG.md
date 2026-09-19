@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.93](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.92...claude-agent-spruyt-labs-1.0.93) (2026-09-19)
+
+
+### Bug Fixes
+
+* satisfy hadolint 2.15.1 rules from the MegaLinter v10 base ([#1817](https://github.com/anthony-spruyt/container-images/issues/1817)) ([16ca1ae](https://github.com/anthony-spruyt/container-images/commit/16ca1aebb8eb2ddff6682935909b3772a3556ec3))
+
 ## [1.0.92](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.91...claude-agent-spruyt-labs-1.0.92) (2026-09-19)
 
 

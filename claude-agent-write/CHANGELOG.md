@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.86](https://github.com/anthony-spruyt/container-images/compare/claude-agent-write-1.0.85...claude-agent-write-1.0.86) (2026-09-19)
+
+
+### Bug Fixes
+
+* satisfy hadolint 2.15.1 rules from the MegaLinter v10 base ([#1817](https://github.com/anthony-spruyt/container-images/issues/1817)) ([16ca1ae](https://github.com/anthony-spruyt/container-images/commit/16ca1aebb8eb2ddff6682935909b3772a3556ec3))
+
 ## [1.0.85](https://github.com/anthony-spruyt/container-images/compare/claude-agent-write-1.0.84...claude-agent-write-1.0.85) (2026-09-19)
 
 
