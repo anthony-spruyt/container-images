@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.88](https://github.com/anthony-spruyt/container-images/compare/claude-agent-write-1.0.87...claude-agent-write-1.0.88) (2026-09-19)
+
+
+### Dependencies
+
+* **deps:** update container image golang to v1.27.0 ([#1461](https://github.com/anthony-spruyt/container-images/issues/1461)) ([454d6ff](https://github.com/anthony-spruyt/container-images/commit/454d6ffa9daec9121224cf83b76ee3626eb77c5a))
+
 ## [1.0.87](https://github.com/anthony-spruyt/container-images/compare/claude-agent-write-1.0.86...claude-agent-write-1.0.87) (2026-09-19)
 
 
