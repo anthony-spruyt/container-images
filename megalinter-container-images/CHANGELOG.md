@@ -1,5 +1,12 @@
 # Changelog
 
+## [11.0.1](https://github.com/anthony-spruyt/container-images/compare/megalinter-container-images-v11.0.0...megalinter-container-images-v11.0.1) (2026-09-20)
+
+
+### Continuous Integration
+
+* **megalinter:** stamp every flavor, including new ones ([#1872](https://github.com/anthony-spruyt/container-images/issues/1872)) ([da38b7d](https://github.com/anthony-spruyt/container-images/commit/da38b7d6ac85169e7e9b2b1adf64c56c934ff379))
+
 ## [11.0.0](https://github.com/anthony-spruyt/container-images/compare/megalinter-container-images-v10.0.53...megalinter-container-images-v11.0.0) (2026-09-19)
 
 
