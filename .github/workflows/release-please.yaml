@@ -47,9 +47,6 @@ jobs:
       megalinter-container-images-released: ${{ steps.release.outputs['megalinter-container-images--release_created'] }}
       megalinter-container-images-version: ${{ steps.release.outputs['megalinter-container-images--version'] }}
       megalinter-container-images-tag: ${{ steps.release.outputs['megalinter-container-images--tag_name'] }}
-      megalinter-firemerge-released: ${{ steps.release.outputs['megalinter-firemerge--release_created'] }}
-      megalinter-firemerge-version: ${{ steps.release.outputs['megalinter-firemerge--version'] }}
-      megalinter-firemerge-tag: ${{ steps.release.outputs['megalinter-firemerge--tag_name'] }}
       megalinter-spruyt-labs-released: ${{ steps.release.outputs['megalinter-spruyt-labs--release_created'] }}
       megalinter-spruyt-labs-version: ${{ steps.release.outputs['megalinter-spruyt-labs--version'] }}
       megalinter-spruyt-labs-tag: ${{ steps.release.outputs['megalinter-spruyt-labs--tag_name'] }}
@@ -247,24 +244,6 @@ jobs:
       version: ${{ needs.release-please.outputs.megalinter-container-images-version }}
       tag-name: ${{ needs.release-please.outputs.megalinter-container-images-tag }}
       tag-prefix: "v"
-
-  megalinter-firemerge:
-    name: megalinter-firemerge
-    needs: release-please
-    if: needs.release-please.outputs.megalinter-firemerge-released == 'true'
-    permissions:
-      contents: write
-      packages: write
-      id-token: write
-      attestations: write
-      security-events: write
-    uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
-    with:
-      image: megalinter-firemerge
-      push: true
-      version: ${{ needs.release-please.outputs.megalinter-firemerge-version }}
-      tag-name: ${{ needs.release-please.outputs.megalinter-firemerge-tag }}
 
   megalinter-spruyt-labs:
     name: megalinter-spruyt-labs
