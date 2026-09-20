@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/anthony-spruyt/container-images/compare/megalinter-xfg-v2.0.1...megalinter-xfg-v2.0.2) (2026-09-20)
+
+
+### Dependencies
+
+* **megalinter:** weekly linter version refresh ([#1871](https://github.com/anthony-spruyt/container-images/issues/1871)) ([1c8d4f7](https://github.com/anthony-spruyt/container-images/commit/1c8d4f7fa3a2a21d4a67dd836874f4db27f7da47))
+
 ## [2.0.1](https://github.com/anthony-spruyt/container-images/compare/megalinter-xfg-v2.0.0...megalinter-xfg-v2.0.1) (2026-09-19)
 
 
