@@ -10,7 +10,6 @@ images:
   - "llm-guard"
   - "llm-guard-cuda"
   - "megalinter-container-images"
-  - "megalinter-firemerge"
   - "megalinter-factory"
   - "megalinter-spruyt-labs"
   - "megalinter-sungather"

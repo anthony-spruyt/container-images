@@ -72,12 +72,6 @@
       "sourceDirectory": "megalinter-container-images",
     },
     {
-      "description": "Release notes for own images: megalinter-firemerge",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-firemerge"],
-      "sourceDirectory": "megalinter-firemerge",
-    },
-    {
       "description": "Release notes for own images: megalinter-spruyt-labs",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-spruyt-labs"],

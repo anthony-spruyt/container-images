@@ -102,13 +102,6 @@
       "include-component-in-tag": true,
       "include-v-in-tag": true
     },
-    "megalinter-firemerge": {
-      "release-type": "simple",
-      "component": "megalinter-firemerge",
-      "tag-separator": "-",
-      "include-component-in-tag": true,
-      "include-v-in-tag": false
-    },
     "megalinter-spruyt-labs": {
       "release-type": "simple",
       "component": "megalinter-spruyt-labs",

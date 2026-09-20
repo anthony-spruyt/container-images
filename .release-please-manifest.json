@@ -8,7 +8,6 @@
   "llm-guard": "1.0.37",
   "llm-guard-cuda": "1.0.10",
   "megalinter-container-images": "11.0.0",
-  "megalinter-firemerge": "2.0.0",
   "megalinter-spruyt-labs": "2.0.0",
   "megalinter-sungather": "2.0.0",
   "megalinter-xfg": "2.0.0",
