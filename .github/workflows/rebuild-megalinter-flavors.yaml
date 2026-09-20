@@ -64,7 +64,9 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          if git diff --quiet; then
+          # Not `git diff`: a flavor whose stamp does not exist yet is untracked,
+          # and an untracked file is invisible to both `git diff` and `git commit -a`.
+          if [ -z "$(git status --porcelain)" ]; then
             echo "::notice::Stamps are already current, nothing to do"
             exit 0
           fi
@@ -73,7 +75,8 @@ jobs:
           git config user.name "repo-operator-release-bot[bot]"
           git config user.email "repo-operator-release-bot[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          git commit -aqm "chore(megalinter): weekly linter version refresh"
+          git add -A
+          git commit -qm "chore(megalinter): weekly linter version refresh"
           git push -q origin "$BRANCH"
 
           gh pr create \
