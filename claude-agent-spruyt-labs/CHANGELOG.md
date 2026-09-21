@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.99](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.98...claude-agent-spruyt-labs-1.0.99) (2026-09-21)
+
+
+### Dependencies
+
+* **deps:** update dependency falcosecurity/falcoctl to v0.14.2 ([#1888](https://github.com/anthony-spruyt/container-images/issues/1888)) ([1b49703](https://github.com/anthony-spruyt/container-images/commit/1b49703dc5f3d423466ec4f3dbd7403b302c6c47))
+
 ## [1.0.98](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.97...claude-agent-spruyt-labs-1.0.98) (2026-09-20)
 
 
