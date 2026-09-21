@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.39](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.0.38...llm-guard-1.0.39) (2026-09-21)
+
+
+### Dependencies
+
+* **deps:** update dependency uvicorn to v0.53.0 ([#1884](https://github.com/anthony-spruyt/container-images/issues/1884)) ([2fc1b15](https://github.com/anthony-spruyt/container-images/commit/2fc1b151bcc2413df3fe248251a965b574c7f1a9))
+
 ## [1.0.38](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.0.37...llm-guard-1.0.38) (2026-09-19)
 
 
