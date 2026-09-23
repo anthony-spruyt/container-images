@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Container images built from upstream sources or custom Dockerfiles, published to `ghcr.io/<owner>/<image>` with automated security scanning and SLSA provenance.
+Personal container images, published to `ghcr.io/<owner>/<image>`. CI scans each with Trivy and attaches build provenance.
 
 ## Commands
 
@@ -101,7 +101,7 @@ custom_linters:
 ### Version Updates
 
 - **Base image**: Renovate tracks via `# renovate:` annotation in `flavor.yaml`
-- **Linter versions**: Extracted from MegaLinter at build time - zero maintenance
+- **Linter versions**: Extracted from MegaLinter at build time
 - **Weekly rebuild**: Scheduled workflow rebuilds all flavors to pick up new versions
 
 ### Local Development
