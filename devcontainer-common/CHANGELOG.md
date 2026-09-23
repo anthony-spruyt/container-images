@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.44](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-1.2.43...devcontainer-common-1.2.44) (2026-09-23)
+
+
+### Dependencies
+
+* **deps:** update dependency pipx to v1.17.3 ([#1905](https://github.com/anthony-spruyt/container-images/issues/1905)) ([ea16fb0](https://github.com/anthony-spruyt/container-images/commit/ea16fb0eb66f3148bef9016236456d0300d1e6d1))
+
 ## [1.2.43](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-1.2.42...devcontainer-common-1.2.43) (2026-09-22)
 
 
