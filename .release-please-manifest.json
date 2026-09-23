@@ -1,7 +1,7 @@
 {
   "chrony": "5.0.5",
   "claude-agent-read": "1.0.98",
-  "claude-agent-spruyt-labs": "1.0.99",
+  "claude-agent-spruyt-labs": "1.0.100",
   "claude-agent-write": "1.0.90",
   "coder-gitops": "1.0.27",
   "devcontainer-common": "1.2.43",
