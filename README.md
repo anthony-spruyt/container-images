@@ -1,11 +1,9 @@
 # Container Images
 
 [![License](https://img.shields.io/github/license/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/blob/main/LICENSE) [![CI](https://github.com/anthony-spruyt/container-images/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/anthony-spruyt/container-images/actions/workflows/ci.yaml)
-[![Trivy Scan](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml/badge.svg?branch=main)](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml) [![Stars](https://img.shields.io/github/stars/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/stargazers)
-[![Forks](https://img.shields.io/github/forks/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/forks) [![Contributors](https://img.shields.io/github/contributors/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/graphs/contributors)
-[![Issues](https://img.shields.io/github/issues/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/issues)
+[![Trivy Scan](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml/badge.svg?branch=main)](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml)
 
-Container images built from upstream sources or custom Dockerfiles, published to GitHub Container Registry with automated security scanning and SLSA provenance.
+Container images I use, published to `ghcr.io/anthony-spruyt`. Some wrap upstream software, some are my own Dockerfiles. CI scans each one with Trivy and attaches a build provenance attestation.
 
 ## Development
 
@@ -43,9 +41,9 @@ build_context: llm-guard
 
 Custom MegaLinter flavors extend official flavors with additional linters. The `megalinter-factory/` directory contains tooling to generate flavor files from a simple configuration.
 
-### Using Claude Code (Recommended)
+### Using Claude Code
 
-The `/create-megalinter-flavor` command automates flavor creation with automatic base flavor selection:
+The `/create-megalinter-flavor` command writes the `flavor.yaml` for you:
 
 ```bash
 # With specific linters
@@ -59,7 +57,7 @@ The command will:
 
 1. Validate the flavor name and check for conflicts
 2. Look up linter configurations from the catalog
-3. Auto-select the optimal base flavor (minimizing custom installs)
+3. Pick the base flavor that needs the fewest extra installs
 4. Generate `megalinter-<name>/flavor.yaml` with Renovate annotations
 
 ### Manual Setup
@@ -89,11 +87,11 @@ The command will:
 
 ### Available Linters
 
-Linter information is extracted directly from MegaLinter's descriptors at build time. The generator automatically fetches the latest versions from <https://github.com/oxsecurity/megalinter/tree/main/megalinter/descriptors>.
+Linter info comes from MegaLinter's descriptors at build time: <https://github.com/oxsecurity/megalinter/tree/main/megalinter/descriptors>.
 
 ### Version Updates
 
-Linter versions are automatically extracted from MegaLinter at build time - no manual tracking needed. The weekly scheduled rebuild workflow picks up any new linter versions.
+Linter versions come from MegaLinter at build time. The weekly rebuild picks up new ones.
 
 For the base image, Renovate tracks the upstream MegaLinter version:
 
