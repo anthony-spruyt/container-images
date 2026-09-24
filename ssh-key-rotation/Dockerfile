@@ -18,7 +18,7 @@ FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cab
 HEALTHCHECK NONE
 
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
-ARG KUBECTL_VERSION=v1.36.4
+ARG KUBECTL_VERSION=v1.37.0
 
 # Install runtime dependencies (no runtime apk add - PSA restricted compatible).
 # openssh-keygen: ed25519 keypair generation
