@@ -1,0 +1,14 @@
+#!/bin/bash
+# ssh ProxyCommand: tunnels through the Claude Code sandbox proxy when present, direct otherwise.
+set -euo pipefail
+host="$1" port="$2"
+p="${HTTPS_PROXY:-${https_proxy:-}}"
+if [[ -z "$p" ]]; then
+  exec socat - "TCP:${host}:${port}"
+fi
+p="${p#*://}"
+p="${p%/}"
+hostport="${p##*@}"
+opts="proxyport=${hostport##*:}"
+[[ "$p" == *@* ]] && opts+=",proxyauth=${p%@*}"
+exec socat - "PROXY:${hostport%:*}:${host}:${port},${opts}"
