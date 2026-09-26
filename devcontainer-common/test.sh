@@ -11,6 +11,7 @@ docker run --rm "$IMAGE_REF" bash -c '
   pre-commit --version &&
   mdformat --version &&
   pip show mdformat-frontmatter &&
+  pip show mdformat-admon &&
   gh --version &&
   echo "=== Podman ===" &&
   command -v podman &&
