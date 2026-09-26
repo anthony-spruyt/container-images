@@ -19,7 +19,7 @@ docker run --rm "$IMAGE_REF" bash -c '
   test -x /usr/local/bin/agent-run && echo "agent-run: OK" &&
   test -x /usr/local/bin/devcontainer-post-create && echo "devcontainer-post-create: OK" &&
   echo "=== Claude sandbox ===" &&
-  for bin in bwrap socat sandbox-lint ssh-via-sandbox-proxy claude-statusline; do
+  for bin in bwrap socat sandbox-lint ssh-via-sandbox-proxy; do
     command -v "$bin" || { echo "FAIL: $bin not found"; exit 1; }
   done &&
   jq empty /etc/claude-code/managed-settings.json && echo "managed-settings.json: OK" &&

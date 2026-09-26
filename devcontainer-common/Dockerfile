@@ -54,7 +54,6 @@ RUN chmod 755 /usr/local/bin/agent-run /usr/local/bin/devcontainer-post-create \
     && install -o root -g root -m 755 \
          /tmp/claude-sandbox/sandbox-lint \
          /tmp/claude-sandbox/ssh-via-sandbox-proxy \
-         /tmp/claude-sandbox/claude-statusline \
          /usr/local/bin/ \
     && install -D -o root -g root -m 644 /tmp/claude-sandbox/managed-settings.json /etc/claude-code/managed-settings.json \
     && install -D -o root -g root -m 644 /tmp/claude-sandbox/sandbox-lint-containers.conf /etc/sandbox-lint/containers.conf \
