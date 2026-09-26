@@ -25,7 +25,7 @@ RUN { echo 'Acquire::Retries "5";'; \
   [[ -n "${ok}" ]] \
   && apt-get install -y --no-install-recommends \
   ca-certificates curl git jq openssh-client python3 python3-pip \
-  xz-utils \
+  bubblewrap socat xz-utils \
   && rm -rf /var/lib/apt/lists/*
 
 # Node.js (prebuilt binary tarball — Renovate tracks via node-version datasource)
