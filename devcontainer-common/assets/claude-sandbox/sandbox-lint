@@ -1,0 +1,68 @@
+#!/bin/bash
+# sandbox-lint: runs MegaLinter for Claude Code from outside its sandbox.
+#
+# Listed in the managed sandbox.excludedCommands, so it runs unsandboxed.
+# It must never execute anything from the repo: lint-config.sh is parsed as
+# text, not sourced, and only pinned MegaLinter images are accepted.
+set -euo pipefail
+
+readonly ALLOWED_IMAGE_RE='^(ghcr\.io/anthony-spruyt/megalinter-[a-z0-9-]+|docker\.io/oxsecurity/megalinter(-[a-z0-9_]+)?|oxsecurity/megalinter(-[a-z0-9_]+)?):[A-Za-z0-9._-]+@sha256:[a-f0-9]{64}$'
+
+repo_root="$PWD"
+[[ -d .git ]] || {
+  echo "sandbox-lint: run from the repository root" >&2
+  exit 2
+}
+
+[[ -f lint-config.sh && ! -L lint-config.sh ]] || {
+  echo "sandbox-lint: lint-config.sh missing or a symlink" >&2
+  exit 2
+}
+
+image="$(sed -nE 's/^MEGALINTER_IMAGE="([^"$`\\]+)"$/\1/p' lint-config.sh | head -n1)"
+flavor="$(sed -nE 's/^MEGALINTER_FLAVOR="([a-z_]+)"$/\1/p' lint-config.sh | head -n1)"
+
+if [[ ! "$image" =~ $ALLOWED_IMAGE_RE ]]; then
+  echo "sandbox-lint: MEGALINTER_IMAGE is not an allowed, digest-pinned MegaLinter image" >&2
+  exit 2
+fi
+
+readonly NO_SYSCTL_CONF=/etc/sandbox-lint/containers.conf
+runner=(env CONTAINERS_CONF="$NO_SYSCTL_CONF" podman)
+if [[ "$(id -u)" != "0" ]] && sudo -n true 2>/dev/null; then
+  runner=(sudo -n env CONTAINERS_CONF="$NO_SYSCTL_CONF" podman)
+fi
+
+rm -rf .output 2>/dev/null || sudo -n rm -rf .output
+
+# Paths that run code outside the sandbox later (git hooks, Claude/IDE config) stay read-only.
+ro_mounts=()
+for path in .git .claude .vscode .devcontainer .mcp.json .pre-commit-config.yaml .envrc; do
+  [[ -e "$path" && ! -L "$path" ]] && ro_mounts+=(-v "$repo_root/$path:/tmp/lint/$path:ro")
+done
+
+lint_exit=0
+"${runner[@]}" run --rm \
+  --network=none \
+  --uts=host \
+  --cap-drop=ALL \
+  --security-opt=no-new-privileges \
+  -u "$(id -u):$(id -g)" \
+  -w /tmp/lint \
+  -e HOME=/tmp \
+  -e MEGALINTER_FLAVOR="${flavor:-all}" \
+  -e VALIDATE_ALL_CODEBASE=true \
+  -e APPLY_FIXES=all \
+  -e SPELL_LYCHEE_ARGUMENTS=--offline \
+  -e UPDATED_SOURCES_REPORTER=true \
+  -e REPORT_OUTPUT_FOLDER=/tmp/lint/.output \
+  -v "$repo_root:/tmp/lint:rw" \
+  "${ro_mounts[@]}" \
+  "$image" >/dev/null 2>&1 || lint_exit=$?
+
+if [[ $lint_exit -eq 0 ]]; then
+  echo "MegaLinter passed. Report: .output/"
+else
+  echo "MegaLinter found issues (exit $lint_exit). Report: .output/megalinter.log"
+fi
+exit "$lint_exit"

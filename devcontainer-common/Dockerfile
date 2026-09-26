@@ -4,7 +4,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::http::Pipeline-Depth "0";\nAcquire::Retries::Delay::Maximum "10";\n' \
     > /etc/apt/apt.conf.d/80-retries \
-    && apt-get update && apt-get install -y --no-install-recommends jq \
+    && apt-get update && apt-get install -y --no-install-recommends bubblewrap jq socat \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fsSL https://raw.githubusercontent.com/MilkClouds/devcontainer-feature-installer/main/install-feature-cli.sh | bash
 
@@ -47,10 +47,20 @@ RUN pip install --no-cache-dir \
     "mdformat-frontmatter==${MDFORMAT_FRONTMATTER_VERSION}" \
     "mdformat-admon==${MDFORMAT_ADMON_VERSION}"
 
-# Policy-enforcing podman wrapper + runtime post-create script
 COPY assets/agent-run /usr/local/bin/agent-run
 COPY assets/post-create.sh /usr/local/bin/devcontainer-post-create
+COPY assets/claude-sandbox/ /tmp/claude-sandbox/
 RUN chmod 755 /usr/local/bin/agent-run /usr/local/bin/devcontainer-post-create \
-    && rm -rf /tmp/scripts
+    && install -o root -g root -m 755 \
+         /tmp/claude-sandbox/sandbox-lint \
+         /tmp/claude-sandbox/ssh-via-sandbox-proxy \
+         /tmp/claude-sandbox/claude-statusline \
+         /usr/local/bin/ \
+    && install -D -o root -g root -m 644 /tmp/claude-sandbox/managed-settings.json /etc/claude-code/managed-settings.json \
+    && install -D -o root -g root -m 644 /tmp/claude-sandbox/sandbox-lint-containers.conf /etc/sandbox-lint/containers.conf \
+    && install -D -o root -g root -m 644 /tmp/claude-sandbox/50-github-sandbox.conf /etc/ssh/ssh_config.d/50-github-sandbox.conf \
+    && install -o root -g root -m 644 /tmp/claude-sandbox/ssh_known_hosts /etc/ssh/ssh_known_hosts \
+    && install -d -o root -g root -m 1777 /var/tmp/claude \
+    && rm -rf /tmp/scripts /tmp/claude-sandbox
 
 HEALTHCHECK NONE

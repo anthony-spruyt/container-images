@@ -1,0 +1,62 @@
+{
+  "allowManagedHooksOnly": true,
+  "enabledPlugins": {
+    "hookify-plus@aspruyt-plugins": true,
+    "security-hooks@aspruyt-plugins": true,
+    "best-practices@aspruyt-plugins": true
+  },
+  "statusLine": { "type": "command", "command": "/usr/local/bin/claude-statusline" },
+  "env": { "TMPDIR": "/var/tmp/claude", "SSH_AUTH_SOCK": "/ssh-agent" },
+  "permissions": {
+    "deny": [
+      "Edit(//**/.claude/*)",
+      "Edit(//**/.claude/hooks/**)",
+      "Edit(//**/.mcp.json)",
+      "Edit(//**/.git/**)",
+      "Edit(//**/.vscode/**)",
+      "Edit(//**/.devcontainer/**)",
+      "Edit(//**/.devcontainer.json)",
+      "Edit(//**/.envrc)",
+      "Edit(~/.claude/**)",
+      "Edit(~/.claude.json)",
+      "Edit(~/.config/**)",
+      "Edit(~/.ssh/**)",
+      "Edit(~/.bashrc)",
+      "Edit(~/.profile)",
+      "Edit(~/.gitconfig)",
+      "Bash(git * --upload-pack*)",
+      "Bash(git * --receive-pack*)",
+      "Bash(git * --exec=*)",
+      "Bash(git * -u *)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "autoAllowBashIfSandboxed": true,
+    "excludedCommands": ["sandbox-lint"],
+    "filesystem": {
+      "denyRead": ["/tmp"],
+      "allowWrite": ["~/.npm", "~/.cache/pip", "~/.cache/pre-commit", "~/.cache/go-build", "~/go"]
+    },
+    "network": {
+      "allowAllUnixSockets": true,
+      "allowedDomains": ["*"]
+    },
+    "credentials": {
+      "envVars": [
+        { "name": "ANTHROPIC_API_KEY", "mode": "deny" },
+        { "name": "OPENAI_API_KEY", "mode": "deny" },
+        { "name": "LITELLM_API_KEY", "mode": "deny" }
+      ],
+      "files": [
+        { "path": "~/.ssh", "mode": "deny" },
+        { "path": "~/.secrets", "mode": "deny" },
+        { "path": "~/.claude/.credentials.json", "mode": "deny" },
+        { "path": "/etc/coder/ssh-keys", "mode": "deny" },
+        { "path": "/etc/coder/sops", "mode": "deny" }
+      ]
+    }
+  }
+}
