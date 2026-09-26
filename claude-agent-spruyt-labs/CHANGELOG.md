@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.101](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.100...claude-agent-spruyt-labs-1.0.101) (2026-09-26)
+
+
+### Dependencies
+
+* **deps:** update dependency siderolabs/talos to v1.14.1 ([#1895](https://github.com/anthony-spruyt/container-images/issues/1895)) ([65a2841](https://github.com/anthony-spruyt/container-images/commit/65a2841f8b067cf3a9ca4b6f410a8c9c660ddf00))
+
 ## [1.0.100](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.99...claude-agent-spruyt-labs-1.0.100) (2026-09-23)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.45](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-1.2.44...devcontainer-common-1.2.45) (2026-09-26)
+
+
+### Bug Fixes
+
+* **devcontainer-common:** install mdformat-admon ([#1922](https://github.com/anthony-spruyt/container-images/issues/1922)) ([23d674c](https://github.com/anthony-spruyt/container-images/commit/23d674c6d2bbb09266ed0cc89e1e8ca5540b818f))
+
+
+### Dependencies
+
+* **deps:** update dependency pipx to v1.17.4 ([#1923](https://github.com/anthony-spruyt/container-images/issues/1923)) ([1e2126f](https://github.com/anthony-spruyt/container-images/commit/1e2126f04954b767e0077905a7c7b748dd344e92))
+
 ## [1.2.44](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-1.2.43...devcontainer-common-1.2.44) (2026-09-23)
 
 
