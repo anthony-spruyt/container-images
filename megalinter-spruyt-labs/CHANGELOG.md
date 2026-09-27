@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v2.0.2...megalinter-spruyt-labs-v2.0.3) (2026-09-27)
+
+
+### Dependencies
+
+* **megalinter:** weekly linter version refresh ([#1934](https://github.com/anthony-spruyt/container-images/issues/1934)) ([89cb6c2](https://github.com/anthony-spruyt/container-images/commit/89cb6c2158d4770bd7d84d977450a5297ea60e89))
+
 ## [2.0.2](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v2.0.1...megalinter-spruyt-labs-v2.0.2) (2026-09-26)
 
 
