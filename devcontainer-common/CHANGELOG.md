@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.47](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-1.2.46...devcontainer-common-1.2.47) (2026-09-27)
+
+
+### Bug Fixes
+
+* **devcontainer-common:** run podman rootful by design ([#1936](https://github.com/anthony-spruyt/container-images/issues/1936)) ([f77524a](https://github.com/anthony-spruyt/container-images/commit/f77524a9ac577f7178c07cd482ee62c1c2cdf5d3))
+
 ## [1.2.46](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-1.2.45...devcontainer-common-1.2.46) (2026-09-27)
 
 
