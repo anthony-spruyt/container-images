@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/anthony-spruyt/container-images/compare/megalinter-sungather-2.0.1...megalinter-sungather-2.0.2) (2026-09-27)
+
+
+### Dependencies
+
+* **megalinter:** weekly linter version refresh ([#1934](https://github.com/anthony-spruyt/container-images/issues/1934)) ([89cb6c2](https://github.com/anthony-spruyt/container-images/commit/89cb6c2158d4770bd7d84d977450a5297ea60e89))
+
 ## [2.0.1](https://github.com/anthony-spruyt/container-images/compare/megalinter-sungather-2.0.0...megalinter-sungather-2.0.1) (2026-09-20)
 
 
