@@ -1,0 +1,7 @@
+#!/bin/bash
+# Rootful by design: rootless can't run nested (no cgroup delegation, no /dev/net/tun).
+# A real binary rather than a shell alias so scripts get it too.
+if [[ $EUID -eq 0 ]]; then
+  exec /usr/bin/podman "$@"
+fi
+exec sudo -n /usr/bin/podman "$@"
