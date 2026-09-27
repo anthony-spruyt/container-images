@@ -2,16 +2,13 @@
 # agent-run: policy-enforcing wrapper around `podman run` for AI agents.
 #
 # Enforces safe defaults for images pulled and executed by agents:
-#   - rootless userns mapping (--userns=auto)
+#   - own user namespace (--userns=auto), so container root is not host root
 #   - read-only root filesystem with /tmp + /var/tmp tmpfs
 #   - no-new-privileges, all capabilities dropped
-#   - pids/memory/cpu limits to contain runaway workloads
-#   - slirp4netns without host loopback by default
+#   - private bridge network
 #
-# Forbidden user args are rejected before podman is invoked. This is not a
-# security boundary (a determined agent can bypass by calling podman directly);
-# it is a guardrail that makes the safe path the easy path. Real isolation
-# comes from rootless podman + (phase 2) Kata runtime on the Coder pod.
+# This is a guardrail, not a security boundary: the calling user has
+# passwordless sudo. Isolation comes from the devcontainer / Kata VM.
 #
 # Usage:
 #   agent-run [podman-run-args...] IMAGE [CMD...]
@@ -24,6 +21,7 @@ readonly FORBIDDEN_FLAGS=(
   --privileged
   --pid
   --network
+  --net
   --ipc
   --uts
   --userns
@@ -66,8 +64,6 @@ is_forbidden_value() {
   return 1
 }
 
-# --privileged with no value is always forbidden.
-# For flags with a value: reject if value ∈ FORBIDDEN_VALUES.
 i=1
 while [[ $i -le $# ]]; do
   arg="${!i}"
@@ -79,13 +75,11 @@ while [[ $i -le $# ]]; do
     fi
   done
 
-  # Bare --privileged (no value).
   if [[ "$arg" == "--privileged" ]]; then
     echo "agent-run: forbidden flag: --privileged" >&2
     exit 64
   fi
 
-  # --flag=value form.
   if [[ "$arg" == *=* ]]; then
     flag="${arg%%=*}"
     value="${arg#*=}"
@@ -93,7 +87,6 @@ while [[ $i -le $# ]]; do
       echo "agent-run: forbidden flag=value: $arg" >&2
       exit 64
     fi
-  # --flag value form (space-separated).
   elif is_forbidden_flag "$arg"; then
     next_i=$((i + 1))
     if [[ $next_i -le $# ]]; then
@@ -108,40 +101,16 @@ while [[ $i -le $# ]]; do
   i=$((i + 1))
 done
 
-# Policy defaults. Override via AGENT_RUN_* env vars where sensible.
-AGENT_NET="${AGENT_RUN_NET:-slirp4netns:allow_host_loopback=false}"
-AGENT_MEM="${AGENT_RUN_MEM:-2g}"
-AGENT_PIDS="${AGENT_RUN_PIDS:-512}"
-AGENT_CPUS="${AGENT_RUN_CPUS:-2}"
+AGENT_NET="${AGENT_RUN_NET:-bridge}"
 
-# Rootless podman is preferred. In WSL2 nested userns, newuidmap fails because
-# the outer namespace did not delegate subuid ranges; fall back to `sudo podman`
-# with --network=host --uts=host (matching lint.sh). Cgroups are also unavailable
-# in WSL2 devcontainers, so resource limits must be skipped.
-runner=(podman)
-ns_args=(--userns=auto)
-limit_args=(
-  --pids-limit="$AGENT_PIDS"
-  --memory="$AGENT_MEM"
-  --memory-swap="$AGENT_MEM"
-  --cpus="$AGENT_CPUS"
-)
-if ! podman info >/dev/null 2>&1; then
-  if [[ "$(id -u)" != "0" ]] && command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-    runner=(sudo -n podman)
-    AGENT_NET="host"
-    ns_args=(--uts=host)
-    limit_args=()
-  fi
-fi
-
-exec "${runner[@]}" run --rm \
-  "${ns_args[@]}" \
+# No cgroup limits (--memory, --pids-limit, --cpus): the nested cgroup tree
+# is not delegated, so podman rejects them.
+exec podman run --rm \
+  --userns=auto \
   --read-only \
   --tmpfs /tmp:rw,exec,nosuid,nodev,size=256m \
   --tmpfs /var/tmp:rw,exec,nosuid,nodev,size=64m \
   --security-opt no-new-privileges \
   --cap-drop=ALL \
-  "${limit_args[@]}" \
   --network="$AGENT_NET" \
   "$@"

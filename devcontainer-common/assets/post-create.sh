@@ -76,72 +76,37 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
   echo "Bootstrapping Claude Code plugins..."
   # Settings precedence: user → project → local
   bootstrap_claude_plugins "$HOME/.claude/settings.json"
-  # $WORKSPACE is set at top of script (points to repo clone root)
   bootstrap_claude_plugins "$WORKSPACE/.claude/settings.json"
   bootstrap_claude_plugins "$WORKSPACE/.claude/settings.local.json"
 fi
 
-# Podman userns config
-mkdir -p "$HOME/.config/containers/containers.conf.d"
-cat >"$HOME/.config/containers/containers.conf.d/10-userns.conf" <<'CONTAINERS_CONF'
-[containers]
-userns = "keep-id"
-CONTAINERS_CONF
-
-# Storage and cgroup configuration (Kata vs WSL2 detection)
+# Podman runs rootful (see /usr/local/bin/podman), so config lives in /etc.
+sudo mkdir -p /var/lib/containers
 if [ -b /dev/containers-disk ]; then
   if ! sudo blkid /dev/containers-disk >/dev/null 2>&1; then
     sudo mkfs.ext4 -q -L containers /dev/containers-disk
   fi
-  sudo mkdir -p /var/lib/containers
   sudo mountpoint -q /var/lib/containers || sudo mount -o noatime /dev/containers-disk /var/lib/containers
-  rm -rf "$HOME/.local/share/containers/storage" "$HOME/.config/containers/storage.conf"
-  sudo mkdir -p /etc/containers
-  sudo tee /etc/containers/storage.conf >/dev/null <<'ROOTFUL_STORAGE_CONF'
-[storage]
-driver = "overlay"
-runroot = "/run/containers/storage"
-graphroot = "/var/lib/containers/storage"
-ROOTFUL_STORAGE_CONF
-  sudo tee /etc/containers/containers.conf >/dev/null <<'CONTAINERS_CONF'
-[containers]
-cgroups = "disabled"
-
-[engine]
-cgroup_manager = "cgroupfs"
-CONTAINERS_CONF
-  grep -q 'alias podman=' "$HOME/.bashrc" 2>/dev/null || echo 'alias podman="sudo podman"' >>"$HOME/.bashrc"
-else
-  sudo mkdir -p /etc/containers
-  sudo tee /etc/containers/storage.conf >/dev/null <<'ROOTFUL_STORAGE_CONF'
-[storage]
-driver = "overlay"
-runroot = "/run/containers/storage"
-graphroot = "/var/lib/containers/storage"
-ROOTFUL_STORAGE_CONF
-  sudo tee /etc/containers/containers.conf >/dev/null <<'CONTAINERS_CONF'
-[containers]
-cgroups = "disabled"
-
-[engine]
-cgroup_manager = "cgroupfs"
-CONTAINERS_CONF
-  sudo chown root:root /var/lib/containers
-  mkdir -p "$HOME/.config/containers"
-  cat >"$HOME/.config/containers/storage.conf" <<STORAGE_CONF
-[storage]
-driver = "overlay"
-runroot = "/run/user/$(id -u)/containers"
-graphroot = "$HOME/.local/share/containers/storage"
-[storage.options.overlay]
-mount_program = "/usr/bin/fuse-overlayfs"
-STORAGE_CONF
-  grep -q 'alias podman=' "$HOME/.bashrc" 2>/dev/null || echo 'alias podman="sudo podman"' >>"$HOME/.bashrc"
 fi
+sudo chown root:root /var/lib/containers
 
-# Registry allow-list
-mkdir -p "$HOME/.config/containers/registries.conf.d"
-cat >"$HOME/.config/containers/registries.conf.d/10-allow-list.conf" <<'REGISTRIES_CONF'
+sudo tee /etc/containers/storage.conf >/dev/null <<'STORAGE_CONF'
+[storage]
+driver = "overlay"
+runroot = "/run/containers/storage"
+graphroot = "/var/lib/containers/storage"
+STORAGE_CONF
+
+# cgroups are not delegated to nested containers
+sudo tee /etc/containers/containers.conf >/dev/null <<'CONTAINERS_CONF'
+[containers]
+cgroups = "disabled"
+
+[engine]
+cgroup_manager = "cgroupfs"
+CONTAINERS_CONF
+
+sudo tee /etc/containers/registries.conf.d/10-allow-list.conf >/dev/null <<'REGISTRIES_CONF'
 unqualified-search-registries = []
 short-name-mode = "enforcing"
 
@@ -170,7 +135,7 @@ if [ -n "${NEXUS_DOCKER_URL:-}" ]; then
   if ! echo "${_nexus_mirror}" | grep -qE '^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*(:[0-9]+)?(/[a-zA-Z0-9._/-]*)?$'; then
     echo "WARNING: NEXUS_DOCKER_URL does not match expected format host[:port][/path] (value redacted), skipping mirror config"
   else
-    cat >"$HOME/.config/containers/registries.conf.d/99-nexus-mirror.conf" <<MIRROR_CONF
+    sudo tee /etc/containers/registries.conf.d/99-nexus-mirror.conf >/dev/null <<MIRROR_CONF
 [[registry]]
 prefix = "docker.io"
 location = "docker.io"
@@ -224,7 +189,7 @@ echo ""
 
 if ! docker --version 2>&1 | grep -qi 'podman'; then
   fail "docker CLI is not Podman (got: $(docker --version 2>&1))"
-elif sudo -n docker run --rm docker.io/library/hello-world &>/dev/null; then
+elif docker run --rm docker.io/library/hello-world &>/dev/null; then
   pass "Rootful Podman is working (docker → podman)"
 else
   echo "  SKIP: Podman not runnable yet (may start via agent script in Coder)"

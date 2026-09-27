@@ -47,10 +47,11 @@ RUN pip install --no-cache-dir \
     "mdformat-frontmatter==${MDFORMAT_FRONTMATTER_VERSION}" \
     "mdformat-admon==${MDFORMAT_ADMON_VERSION}"
 
-# Policy-enforcing podman wrapper + runtime post-create script
+COPY assets/podman /usr/local/bin/podman
 COPY assets/agent-run /usr/local/bin/agent-run
 COPY assets/post-create.sh /usr/local/bin/devcontainer-post-create
-RUN chmod 755 /usr/local/bin/agent-run /usr/local/bin/devcontainer-post-create \
+RUN chmod 755 /usr/local/bin/podman /usr/local/bin/agent-run /usr/local/bin/devcontainer-post-create \
+    && ln -s podman /usr/local/bin/docker \
     && rm -rf /tmp/scripts
 
 HEALTHCHECK NONE
