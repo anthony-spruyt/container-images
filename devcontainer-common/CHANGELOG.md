@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-1.2.48...devcontainer-common-2.0.0) (2026-09-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **devcontainer-common:** base image moves from Ubuntu 22.04 (jammy) to 26.04 (resolute). Downstream images that install apt packages or hardcode the jammy codename must be checked.
+
+### Dependencies
+
+* **devcontainer-common:** move base image to Ubuntu 26.04 (resolute) ([#1955](https://github.com/anthony-spruyt/container-images/issues/1955)) ([d3c90fb](https://github.com/anthony-spruyt/container-images/commit/d3c90fb96cfab0238e30040cce2ea418ffa07bc8)), closes [#1954](https://github.com/anthony-spruyt/container-images/issues/1954)
+
 ## [1.2.48](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-1.2.47...devcontainer-common-1.2.48) (2026-09-28)
 
 
