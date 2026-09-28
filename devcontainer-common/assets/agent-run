@@ -15,8 +15,8 @@
 
 set -euo pipefail
 
-# Hard-rejected flags. Also catches `--flag=true` and `--flag=value` variants
-# via prefix match, and space-separated `--flag value` via the look-ahead below.
+# Rejected in any form (`--flag`, `--flag=value`, `--flag value`): each one
+# overrides a namespace or privilege setting this wrapper owns.
 readonly FORBIDDEN_FLAGS=(
   --privileged
   --pid
@@ -27,6 +27,7 @@ readonly FORBIDDEN_FLAGS=(
   --userns
   --cgroupns
   --cap-add
+  --pod
 )
 
 # Rejected substring patterns (matched anywhere in an arg). These are values
@@ -40,14 +41,6 @@ readonly FORBIDDEN_SUBSTR=(
   "/run/podman/podman.sock"
 )
 
-# Values that make a namespace/privilege-related flag dangerous.
-readonly FORBIDDEN_VALUES=(
-  host
-  true
-  ALL
-  all
-)
-
 is_forbidden_flag() {
   local f="$1"
   for flag in "${FORBIDDEN_FLAGS[@]}"; do
@@ -56,18 +49,7 @@ is_forbidden_flag() {
   return 1
 }
 
-is_forbidden_value() {
-  local v="$1"
-  for val in "${FORBIDDEN_VALUES[@]}"; do
-    [[ "$v" == "$val" ]] && return 0
-  done
-  return 1
-}
-
-i=1
-while [[ $i -le $# ]]; do
-  arg="${!i}"
-
+for arg in "$@"; do
   for pat in "${FORBIDDEN_SUBSTR[@]}"; do
     if [[ "$arg" == *"$pat"* ]]; then
       echo "agent-run: forbidden pattern in arg: $arg (matched: $pat)" >&2
@@ -75,33 +57,17 @@ while [[ $i -le $# ]]; do
     fi
   done
 
-  if [[ "$arg" == "--privileged" ]]; then
-    echo "agent-run: forbidden flag: --privileged" >&2
+  if is_forbidden_flag "${arg%%=*}"; then
+    echo "agent-run: forbidden flag: $arg" >&2
     exit 64
   fi
-
-  if [[ "$arg" == *=* ]]; then
-    flag="${arg%%=*}"
-    value="${arg#*=}"
-    if is_forbidden_flag "$flag" && is_forbidden_value "$value"; then
-      echo "agent-run: forbidden flag=value: $arg" >&2
-      exit 64
-    fi
-  elif is_forbidden_flag "$arg"; then
-    next_i=$((i + 1))
-    if [[ $next_i -le $# ]]; then
-      next="${!next_i}"
-      if is_forbidden_value "$next"; then
-        echo "agent-run: forbidden flag+value: $arg $next" >&2
-        exit 64
-      fi
-    fi
-  fi
-
-  i=$((i + 1))
 done
 
 AGENT_NET="${AGENT_RUN_NET:-bridge}"
+if [[ "$AGENT_NET" != bridge && "$AGENT_NET" != none ]]; then
+  echo "agent-run: AGENT_RUN_NET must be bridge or none, got: $AGENT_NET" >&2
+  exit 64
+fi
 
 # No cgroup limits (--memory, --pids-limit, --cpus): the nested cgroup tree
 # is not delegated, so podman rejects them.
