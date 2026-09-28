@@ -4,7 +4,7 @@ set -euo pipefail
 apt-get remove -y --purge moby-cli moby-engine moby-buildx moby-compose \
   moby-containerd moby-runc docker-ce-cli docker-ce 2>/dev/null || true
 
-apt-get update && apt-get install -y --no-install-recommends podman
+apt-get update && apt-get install -y --no-install-recommends podman nftables
 
 rm -rf /var/lib/apt/lists/*
 
