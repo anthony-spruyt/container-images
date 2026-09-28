@@ -38,6 +38,22 @@ docker run --rm "$IMAGE_REF" bash -c '
   echo "subuid/subgid: OK"
 '
 
+echo "=== podman namespaces ==="
+DROPIN=/etc/containers/containers.conf.d/50-host-namespaces.conf
+docker run --rm --user vscode -e DROPIN="$DROPIN" "$IMAGE_REF" bash -c '
+  set -e
+  devcontainer-podman-config
+  grep -q "^netns = \"host\"" "$DROPIN"
+  grep -q "^utsns = \"host\"" "$DROPIN"
+  echo "no CAP_SYS_ADMIN: host namespaces: OK"
+'
+docker run --rm --privileged --user vscode -e DROPIN="$DROPIN" "$IMAGE_REF" bash -c '
+  set -e
+  devcontainer-podman-config
+  [[ ! -e "$DROPIN" ]]
+  echo "CAP_SYS_ADMIN: private namespaces: OK"
+'
+
 echo "=== agent-run policy ==="
 for args in "--privileged" "--net=host" "--net host" "--network=host" "--network host" \
   "--network=container:x" "--network none" "--pid=host" "--pid=container:x" "--ipc=container:x" \
