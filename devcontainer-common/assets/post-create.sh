@@ -106,6 +106,8 @@ cgroups = "disabled"
 cgroup_manager = "cgroupfs"
 CONTAINERS_CONF
 
+devcontainer-podman-config
+
 sudo tee /etc/containers/registries.conf.d/10-allow-list.conf >/dev/null <<'REGISTRIES_CONF'
 unqualified-search-registries = []
 short-name-mode = "enforcing"
