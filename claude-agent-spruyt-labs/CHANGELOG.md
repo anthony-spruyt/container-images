@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.104](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.103...claude-agent-spruyt-labs-1.0.104) (2026-09-28)
+
+
+### Dependencies
+
+* **deps:** update dependency vmware-tanzu/velero to v1.18.3 ([#1964](https://github.com/anthony-spruyt/container-images/issues/1964)) ([9d22927](https://github.com/anthony-spruyt/container-images/commit/9d22927c620fc460d5ccdda506f1bee29e244161))
+
 ## [1.0.103](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.102...claude-agent-spruyt-labs-1.0.103) (2026-09-28)
 
 
