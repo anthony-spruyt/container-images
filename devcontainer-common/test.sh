@@ -15,6 +15,8 @@ docker run --rm "$IMAGE_REF" bash -c '
   gh --version &&
   echo "=== Podman ===" &&
   command -v podman &&
+  podman --version &&
+  [[ "$(podman --version | grep -oE "[0-9]+" | head -1)" -ge 5 ]] &&
   echo "=== Scripts ===" &&
   test -x /usr/local/bin/agent-run && echo "agent-run: OK" &&
   test -x /usr/local/bin/devcontainer-post-create && echo "devcontainer-post-create: OK"
