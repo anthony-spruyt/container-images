@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.0.1...devcontainer-common-2.1.0) (2026-09-28)
+
+
+### Features
+
+* **devcontainer-common:** host net/UTS namespaces when podman lacks CAP_SYS_ADMIN ([#1968](https://github.com/anthony-spruyt/container-images/issues/1968)) ([04a702b](https://github.com/anthony-spruyt/container-images/commit/04a702ba9dc36adc606718cc622dd3e00b867ab7))
+
 ## [2.0.1](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.0.0...devcontainer-common-2.0.1) (2026-09-28)
 
 
