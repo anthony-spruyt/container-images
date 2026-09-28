@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.0.0...devcontainer-common-2.0.1) (2026-09-28)
+
+
+### Bug Fixes
+
+* **devcontainer-common:** install nftables for podman networking, tighten agent-run ([#1962](https://github.com/anthony-spruyt/container-images/issues/1962)) ([3ba24bc](https://github.com/anthony-spruyt/container-images/commit/3ba24bc3dc3ea376e682679c79f4559a92944e16)), closes [#1961](https://github.com/anthony-spruyt/container-images/issues/1961)
+
 ## [2.0.0](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-1.2.48...devcontainer-common-2.0.0) (2026-09-28)
 
 
