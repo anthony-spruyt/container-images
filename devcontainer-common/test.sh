@@ -38,6 +38,32 @@ docker run --rm "$IMAGE_REF" bash -c '
   echo "subuid/subgid: OK"
 '
 
+echo "=== Nexus mirror and login ==="
+docker run --rm --user vscode -e NEXUS_DOCKER_URL=https://nexus.example.test "$IMAGE_REF" bash -c '
+  set -e
+  devcontainer-nexus-config
+  conf=/etc/containers/registries.conf.d/99-nexus-mirror.conf
+  [[ "$(grep -c "^location = \"nexus.example.test\"$" "$conf")" == 5 ]]
+  sudo test ! -e /root/.config/containers/auth.json
+  echo "mirror without login: OK"
+'
+docker run --rm --user vscode -e NEXUS_DOCKER_URL=https://nexus.example.test \
+  -e NEXUS_DOCKER_USERNAME=local-dev -e NEXUS_DOCKER_PASSWORD=sl_fakeTestPassword "$IMAGE_REF" bash -c '
+  set -e
+  out=$(devcontainer-nexus-config 2>&1)
+  ! grep -q sl_fakeTestPassword <<<"$out"
+  [[ "$(sudo stat -c %a /root/.config/containers/auth.json)" == 600 ]]
+  want=$(printf "local-dev:sl_fakeTestPassword" | base64 -w0)
+  [[ "$(sudo jq -r ".auths[\"nexus.example.test\"].auth" /root/.config/containers/auth.json)" == "$want" ]]
+  echo "mirror with login: OK"
+'
+docker run --rm --user vscode -e NEXUS_DOCKER_URL="bad url;rm" "$IMAGE_REF" bash -c '
+  set -e
+  devcontainer-nexus-config
+  [[ ! -e /etc/containers/registries.conf.d/99-nexus-mirror.conf ]]
+  echo "invalid NEXUS_DOCKER_URL skipped: OK"
+'
+
 echo "=== podman namespaces ==="
 DROPIN=/etc/containers/containers.conf.d/50-host-namespaces.conf
 docker run --rm --user vscode -e DROPIN="$DROPIN" "$IMAGE_REF" bash -c '

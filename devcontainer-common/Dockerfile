@@ -51,8 +51,9 @@ COPY assets/podman /usr/local/bin/podman
 COPY assets/agent-run /usr/local/bin/agent-run
 COPY assets/post-create.sh /usr/local/bin/devcontainer-post-create
 COPY assets/podman-config.sh /usr/local/bin/devcontainer-podman-config
+COPY assets/nexus-config.sh /usr/local/bin/devcontainer-nexus-config
 RUN chmod 755 /usr/local/bin/podman /usr/local/bin/agent-run /usr/local/bin/devcontainer-post-create \
-      /usr/local/bin/devcontainer-podman-config \
+      /usr/local/bin/devcontainer-podman-config /usr/local/bin/devcontainer-nexus-config \
     && ln -s podman /usr/local/bin/docker \
     && rm -rf /tmp/scripts
 
