@@ -1,10 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-# devcontainer-post-create: runtime setup for devcontainer-common based images.
-# Packages (podman, pre-commit, gh, node, python) are pre-installed.
-# This script handles runtime configuration that requires workspace context.
-#
 # Usage: devcontainer-post-create [workspace-dir]
 
 WORKSPACE="${1:-.}"
@@ -20,8 +16,6 @@ fail() {
   echo "✗ $1"
   FAILED=$((FAILED + 1))
 }
-
-# --- Runtime Configuration ---
 
 git config --global --add safe.directory '*'
 
@@ -50,7 +44,6 @@ export PATH="$HOME/.local/bin:$PATH"
 # shellcheck disable=SC2016
 grep -q 'local/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >>"$HOME/.bashrc"
 
-# Bootstrap Claude Code plugins from project settings
 if command -v claude &>/dev/null && command -v jq &>/dev/null; then
   bootstrap_claude_plugins() {
     local settings_file="$1"
@@ -128,53 +121,7 @@ location = "registry.k8s.io"
 location = "mcr.microsoft.com"
 REGISTRIES_CONF
 
-# Write Nexus pull-through mirror for podman if NEXUS_DOCKER_URL is set.
-# Local devcontainers inject this via containerEnv; Coder workspaces skip
-# this block and rely on the cluster ConfigMap mount instead.
-if [ -n "${NEXUS_DOCKER_URL:-}" ]; then
-  _nexus_mirror="${NEXUS_DOCKER_URL#http://}"
-  _nexus_mirror="${_nexus_mirror#https://}"
-  if ! echo "${_nexus_mirror}" | grep -qE '^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*(:[0-9]+)?(/[a-zA-Z0-9._/-]*)?$'; then
-    echo "WARNING: NEXUS_DOCKER_URL does not match expected format host[:port][/path] (value redacted), skipping mirror config"
-  else
-    sudo tee /etc/containers/registries.conf.d/99-nexus-mirror.conf >/dev/null <<MIRROR_CONF
-[[registry]]
-prefix = "docker.io"
-location = "docker.io"
-
-[[registry.mirror]]
-location = "${_nexus_mirror}"
-
-[[registry]]
-prefix = "ghcr.io"
-location = "ghcr.io"
-
-[[registry.mirror]]
-location = "${_nexus_mirror}"
-
-[[registry]]
-prefix = "quay.io"
-location = "quay.io"
-
-[[registry.mirror]]
-location = "${_nexus_mirror}"
-
-[[registry]]
-prefix = "mcr.microsoft.com"
-location = "mcr.microsoft.com"
-
-[[registry.mirror]]
-location = "${_nexus_mirror}"
-
-[[registry]]
-prefix = "registry.k8s.io"
-location = "registry.k8s.io"
-
-[[registry.mirror]]
-location = "${_nexus_mirror}"
-MIRROR_CONF
-  fi
-fi
+devcontainer-nexus-config || echo "WARNING: devcontainer-nexus-config failed; podman pulls from upstream"
 
 echo ""
 echo "Setting up devcontainer (repo-specific tooling)..."
@@ -186,8 +133,6 @@ fi
 
 echo "Running devcontainer verification tests..."
 echo ""
-
-# --- Verification Tests ---
 
 if ! docker --version 2>&1 | grep -qi 'podman'; then
   fail "docker CLI is not Podman (got: $(docker --version 2>&1))"
