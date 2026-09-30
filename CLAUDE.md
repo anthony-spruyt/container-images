@@ -41,10 +41,6 @@ Create `<image-name>/test.sh` - runs after build, before Trivy scan. See `chrony
 
 Create `<image-name>/.trivyignore` for per-image vulnerability/secret ignores (plain text, one ID per line). Falls back to global `.trivyignore.yaml` if not present.
 
-### Optional: n8n Release Watcher (for non-standard sources)
-
-For upstream sources that Renovate cannot monitor (e.g., Alpine packages), use n8n workflows. See `chrony/n8n-release-watcher.json` for an example that monitors Alpine package versions.
-
 ## Build Triggers
 
 CI never pushes. Every publish goes through release-please — see [docs/releases.md](docs/releases.md).

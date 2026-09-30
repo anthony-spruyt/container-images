@@ -26,9 +26,6 @@ https://127\.0\.0\.1.*
 # Schema store times out intermittently in CI
 https://json\.schemastore\.org/.*
 
-# Ignore Alpine Git URLs with dynamic version parameters (n8n templates)
-https://git.alpinelinux.org/aports/plain/.*\?h=.*
-
 # Internal K8s service DNS URLs — not reachable from CI
 http://.*\.svc:\d+/.*
 

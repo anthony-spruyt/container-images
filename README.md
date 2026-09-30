@@ -141,10 +141,6 @@ Renovate updates dependencies *inside* an image (base images, packages). The res
 
 Image versions themselves are never set by Renovate; they live in `.release-please-manifest.json`.
 
-### n8n Workflow (Special Cases)
-
-For upstream sources Renovate cannot monitor, an n8n workflow can watch the source and open an issue. See `chrony/n8n-release-watcher.json`, which tracks the Alpine `chrony` package.
-
 ## Security
 
 See [SECURITY.md](SECURITY.md) for security policy and controls.
