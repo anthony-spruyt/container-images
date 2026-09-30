@@ -38,6 +38,96 @@ docker run --rm "$IMAGE_REF" bash -c '
   echo "subuid/subgid: OK"
 '
 
+echo "=== Nexus mirror and login ==="
+docker run --rm --user vscode -e NEXUS_DOCKER_URL=https://nexus.example.test "$IMAGE_REF" bash -c '
+  set -e
+  devcontainer-nexus-config
+  conf=/etc/containers/registries.conf.d/99-nexus-mirror.conf
+  [[ "$(grep -c "^location = \"nexus.example.test\"$" "$conf")" == 5 ]]
+  sudo test ! -e /root/.config/containers/auth.json
+  echo "mirror without login: OK"
+'
+docker run --rm --user vscode "$IMAGE_REF" bash -c '
+  set -euo pipefail
+  af=/root/.config/containers/auth.json
+  want=$(printf "local-dev:sl_fakeTestPassword" | base64 -w0)
+  fail() { echo "FAIL: $1"; exit 1; }
+  entry() { sudo jq -r --arg h "$1" ".auths[\$h].auth // \"none\"" "$af"; }
+  cfg() { env NEXUS_DOCKER_URL=https://nexus.example.test NEXUS_DOCKER_USERNAME=local-dev \
+    NEXUS_DOCKER_PASSWORD=sl_fakeTestPassword "$@" devcontainer-nexus-config 2>&1; }
+
+  sudo mkdir -p "$(dirname "$af")"
+  echo "{\"auths\":{\"other.example\":{\"auth\":\"b3RoZXI6eA==\"}}}" | sudo tee "$af" >/dev/null
+  sudo chmod 600 "$af"
+  out=$(cfg)
+  if grep -q sl_fakeTestPassword <<<"$out"; then fail "password printed"; fi
+  [[ "$(sudo stat -c %a "$af")" == 600 ]] || fail "authfile mode"
+  [[ "$(entry nexus.example.test)" == "$want" ]] || fail "login not written"
+  [[ "$(entry other.example)" == "b3RoZXI6eA==" ]] || fail "other registry entry lost"
+  cfg >/dev/null
+  [[ "$(sudo jq ".auths | length" "$af")" == 2 ]] || fail "re-run changed entry count"
+  echo "login merged and idempotent: OK"
+
+  cr=$(printf "\r")
+  cfg NEXUS_DOCKER_USERNAME="local-dev$cr" NEXUS_DOCKER_PASSWORD="sl_fakeTestPassword$cr" >/dev/null
+  [[ "$(entry nexus.example.test)" == "$want" ]] || fail "CRLF not stripped"
+  echo "CRLF stripped: OK"
+
+  out=$(cfg NEXUS_DOCKER_PASSWORD=)
+  grep -q WARNING <<<"$out" || fail "no warning for half-set login"
+  [[ "$(entry nexus.example.test)" == none ]] || fail "stale login kept when password removed"
+  echo "half-set login warns and clears stale login: OK"
+
+  cfg >/dev/null
+  cfg NEXUS_DOCKER_URL=https://nexus2.example.test >/dev/null
+  [[ "$(entry nexus.example.test)" == none ]] || fail "old host login kept after host change"
+  [[ "$(entry nexus2.example.test)" == "$want" ]] || fail "new host login missing"
+  echo "host change moves login: OK"
+
+  printf "not json" | sudo tee "$af" >/dev/null
+  out=$(cfg) || fail "malformed authfile aborted the script"
+  grep -q WARNING <<<"$out" || fail "no warning for malformed authfile"
+  if grep -q "configured with login" <<<"$out"; then fail "claimed a login it did not write"; fi
+  [[ "$(sudo cat "$af")" == "not json" ]] || fail "malformed authfile overwritten"
+  echo "malformed authfile skipped: OK"
+
+  printf "\n" | sudo tee "$af" >/dev/null
+  out=$(cfg)
+  [[ "$(entry nexus.example.test)" == "$want" ]] || fail "whitespace-only authfile not treated as empty"
+  echo "whitespace-only authfile: OK"
+
+  printf "[]" | sudo tee "$af" >/dev/null
+  out=$(cfg)
+  grep -q WARNING <<<"$out" || fail "no warning for non-object authfile"
+  [[ "$(sudo cat "$af")" == "[]" ]] || fail "non-object authfile overwritten"
+  echo "non-object authfile skipped: OK"
+
+  sudo rm -f "$af"
+  b64=$(printf "local-dev:sl_fakeTestPassword" | base64 -w0)
+  mkdir -p /tmp/spy
+  for bin in jq sudo bash; do
+    real=$(command -v $bin)
+    printf "#!/bin/bash\nprintf \"%%s\\\\n\" \"\$*\" >>/tmp/spy/argv\nexec %s \"\$@\"\n" "$real" >/tmp/spy/$bin
+    chmod +x /tmp/spy/$bin
+  done
+  PATH=/tmp/spy:$PATH cfg >/dev/null
+  if grep -q -e sl_fakeTestPassword -e "$b64" /tmp/spy/argv; then fail "credential passed on a command line"; fi
+  [[ "$(entry nexus.example.test)" == "$want" ]] || fail "login not written under argv spy"
+  echo "credential kept off argv: OK"
+
+  sudo rm -f "$af"
+  out=$(cfg NEXUS_DOCKER_USERNAME=local:dev)
+  grep -q WARNING <<<"$out" || fail "no warning for username with a colon"
+  sudo test ! -e "$af" || fail "wrote a login for a username with a colon"
+  echo "username with colon rejected: OK"
+'
+docker run --rm --user vscode -e NEXUS_DOCKER_URL="bad url;rm" "$IMAGE_REF" bash -c '
+  set -e
+  devcontainer-nexus-config
+  [[ ! -e /etc/containers/registries.conf.d/99-nexus-mirror.conf ]]
+  echo "invalid NEXUS_DOCKER_URL skipped: OK"
+'
+
 echo "=== podman namespaces ==="
 DROPIN=/etc/containers/containers.conf.d/50-host-namespaces.conf
 docker run --rm --user vscode -e DROPIN="$DROPIN" "$IMAGE_REF" bash -c '
