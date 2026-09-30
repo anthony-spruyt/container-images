@@ -11,7 +11,7 @@ RUN printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::http::
 COPY assets/.devcontainer.json /tmp/devcontainer.json
 RUN sed '/^\s*\/\//d' /tmp/devcontainer.json | jq -c '.features' > /tmp/features.json \
     && feature-install --features "$(cat /tmp/features.json)" \
-    && rm /tmp/devcontainer.json /tmp/features.json
+    && rm -rf /tmp/* /tmp/.[!.]*
 
 COPY assets/scripts/ /tmp/scripts/
 
@@ -55,6 +55,6 @@ COPY assets/nexus-config.sh /usr/local/bin/devcontainer-nexus-config
 RUN chmod 755 /usr/local/bin/podman /usr/local/bin/agent-run /usr/local/bin/devcontainer-post-create \
       /usr/local/bin/devcontainer-podman-config /usr/local/bin/devcontainer-nexus-config \
     && ln -s podman /usr/local/bin/docker \
-    && rm -rf /tmp/scripts
+    && rm -rf /tmp/* /tmp/.[!.]*
 
 HEALTHCHECK NONE
