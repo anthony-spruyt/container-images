@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.93](https://github.com/anthony-spruyt/container-images/compare/claude-agent-write-1.0.92...claude-agent-write-1.0.93) (2026-09-30)
+
+
+### Dependencies
+
+* **deps:** update container image ghcr.io/anthony-spruyt/claude-agent-read to v1.0.101 ([#1979](https://github.com/anthony-spruyt/container-images/issues/1979)) ([b2e1fbb](https://github.com/anthony-spruyt/container-images/commit/b2e1fbbaacb27c84e9d501474c4b3ea1f15bc9fd))
+
 ## [1.0.92](https://github.com/anthony-spruyt/container-images/compare/claude-agent-write-1.0.91...claude-agent-write-1.0.92) (2026-09-27)
 
 

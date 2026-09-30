@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.1](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.2.0...devcontainer-common-2.2.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* **devcontainer-common:** clear /tmp leftovers from the image ([#1986](https://github.com/anthony-spruyt/container-images/issues/1986)) ([0a1c2e5](https://github.com/anthony-spruyt/container-images/commit/0a1c2e5caf6f62d1dce3dd5802ac7b42a090f6e6))
+
+
+### Dependencies
+
+* **devcontainer-common:** mark podman-config.sh executable ([#1982](https://github.com/anthony-spruyt/container-images/issues/1982)) ([2950fd5](https://github.com/anthony-spruyt/container-images/commit/2950fd5bbce65ea988b607f2771c6b22193f0f84))
+
 ## [2.2.0](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.1.0...devcontainer-common-2.2.0) (2026-09-30)
 
 

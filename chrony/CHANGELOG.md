@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.0.6](https://github.com/anthony-spruyt/container-images/compare/chrony-5.0.5...chrony-5.0.6) (2026-09-30)
+
+
+### Dependencies
+
+* **chrony:** remove retired n8n release watcher ([#1983](https://github.com/anthony-spruyt/container-images/issues/1983)) ([7ec5ce3](https://github.com/anthony-spruyt/container-images/commit/7ec5ce35cc80d957b914472948a8c15c0f625753))
+
 ## [5.0.5](https://github.com/anthony-spruyt/container-images/compare/chrony-5.0.4...chrony-5.0.5) (2026-09-19)
 
 
