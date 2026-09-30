@@ -3,14 +3,17 @@ set -euo pipefail
 
 # Local devcontainers get NEXUS_DOCKER_* from --env-file; Coder workspaces leave them unset and mount the cluster config instead.
 # Nexus is a mirror, not a location rewrite, so podman falls back to upstream whenever Nexus fails.
+# Never exits non-zero: the cache is optional and must not abort post-create.
 [[ -n "${NEXUS_DOCKER_URL:-}" ]] || exit 0
 
-mirror="${NEXUS_DOCKER_URL#http://}"
+mirror="${NEXUS_DOCKER_URL%$'\r'}"
+mirror="${mirror#http://}"
 mirror="${mirror#https://}"
 if ! grep -qE '^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*(:[0-9]+)?(/[a-zA-Z0-9._/-]*)?$' <<<"${mirror}"; then
   echo "WARNING: NEXUS_DOCKER_URL does not match expected format host[:port][/path] (value redacted), skipping mirror config"
   exit 0
 fi
+host="${mirror%%/*}"
 
 sudo mkdir -p /etc/containers/registries.conf.d
 for registry in docker.io ghcr.io quay.io mcr.microsoft.com registry.k8s.io; do
@@ -18,19 +21,34 @@ for registry in docker.io ghcr.io quay.io mcr.microsoft.com registry.k8s.io; do
     "${registry}" "${registry}" "${mirror}"
 done | sudo tee /etc/containers/registries.conf.d/99-nexus-mirror.conf >/dev/null
 
-if [[ -z "${NEXUS_DOCKER_USERNAME:-}" || -z "${NEXUS_DOCKER_PASSWORD:-}" ]]; then
-  echo "Nexus mirror configured without a login: docker-group rejects anonymous pulls, so podman pulls from upstream"
-  exit 0
+# .env files edited on Windows carry CRLF, and --env-file keeps the \r.
+user="${NEXUS_DOCKER_USERNAME:-}"
+user="${user%$'\r'}"
+pass="${NEXUS_DOCKER_PASSWORD:-}"
+pass="${pass%$'\r'}"
+if [[ -n "${user}" && -n "${pass}" ]]; then
+  auth="$(printf '%s:%s' "${user}" "${pass}" | base64 -w0)"
+  echo "Nexus mirror configured with login ${user}"
+else
+  auth=""
+  if [[ -n "${user}${pass}" ]]; then
+    echo "WARNING: set both NEXUS_DOCKER_USERNAME and NEXUS_DOCKER_PASSWORD; configuring Nexus mirror without a login"
+  else
+    echo "Nexus mirror configured without a login: docker-group rejects anonymous pulls, so podman pulls from upstream"
+  fi
 fi
 
-# Written directly rather than via `podman login`, which needs Nexus up at that moment.
-# Rootful podman's default authfile is under /run, which a restart wipes; ~/.config is also on its lookup path.
+# Not `podman login` (needs Nexus up) and not its /run default (wiped on restart); podman also reads this path.
+# managedBy marks our entries so a host change or cleared login removes them.
 authfile=/root/.config/containers/auth.json
+[[ -n "${auth}" ]] || sudo test -e "${authfile}" || exit 0
 sudo mkdir -p "$(dirname "${authfile}")"
-sudo test -s "${authfile}" || echo '{}' | sudo tee "${authfile}" >/dev/null
-sudo install -m 600 /dev/null "${authfile}.new"
-printf '%s:%s' "${NEXUS_DOCKER_USERNAME}" "${NEXUS_DOCKER_PASSWORD}" | base64 -w0 |
-  sudo jq -Rn --arg host "${mirror%%/*}" --slurpfile cur "${authfile}" '$cur[0] | .auths[$host].auth = input' |
-  sudo tee "${authfile}.new" >/dev/null
-sudo mv "${authfile}.new" "${authfile}"
-echo "Nexus mirror configured with login ${NEXUS_DOCKER_USERNAME}"
+if ! sudo bash -c 'umask 077
+  { [[ -s "$1" ]] && cat "$1" || echo "{}"; } |
+    jq --arg host "$2" --arg auth "$3" --arg user "$4" "
+      .auths = ((.auths // {}) | with_entries(select(.value.managedBy? != \"devcontainer-nexus-config\")))
+      | if \$auth == \"\" then . else .auths[\$host] = {auth: \$auth, managedBy: \"devcontainer-nexus-config\"} end" \
+    >"$1.new" && mv "$1.new" "$1"' _ "${authfile}" "${host}" "${auth}" "${user}"; then
+  sudo rm -f "${authfile}.new"
+  echo "WARNING: ${authfile} is not valid JSON; left it unchanged, so the Nexus login was not written"
+fi

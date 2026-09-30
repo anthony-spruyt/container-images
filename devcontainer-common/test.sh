@@ -47,15 +47,48 @@ docker run --rm --user vscode -e NEXUS_DOCKER_URL=https://nexus.example.test "$I
   sudo test ! -e /root/.config/containers/auth.json
   echo "mirror without login: OK"
 '
-docker run --rm --user vscode -e NEXUS_DOCKER_URL=https://nexus.example.test \
-  -e NEXUS_DOCKER_USERNAME=local-dev -e NEXUS_DOCKER_PASSWORD=sl_fakeTestPassword "$IMAGE_REF" bash -c '
-  set -e
-  out=$(devcontainer-nexus-config 2>&1)
-  ! grep -q sl_fakeTestPassword <<<"$out"
-  [[ "$(sudo stat -c %a /root/.config/containers/auth.json)" == 600 ]]
+docker run --rm --user vscode "$IMAGE_REF" bash -c '
+  set -euo pipefail
+  af=/root/.config/containers/auth.json
   want=$(printf "local-dev:sl_fakeTestPassword" | base64 -w0)
-  [[ "$(sudo jq -r ".auths[\"nexus.example.test\"].auth" /root/.config/containers/auth.json)" == "$want" ]]
-  echo "mirror with login: OK"
+  fail() { echo "FAIL: $1"; exit 1; }
+  entry() { sudo jq -r --arg h "$1" ".auths[\$h].auth // \"none\"" "$af"; }
+  cfg() { env NEXUS_DOCKER_URL=https://nexus.example.test NEXUS_DOCKER_USERNAME=local-dev \
+    NEXUS_DOCKER_PASSWORD=sl_fakeTestPassword "$@" devcontainer-nexus-config 2>&1; }
+
+  sudo mkdir -p "$(dirname "$af")"
+  echo "{\"auths\":{\"other.example\":{\"auth\":\"b3RoZXI6eA==\"}}}" | sudo tee "$af" >/dev/null
+  sudo chmod 600 "$af"
+  out=$(cfg)
+  if grep -q sl_fakeTestPassword <<<"$out"; then fail "password printed"; fi
+  [[ "$(sudo stat -c %a "$af")" == 600 ]] || fail "authfile mode"
+  [[ "$(entry nexus.example.test)" == "$want" ]] || fail "login not written"
+  [[ "$(entry other.example)" == "b3RoZXI6eA==" ]] || fail "other registry entry lost"
+  cfg >/dev/null
+  [[ "$(sudo jq ".auths | length" "$af")" == 2 ]] || fail "re-run changed entry count"
+  echo "login merged and idempotent: OK"
+
+  cr=$(printf "\r")
+  cfg NEXUS_DOCKER_USERNAME="local-dev$cr" NEXUS_DOCKER_PASSWORD="sl_fakeTestPassword$cr" >/dev/null
+  [[ "$(entry nexus.example.test)" == "$want" ]] || fail "CRLF not stripped"
+  echo "CRLF stripped: OK"
+
+  out=$(cfg NEXUS_DOCKER_PASSWORD=)
+  grep -q WARNING <<<"$out" || fail "no warning for half-set login"
+  [[ "$(entry nexus.example.test)" == none ]] || fail "stale login kept when password removed"
+  echo "half-set login warns and clears stale login: OK"
+
+  cfg >/dev/null
+  cfg NEXUS_DOCKER_URL=https://nexus2.example.test >/dev/null
+  [[ "$(entry nexus.example.test)" == none ]] || fail "old host login kept after host change"
+  [[ "$(entry nexus2.example.test)" == "$want" ]] || fail "new host login missing"
+  echo "host change moves login: OK"
+
+  printf "not json" | sudo tee "$af" >/dev/null
+  out=$(cfg) || fail "malformed authfile aborted the script"
+  grep -q WARNING <<<"$out" || fail "no warning for malformed authfile"
+  [[ "$(sudo cat "$af")" == "not json" ]] || fail "malformed authfile overwritten"
+  echo "malformed authfile skipped: OK"
 '
 docker run --rm --user vscode -e NEXUS_DOCKER_URL="bad url;rm" "$IMAGE_REF" bash -c '
   set -e

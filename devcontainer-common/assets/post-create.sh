@@ -1,10 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-# devcontainer-post-create: runtime setup for devcontainer-common based images.
-# Packages (podman, pre-commit, gh, node, python) are pre-installed.
-# This script handles runtime configuration that requires workspace context.
-#
 # Usage: devcontainer-post-create [workspace-dir]
 
 WORKSPACE="${1:-.}"
@@ -20,8 +16,6 @@ fail() {
   echo "✗ $1"
   FAILED=$((FAILED + 1))
 }
-
-# --- Runtime Configuration ---
 
 git config --global --add safe.directory '*'
 
@@ -50,7 +44,6 @@ export PATH="$HOME/.local/bin:$PATH"
 # shellcheck disable=SC2016
 grep -q 'local/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >>"$HOME/.bashrc"
 
-# Bootstrap Claude Code plugins from project settings
 if command -v claude &>/dev/null && command -v jq &>/dev/null; then
   bootstrap_claude_plugins() {
     local settings_file="$1"
@@ -140,8 +133,6 @@ fi
 
 echo "Running devcontainer verification tests..."
 echo ""
-
-# --- Verification Tests ---
 
 if ! docker --version 2>&1 | grep -qi 'podman'; then
   fail "docker CLI is not Podman (got: $(docker --version 2>&1))"
