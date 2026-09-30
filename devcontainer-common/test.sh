@@ -22,6 +22,15 @@ docker run --rm "$IMAGE_REF" bash -c '
   test -x /usr/local/bin/devcontainer-post-create && echo "devcontainer-post-create: OK"
 '
 
+echo "=== Build leftovers ==="
+leftovers=$(docker run --rm "$IMAGE_REF" find /tmp -mindepth 1 -maxdepth 1)
+if [[ -n "$leftovers" ]]; then
+  echo "FAIL: /tmp not empty:"
+  echo "$leftovers"
+  exit 1
+fi
+echo "/tmp empty: OK"
+
 echo "=== Podman wrapper ==="
 docker run --rm --user vscode "$IMAGE_REF" bash -c '
   set -e
