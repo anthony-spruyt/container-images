@@ -66,6 +66,12 @@
       "sourceDirectory": "llm-guard-cuda",
     },
     {
+      "description": "Release notes for own images: megalinter-chromance",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-chromance"],
+      "sourceDirectory": "megalinter-chromance",
+    },
+    {
       "description": "Release notes for own images: megalinter-container-images",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-container-images"],

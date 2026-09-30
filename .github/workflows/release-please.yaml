@@ -44,6 +44,9 @@ jobs:
       llm-guard-cuda-released: ${{ steps.release.outputs['llm-guard-cuda--release_created'] }}
       llm-guard-cuda-version: ${{ steps.release.outputs['llm-guard-cuda--version'] }}
       llm-guard-cuda-tag: ${{ steps.release.outputs['llm-guard-cuda--tag_name'] }}
+      megalinter-chromance-released: ${{ steps.release.outputs['megalinter-chromance--release_created'] }}
+      megalinter-chromance-version: ${{ steps.release.outputs['megalinter-chromance--version'] }}
+      megalinter-chromance-tag: ${{ steps.release.outputs['megalinter-chromance--tag_name'] }}
       megalinter-container-images-released: ${{ steps.release.outputs['megalinter-container-images--release_created'] }}
       megalinter-container-images-version: ${{ steps.release.outputs['megalinter-container-images--version'] }}
       megalinter-container-images-tag: ${{ steps.release.outputs['megalinter-container-images--tag_name'] }}
@@ -225,6 +228,24 @@ jobs:
       push: true
       version: ${{ needs.release-please.outputs.llm-guard-cuda-version }}
       tag-name: ${{ needs.release-please.outputs.llm-guard-cuda-tag }}
+
+  megalinter-chromance:
+    name: megalinter-chromance
+    needs: release-please
+    if: needs.release-please.outputs.megalinter-chromance-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: megalinter-chromance
+      push: true
+      version: ${{ needs.release-please.outputs.megalinter-chromance-version }}
+      tag-name: ${{ needs.release-please.outputs.megalinter-chromance-tag }}
 
   megalinter-container-images:
     name: megalinter-container-images

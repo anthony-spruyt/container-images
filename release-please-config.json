@@ -95,6 +95,13 @@
       "include-component-in-tag": true,
       "include-v-in-tag": false
     },
+    "megalinter-chromance": {
+      "release-type": "simple",
+      "component": "megalinter-chromance",
+      "tag-separator": "-",
+      "include-component-in-tag": true,
+      "include-v-in-tag": false
+    },
     "megalinter-container-images": {
       "release-type": "simple",
       "component": "megalinter-container-images",

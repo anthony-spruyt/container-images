@@ -7,6 +7,7 @@
   "devcontainer-common": "2.2.1",
   "llm-guard": "1.0.40",
   "llm-guard-cuda": "1.0.12",
+  "megalinter-chromance": "1.0.0",
   "megalinter-container-images": "11.0.2",
   "megalinter-spruyt-labs": "2.0.3",
   "megalinter-sungather": "2.0.2",
