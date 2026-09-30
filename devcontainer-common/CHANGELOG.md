@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.0](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.1.0...devcontainer-common-2.2.0) (2026-09-30)
+
+
+### Features
+
+* **devcontainer-common:** log podman in to the Nexus mirror ([#1977](https://github.com/anthony-spruyt/container-images/issues/1977)) ([157bab8](https://github.com/anthony-spruyt/container-images/commit/157bab81df9c7b838e279e1272d2cde0b11f8dd9))
+
+
+### Dependencies
+
+* **deps:** update dependency pipx to v1.17.6 ([#1975](https://github.com/anthony-spruyt/container-images/issues/1975)) ([d47199c](https://github.com/anthony-spruyt/container-images/commit/d47199c14ba097903f963bd89e19086210fb3bbb))
+
 ## [2.1.0](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.0.1...devcontainer-common-2.1.0) (2026-09-28)
 
 
