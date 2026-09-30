@@ -91,6 +91,30 @@ docker run --rm --user vscode "$IMAGE_REF" bash -c '
   [[ "$(sudo cat "$af")" == "not json" ]] || fail "malformed authfile overwritten"
   echo "malformed authfile skipped: OK"
 
+  printf "\n" | sudo tee "$af" >/dev/null
+  out=$(cfg)
+  [[ "$(entry nexus.example.test)" == "$want" ]] || fail "whitespace-only authfile not treated as empty"
+  echo "whitespace-only authfile: OK"
+
+  printf "[]" | sudo tee "$af" >/dev/null
+  out=$(cfg)
+  grep -q WARNING <<<"$out" || fail "no warning for non-object authfile"
+  [[ "$(sudo cat "$af")" == "[]" ]] || fail "non-object authfile overwritten"
+  echo "non-object authfile skipped: OK"
+
+  sudo rm -f "$af"
+  b64=$(printf "local-dev:sl_fakeTestPassword" | base64 -w0)
+  mkdir -p /tmp/spy
+  for bin in jq sudo bash; do
+    real=$(command -v $bin)
+    printf "#!/bin/bash\nprintf \"%%s\\\\n\" \"\$*\" >>/tmp/spy/argv\nexec %s \"\$@\"\n" "$real" >/tmp/spy/$bin
+    chmod +x /tmp/spy/$bin
+  done
+  PATH=/tmp/spy:$PATH cfg >/dev/null
+  if grep -q -e sl_fakeTestPassword -e "$b64" /tmp/spy/argv; then fail "credential passed on a command line"; fi
+  [[ "$(entry nexus.example.test)" == "$want" ]] || fail "login not written under argv spy"
+  echo "credential kept off argv: OK"
+
   sudo rm -f "$af"
   out=$(cfg NEXUS_DOCKER_USERNAME=local:dev)
   grep -q WARNING <<<"$out" || fail "no warning for username with a colon"

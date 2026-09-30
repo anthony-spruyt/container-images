@@ -42,15 +42,17 @@ fi
 # managedBy marks our entries so a host change or cleared login removes them.
 authfile=/root/.config/containers/auth.json
 [[ -n "${auth}" ]] || sudo test -e "${authfile}" || exit 0
-sudo mkdir -p "$(dirname "${authfile}")"
-if ! sudo bash -c 'umask 077
-  { [[ -s "$1" ]] && cat "$1" || echo "{}"; } |
-    jq --arg host "$2" --arg auth "$3" --arg user "$4" "
-      .auths = ((.auths // {}) | with_entries(select(.value.managedBy? != \"devcontainer-nexus-config\")))
-      | if \$auth == \"\" then . else .auths[\$host] = {auth: \$auth, managedBy: \"devcontainer-nexus-config\"} end" \
-    >"$1.new" && mv "$1.new" "$1"' _ "${authfile}" "${host}" "${auth}"; then
-  sudo rm -f "${authfile}.new"
-  echo "WARNING: ${authfile} is not valid JSON; left it unchanged, so the Nexus login was not written"
-elif [[ -n "${auth}" ]]; then
-  echo "Nexus mirror configured with login ${user}"
+cur="$(sudo cat "${authfile}" 2>/dev/null || true)"
+[[ -n "${cur//[[:space:]]/}" ]] || cur="{}"
+# The credential goes through env, never argv, so it stays out of ps and sudo logs.
+if ! new="$(NEXUS_AUTH="${auth}" jq -e --arg host "${host}" '
+  if type != "object" then error("not an object") else . end
+  | .auths = ((.auths // {}) | with_entries(select(.value.managedBy? != "devcontainer-nexus-config")))
+  | if env.NEXUS_AUTH == "" then . else .auths[$host] = {auth: env.NEXUS_AUTH, managedBy: "devcontainer-nexus-config"} end' \
+  <<<"${cur}" 2>/dev/null)"; then
+  echo "WARNING: ${authfile} is not a JSON object; left it unchanged, so the Nexus login was not written"
+  exit 0
 fi
+sudo mkdir -p "$(dirname "${authfile}")"
+printf '%s\n' "${new}" | sudo sh -c 'umask 077 && cat >"$1.new" && mv "$1.new" "$1"' _ "${authfile}"
+[[ -z "${auth}" ]] || echo "Nexus mirror configured with login ${user}"
