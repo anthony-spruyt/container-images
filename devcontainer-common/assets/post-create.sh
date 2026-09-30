@@ -121,7 +121,7 @@ location = "registry.k8s.io"
 location = "mcr.microsoft.com"
 REGISTRIES_CONF
 
-devcontainer-nexus-config
+devcontainer-nexus-config || echo "WARNING: devcontainer-nexus-config failed; podman pulls from upstream"
 
 echo ""
 echo "Setting up devcontainer (repo-specific tooling)..."

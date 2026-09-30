@@ -3,7 +3,6 @@ set -euo pipefail
 
 # Local devcontainers get NEXUS_DOCKER_* from --env-file; Coder workspaces leave them unset and mount the cluster config instead.
 # Nexus is a mirror, not a location rewrite, so podman falls back to upstream whenever Nexus fails.
-# Never exits non-zero: the cache is optional and must not abort post-create.
 [[ -n "${NEXUS_DOCKER_URL:-}" ]] || exit 0
 
 mirror="${NEXUS_DOCKER_URL%$'\r'}"
@@ -26,11 +25,12 @@ user="${NEXUS_DOCKER_USERNAME:-}"
 user="${user%$'\r'}"
 pass="${NEXUS_DOCKER_PASSWORD:-}"
 pass="${pass%$'\r'}"
-if [[ -n "${user}" && -n "${pass}" ]]; then
+auth=""
+if [[ "${user}" == *:* ]]; then
+  echo "WARNING: NEXUS_DOCKER_USERNAME must not contain ':'; configuring Nexus mirror without a login"
+elif [[ -n "${user}" && -n "${pass}" ]]; then
   auth="$(printf '%s:%s' "${user}" "${pass}" | base64 -w0)"
-  echo "Nexus mirror configured with login ${user}"
 else
-  auth=""
   if [[ -n "${user}${pass}" ]]; then
     echo "WARNING: set both NEXUS_DOCKER_USERNAME and NEXUS_DOCKER_PASSWORD; configuring Nexus mirror without a login"
   else
@@ -48,7 +48,9 @@ if ! sudo bash -c 'umask 077
     jq --arg host "$2" --arg auth "$3" --arg user "$4" "
       .auths = ((.auths // {}) | with_entries(select(.value.managedBy? != \"devcontainer-nexus-config\")))
       | if \$auth == \"\" then . else .auths[\$host] = {auth: \$auth, managedBy: \"devcontainer-nexus-config\"} end" \
-    >"$1.new" && mv "$1.new" "$1"' _ "${authfile}" "${host}" "${auth}" "${user}"; then
+    >"$1.new" && mv "$1.new" "$1"' _ "${authfile}" "${host}" "${auth}"; then
   sudo rm -f "${authfile}.new"
   echo "WARNING: ${authfile} is not valid JSON; left it unchanged, so the Nexus login was not written"
+elif [[ -n "${auth}" ]]; then
+  echo "Nexus mirror configured with login ${user}"
 fi

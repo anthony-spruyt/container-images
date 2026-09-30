@@ -87,8 +87,15 @@ docker run --rm --user vscode "$IMAGE_REF" bash -c '
   printf "not json" | sudo tee "$af" >/dev/null
   out=$(cfg) || fail "malformed authfile aborted the script"
   grep -q WARNING <<<"$out" || fail "no warning for malformed authfile"
+  if grep -q "configured with login" <<<"$out"; then fail "claimed a login it did not write"; fi
   [[ "$(sudo cat "$af")" == "not json" ]] || fail "malformed authfile overwritten"
   echo "malformed authfile skipped: OK"
+
+  sudo rm -f "$af"
+  out=$(cfg NEXUS_DOCKER_USERNAME=local:dev)
+  grep -q WARNING <<<"$out" || fail "no warning for username with a colon"
+  sudo test ! -e "$af" || fail "wrote a login for a username with a colon"
+  echo "username with colon rejected: OK"
 '
 docker run --rm --user vscode -e NEXUS_DOCKER_URL="bad url;rm" "$IMAGE_REF" bash -c '
   set -e
