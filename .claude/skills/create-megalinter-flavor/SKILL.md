@@ -111,33 +111,19 @@ Create the directory and both required configuration files.
 Create `megalinter-<name>/flavor.yaml` with this simple structure:
 
 ```yaml
-# MegaLinter Flavor Factory Configuration
-# Source of truth for megalinter-<name> flavor
-#
-# To regenerate Dockerfile and test.sh:
-#   python megalinter-factory/generate.py megalinter-<name>/
-#
-# Linter versions are automatically extracted from MegaLinter at build time.
 ---
 name: <name>
 description: "<user-provided or auto-generated description>"
 
-# Upstream MegaLinter base image (Renovate tracks this)
-# renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
-upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:a71e62c83e3b2d52316e7322b9168e1588e9bcf454dbf9b21fc71b0954786e5e"
+# renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-ci_light
+upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:<version>@sha256:<digest>"
 
-# Additional linters not in base flavor
-# Just list linter keys - versions come from MegaLinter automatically
 custom_linters:
   - <LINTER_KEY_1>
   - <LINTER_KEY_2>
 ```
 
-**Note**: For the upstream_image digest, look it up with:
-
-```bash
-docker buildx imagetools inspect oxsecurity/megalinter-ci_light:v9.3.0 --format '{{json .Manifest}}' | jq -r '.digest'
-```
+Copy `<version>` and `<digest>` from an existing ci_light flavor's `flavor.yaml` so all flavors share one base that Renovate keeps current. Do not add explanatory comments — see `.claude/rules/comments.md`.
 
 ### 5b: Register with release-please
 
@@ -145,21 +131,10 @@ Versions are owned by release-please. See [docs/releases.md](../../../docs/relea
 
 1. Add `megalinter-<name>` to `packages` in `release-please-config.json`, copying an existing flavor's entry. New flavors have no `v` prefix, so set `"include-v-in-tag": false`.
 2. Add `"megalinter-<name>": "1.0.0"` to `.release-please-manifest.json`.
-3. Add a build job to `.github/workflows/release-please.yaml`.
+3. Add outputs and a build job to `.github/workflows/release-please.yaml`, copying an existing flavor without a `v` prefix. Omit `tag-prefix: "v"` — it must match `include-v-in-tag`.
 4. Add a `sourceDirectory` rule for `ghcr.io/anthony-spruyt/megalinter-<name>` to `.github/renovate-overrides.json5` so Renovate renders its release notes.
 
-## Step 6: Add to Trivy Daily Scan
-
-Add the new image to `.trivy-images.yaml` so it gets included in daily vulnerability scanning. Insert `megalinter-<name>` in alphabetical order within the `images` list:
-
-```yaml
-images:
-  # ... existing entries ...
-  - "megalinter-<name>"
-  # ... existing entries ...
-```
-
-## Step 7: Run Factory Generator
+## Step 6: Run Factory Generator
 
 Run the factory generator to verify the configuration produces valid output:
 
@@ -169,13 +144,13 @@ python megalinter-factory/generate.py megalinter-<name>/
 
 Review the generated `Dockerfile` and `test.sh` to verify they look correct. Generated files are gitignored — CI regenerates them at build time.
 
-## Step 8: Report Success
+## Step 7: Report Success
 
 Inform the user:
 
 1. Configuration files created:
    - `megalinter-<name>/flavor.yaml` - flavor configuration
-2. Added to `.trivy-images.yaml` for daily vulnerability scanning
+2. Registered with release-please and Renovate; the daily Trivy scan finds the image on GHCR by itself
 3. Linter versions will be extracted from MegaLinter at build time
 4. Next steps:
    - Commit the changes
@@ -195,11 +170,12 @@ Inform the user:
 For `/create-megalinter-flavor test-ci ACTION_ACTIONLINT,MARKDOWN_MARKDOWNLINT`:
 
 ```yaml
+---
 name: test-ci
 description: "Custom MegaLinter for CI testing"
 
-# renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
-upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:a71e62c83e3b2d52316e7322b9168e1588e9bcf454dbf9b21fc71b0954786e5e"
+# renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-ci_light
+upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:<version>@sha256:<digest>"
 
 custom_linters:
   - ACTION_ACTIONLINT

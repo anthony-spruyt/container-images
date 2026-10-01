@@ -100,7 +100,8 @@ Leave it in place. It is not migration scaffolding, and removing it silently inf
 
 1. Add the directory to `packages` in `release-please-config.json`.
 2. Add its current version to `.release-please-manifest.json`.
-3. Add outputs and a build job to `.github/workflows/release-please.yaml`.
+3. Add outputs and a build job to `.github/workflows/release-please.yaml`. Pass `tag-prefix: "v"` only if the package has `"include-v-in-tag": true`.
+4. Add a `sourceDirectory` rule to `.github/renovate-overrides.json5` so Renovate shows its release notes.
 
 ## Troubleshooting
 
