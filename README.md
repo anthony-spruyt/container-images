@@ -74,8 +74,8 @@ The command will:
    name: my-flavor
    description: "MegaLinter for my use case"
 
-   # renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
-   upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:..."
+   # renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-ci_light
+   upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:v10.1.0@sha256:..."
 
    custom_linters:
      - ACTION_ACTIONLINT
@@ -96,8 +96,8 @@ Linter versions come from MegaLinter at build time. The weekly rebuild picks up 
 For the base image, Renovate tracks the upstream MegaLinter version:
 
 ```yaml
-# renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
-upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:..."
+# renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-ci_light
+upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:v10.1.0@sha256:..."
 ```
 
 When Renovate creates a PR updating `flavor.yaml`, CI regenerates the Dockerfile and builds.

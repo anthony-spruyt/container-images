@@ -20,6 +20,7 @@ Versions are owned by release-please. See [docs/releases.md](docs/releases.md).
 1. Create `<image-name>/Dockerfile`.
 2. Register the image in `release-please-config.json` and `.release-please-manifest.json`.
 3. Add its outputs and build job to `.github/workflows/release-please.yaml`.
+4. Add a `sourceDirectory` rule to `.github/renovate-overrides.json5` so Renovate shows its release notes.
 
 ### Variant of an existing image (`build_context`)
 
@@ -82,8 +83,8 @@ Create custom MegaLinter flavors by defining a `flavor.yaml` configuration. CI g
 name: my-flavor
 description: "Custom MegaLinter for my use case"
 
-# renovate: datasource=docker depName=oxsecurity/megalinter-ci_light
-upstream_image: "oxsecurity/megalinter-ci_light:v9.3.0@sha256:..."
+# renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-ci_light
+upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:v10.1.0@sha256:..."
 
 # Just list linter keys - versions extracted from MegaLinter automatically
 custom_linters:
