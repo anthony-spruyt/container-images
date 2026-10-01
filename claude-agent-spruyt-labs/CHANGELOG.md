@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.105](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.104...claude-agent-spruyt-labs-1.0.105) (2026-10-01)
+
+
+### Dependencies
+
+* **deps:** update container image ghcr.io/anthony-spruyt/claude-agent-write to v1.0.93 ([#1990](https://github.com/anthony-spruyt/container-images/issues/1990)) ([c759ccc](https://github.com/anthony-spruyt/container-images/commit/c759cccd87957d76dc8aec765c3b3344ae0e2990))
+* **deps:** update dependency cloudnative-pg/cloudnative-pg to v1.30.1 ([#2000](https://github.com/anthony-spruyt/container-images/issues/2000)) ([65779ac](https://github.com/anthony-spruyt/container-images/commit/65779ac8f4d0c553855d1a6c15f3396cac51c95b))
+
 ## [1.0.104](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.103...claude-agent-spruyt-labs-1.0.104) (2026-09-28)
 
 
