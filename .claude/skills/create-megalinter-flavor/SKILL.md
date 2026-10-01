@@ -111,19 +111,29 @@ Create the directory and both required configuration files.
 Create `megalinter-<name>/flavor.yaml` with this simple structure:
 
 ```yaml
+# MegaLinter Flavor Factory Configuration
+# Source of truth for megalinter-<name> flavor
+#
+# To regenerate Dockerfile and test.sh:
+#   python megalinter-factory/generate.py megalinter-<name>/
+#
+# Linter versions are automatically extracted from MegaLinter at build time.
 ---
 name: <name>
 description: "<user-provided or auto-generated description>"
 
+# Upstream MegaLinter base image (Renovate tracks this)
 # renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-ci_light
 upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:<version>@sha256:<digest>"
 
+# Additional linters not in base flavor
+# Just list linter keys - versions come from MegaLinter automatically
 custom_linters:
   - <LINTER_KEY_1>
   - <LINTER_KEY_2>
 ```
 
-Copy `<version>` and `<digest>` from an existing ci_light flavor's `flavor.yaml` so all flavors share one base that Renovate keeps current. Do not add explanatory comments — see `.claude/rules/comments.md`.
+Copy `<version>` and `<digest>` from an existing ci_light flavor's `flavor.yaml` so all flavors share one base that Renovate keeps current.
 
 ### 5b: Register with release-please
 
