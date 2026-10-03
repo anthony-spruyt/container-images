@@ -37,7 +37,6 @@ on:
 env:
   REGISTRY: ghcr.io
   OWNER: ${{ github.repository_owner }}
-  # Docker Hub copy: its CDN serves large layers reliably where ghcr.io drops them.
   DOCKERHUB_NAMESPACE: aspruyt
 
 concurrency:
