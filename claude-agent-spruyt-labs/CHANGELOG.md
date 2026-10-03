@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.106](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.105...claude-agent-spruyt-labs-1.0.106) (2026-10-03)
+
+
+### Dependencies
+
+* **deps:** update dependency cilium/cilium-cli to v0.20.1 ([#2005](https://github.com/anthony-spruyt/container-images/issues/2005)) ([183db4b](https://github.com/anthony-spruyt/container-images/commit/183db4b88247856ff973d707385f14f852cce896))
+* **deps:** update dependency databus23/helm-diff to v3.15.14 ([#2012](https://github.com/anthony-spruyt/container-images/issues/2012)) ([06404da](https://github.com/anthony-spruyt/container-images/commit/06404dad0a184576177d59e17964e917090616aa))
+* **deps:** update dependency databus23/helm-diff to v3.15.15 ([#2018](https://github.com/anthony-spruyt/container-images/issues/2018)) ([ed69a8d](https://github.com/anthony-spruyt/container-images/commit/ed69a8db264d1c08f6d5ec293eaf0f71f493c6a9))
+* **deps:** update dependency kubernetes/kubernetes to v1.37.1 ([#1440](https://github.com/anthony-spruyt/container-images/issues/1440)) ([53dcee4](https://github.com/anthony-spruyt/container-images/commit/53dcee48088fbccb0ba8b97a2f39be3a3ae95cb2))
+
 ## [1.0.105](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.104...claude-agent-spruyt-labs-1.0.105) (2026-10-01)
 
 

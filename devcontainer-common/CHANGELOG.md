@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.2](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.2.1...devcontainer-common-2.2.2) (2026-10-03)
+
+
+### Bug Fixes
+
+* **devcontainer-common:** clear stale podman /run state after host reboot ([#2025](https://github.com/anthony-spruyt/container-images/issues/2025)) ([5600ff0](https://github.com/anthony-spruyt/container-images/commit/5600ff0f2efa554fe04fe8494cd2bea1c0537d7d)), closes [#2024](https://github.com/anthony-spruyt/container-images/issues/2024)
+
 ## [2.2.1](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.2.0...devcontainer-common-2.2.1) (2026-09-30)
 
 

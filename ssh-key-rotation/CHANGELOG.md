@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.10](https://github.com/anthony-spruyt/container-images/compare/ssh-key-rotation-2.0.9...ssh-key-rotation-2.0.10) (2026-10-03)
+
+
+### Dependencies
+
+* **deps:** update dependency kubernetes/kubernetes to v1.37.1 ([#1440](https://github.com/anthony-spruyt/container-images/issues/1440)) ([53dcee4](https://github.com/anthony-spruyt/container-images/commit/53dcee48088fbccb0ba8b97a2f39be3a3ae95cb2))
+
 ## [2.0.9](https://github.com/anthony-spruyt/container-images/compare/ssh-key-rotation-2.0.8...ssh-key-rotation-2.0.9) (2026-09-19)
 
 
