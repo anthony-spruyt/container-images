@@ -39,6 +39,30 @@ docker run --rm --user vscode "$IMAGE_REF" bash -c '
   echo "podman/docker resolve to sudo wrappers: OK"
 '
 
+echo "=== Stale podman /run state after reboot ==="
+docker run --rm --user vscode "$IMAGE_REF" bash -c '
+  set -euo pipefail
+  fail() { echo "FAIL: $1"; exit 1; }
+  seed() {
+    sudo mkdir -p /run/containers/storage /run/libpod /run/user/0/libpod/tmp
+    echo "$1" | sudo tee /run/libpod/alive >/dev/null
+    sudo touch /run/containers/storage/marker /run/user/0/libpod/tmp/pause.pid
+  }
+
+  seed "$(cat /proc/sys/kernel/random/boot_id)"
+  podman --version >/dev/null
+  sudo test -e /run/containers/storage/marker || fail "state cleared on same boot"
+  sudo test -e /run/user/0/libpod/tmp/pause.pid || fail "pause.pid cleared on same boot"
+  echo "same boot keeps state: OK"
+
+  seed 00000000-0000-0000-0000-000000000000
+  podman --version >/dev/null
+  sudo test ! -e /run/containers/storage || fail "/run/containers/storage kept after reboot"
+  sudo test ! -e /run/libpod || fail "/run/libpod kept after reboot"
+  sudo test ! -e /run/user/0/libpod || fail "/run/user/0/libpod kept after reboot"
+  echo "new boot clears stale state: OK"
+'
+
 echo "=== userns=auto subordinate IDs ==="
 docker run --rm "$IMAGE_REF" bash -c '
   set -e
