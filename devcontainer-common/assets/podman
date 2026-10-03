@@ -1,7 +1,13 @@
 #!/bin/bash
 # Rootful by design: rootless can't run nested (no cgroup delegation, no /dev/net/tun).
 # A real binary rather than a shell alias so scripts get it too.
-if [[ $EUID -eq 0 ]]; then
-  exec /usr/bin/podman "$@"
+as_root=(sudo -n)
+[[ $EUID -eq 0 ]] && as_root=()
+
+# /run is not a tmpfs under Docker, so state from a previous boot survives and podman 5 refuses to start.
+alive=/run/libpod/alive
+if [[ -f $alive && "$(<"$alive")" != "$(</proc/sys/kernel/random/boot_id)" ]]; then
+  "${as_root[@]}" rm -rf /run/containers/storage /run/libpod /run/user/0/libpod
 fi
-exec sudo -n /usr/bin/podman "$@"
+
+exec "${as_root[@]}" /usr/bin/podman "$@"
