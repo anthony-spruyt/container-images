@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.13](https://github.com/anthony-spruyt/container-images/compare/llm-guard-cuda-1.0.12...llm-guard-cuda-1.0.13) (2026-10-03)
+
+
+### Dependencies
+
+* **deps:** update container image python to 3.14-slim ([#2010](https://github.com/anthony-spruyt/container-images/issues/2010)) ([1401630](https://github.com/anthony-spruyt/container-images/commit/1401630f813ca13cc4d1ac7b63505e9333639c82))
+
 ## [1.0.12](https://github.com/anthony-spruyt/container-images/compare/llm-guard-cuda-1.0.11...llm-guard-cuda-1.0.12) (2026-09-26)
 
 
