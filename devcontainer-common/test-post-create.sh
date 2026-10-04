@@ -64,7 +64,7 @@ prefix) echo "$STUB_NPM_PREFIX" ;;
 install)
   cp "$STUB_SRC/safe-chain" "$STUB_NPM_PREFIX/bin/safe-chain"
   mkdir -p "$STUB_NPM_ROOT/@aikidosec/safe-chain"
-  jq -n --arg v "${3##*@}" '{version: $v}' >"$STUB_NPM_ROOT/@aikidosec/safe-chain/package.json"
+  jq -n --arg v "${4##*@}" '{version: $v}' >"$STUB_NPM_ROOT/@aikidosec/safe-chain/package.json"
   ;;
 esac
 EOF
@@ -167,10 +167,11 @@ expect_skipped() {
 }
 
 version=$(grep -oP '^SAFE_CHAIN_VERSION="\K[^"]+' "$SCRIPT")
+INSTALL_ALPHA="claude plugins install alpha@plugins-mp"
 
 echo "=== fresh workspace installs everything ==="
 run
-expect_called "npm install -g @aikidosec/safe-chain@$version" "safe-chain not installed"
+expect_called "npm install -g --ignore-scripts @aikidosec/safe-chain@$version" "safe-chain not installed"
 expect_called "safe-chain setup-ci" "safe-chain setup-ci not run"
 expect_called "curl" "Claude Code not installed"
 expect_called "pre-commit install --install-hooks" "pre-commit hooks not installed"
@@ -179,7 +180,7 @@ expect_called "timeout --foreground 120 claude plugins marketplace add" "marketp
 expect_called "timeout --foreground 120 claude plugins install alpha@plugins-mp" "plugin install has no timeout"
 [[ $(call_count "claude plugins marketplace add owner/plugins-mp") -eq 1 ]] || fail "marketplace shared by two settings keys added twice"
 [[ $(call_count "claude plugins marketplace list --json") -eq 1 ]] || fail "marketplace list re-queried after an add"
-expect_called "claude plugins install alpha@plugins-mp" "plugin not installed"
+expect_called "$INSTALL_ALPHA" "plugin not installed"
 expect_called "docker run" "podman verification skipped on first run"
 expect_called "shim-npm install safe-chain-test" "safe-chain verification skipped on first run"
 echo "fresh install: OK"
@@ -221,7 +222,7 @@ echo "bad settings shape: OK"
 echo "=== lost safe-chain command is reinstalled ==="
 rm "$STUB_NPM_PREFIX/bin/safe-chain"
 run
-expect_called "npm install -g @aikidosec/safe-chain@$version" "safe-chain package trusted without its command"
+expect_called "npm install -g --ignore-scripts @aikidosec/safe-chain@$version" "safe-chain package trusted without its command"
 echo "lost safe-chain command: OK"
 
 echo "=== claude installed outside ~/.local/bin is updated, not reinstalled ==="
@@ -285,14 +286,14 @@ echo "=== lost plugin cache is restored ==="
 rm -rf "$HOME/.claude/plugins/cache" "$HOME/.claude/plugins/marketplaces"
 run
 expect_called "claude plugins marketplace add owner/plugins-mp" "marketplace with missing files trusted"
-expect_called "claude plugins install alpha@plugins-mp" "plugin with missing files trusted"
+expect_called "$INSTALL_ALPHA" "plugin with missing files trusted"
 echo "lost cache: OK"
 
 echo "=== plugin entry without an install path is reinstalled ==="
 jq 'map(.installPath = "")' "$HOME/.claude/plugins/stub-plugins.json" >"$ROOT/plugins.json"
 mv "$ROOT/plugins.json" "$HOME/.claude/plugins/stub-plugins.json"
 run
-expect_called "claude plugins install alpha@plugins-mp" "plugin without install path trusted"
+expect_called "$INSTALL_ALPHA" "plugin without install path trusted"
 echo "pathless plugin: OK"
 
 echo "=== marketplace found by repo when settings key differs ==="
@@ -324,7 +325,7 @@ echo "reinstall after lost global package: OK"
 echo "=== pinned safe-chain bump upgrades ==="
 sed "s/^SAFE_CHAIN_VERSION=.*/SAFE_CHAIN_VERSION=\"0.0.1\"/" "$SCRIPT" >"$ROOT/bumped.sh"
 run "$ROOT/bumped.sh"
-expect_called "npm install -g @aikidosec/safe-chain@0.0.1" "bumped safe-chain not installed"
+expect_called "npm install -g --ignore-scripts @aikidosec/safe-chain@0.0.1" "bumped safe-chain not installed"
 echo "version bump: OK"
 
 echo "=== new plugin installs only the new one ==="
@@ -332,7 +333,7 @@ jq '.enabledPlugins["beta@plugins-mp"] = true' "$HOME/.claude/settings.json" >"$
 mv "$ROOT/settings.json" "$HOME/.claude/settings.json"
 run
 expect_called "claude plugins install beta@plugins-mp" "new plugin not installed"
-expect_skipped "claude plugins install alpha@plugins-mp" "existing plugin reinstalled"
+expect_skipped "$INSTALL_ALPHA" "existing plugin reinstalled"
 echo "new plugin: OK"
 
 echo "post-create idempotency tests passed!"

@@ -46,7 +46,7 @@ if [[ "$installed_safe_chain" == "$SAFE_CHAIN_VERSION" && -x "$npm_prefix/bin/sa
   echo "safe-chain ${SAFE_CHAIN_VERSION} already installed, skipping npm install"
 else
   echo "Installing safe-chain ${SAFE_CHAIN_VERSION}..."
-  PATH="$npm_path" npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
+  PATH="$npm_path" npm install -g --ignore-scripts "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
 fi
 safe-chain setup
 safe-chain setup-ci
