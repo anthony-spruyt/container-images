@@ -39,6 +39,11 @@ docker run --rm --user vscode "$IMAGE_REF" bash -c '
   echo "podman/docker resolve to sudo wrappers: OK"
 '
 
+echo "=== post-create skips finished work ==="
+docker run --rm --user vscode \
+  -v "$(cd "$(dirname "$0")" && pwd)/test-post-create.sh:/test-post-create.sh:ro" \
+  "$IMAGE_REF" bash /test-post-create.sh /usr/local/bin/devcontainer-post-create
+
 echo "=== userns=auto subordinate IDs ==="
 docker run --rm "$IMAGE_REF" bash -c '
   set -e

@@ -26,25 +26,52 @@ git ls-files -z '*.sh' | xargs -0 -r chmod +x 2>/dev/null || true
 
 # renovate: datasource=npm depName=@aikidosec/safe-chain
 SAFE_CHAIN_VERSION="1.5.21"
-echo "Installing safe-chain ${SAFE_CHAIN_VERSION}..."
-npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
-safe-chain setup
-safe-chain setup-ci
+installed_safe_chain=$(jq -r '.version // empty' "$(npm root -g)/@aikidosec/safe-chain/package.json" 2>/dev/null || true)
+if [[ "$installed_safe_chain" == "$SAFE_CHAIN_VERSION" && -d "$HOME/.safe-chain/shims" ]]; then
+  echo "safe-chain ${SAFE_CHAIN_VERSION} already installed, skipping"
+else
+  echo "Installing safe-chain ${SAFE_CHAIN_VERSION}..."
+  npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
+  safe-chain setup
+  safe-chain setup-ci
+fi
 export PATH="$HOME/.safe-chain/shims:$PATH"
 # shellcheck disable=SC2016
 grep -q 'safe-chain/shims' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.safe-chain/shims:$PATH"' >>"$HOME/.bashrc"
 
 echo "Installing pre-commit hooks..."
 git config --unset-all core.hooksPath 2>/dev/null || true
-pre-commit install --install-hooks
+precommit_stamp=""
+if config_sum=$(sha256sum .pre-commit-config.yaml 2>/dev/null); then
+  precommit_stamp="${PRE_COMMIT_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/pre-commit}/.hook-envs-${config_sum%% *}"
+fi
+if [[ -n "$precommit_stamp" && -e "$precommit_stamp" ]]; then
+  pre-commit install
+else
+  pre-commit install --install-hooks
+  if [[ -n "$precommit_stamp" ]]; then
+    mkdir -p "$(dirname "$precommit_stamp")"
+    touch "$precommit_stamp"
+  fi
+fi
 
-echo "Installing Claude Code CLI..."
-curl -fsSL https://claude.ai/install.sh | bash
+if [[ -x "$HOME/.local/bin/claude" ]]; then
+  echo "Claude Code CLI already installed, skipping"
+else
+  echo "Installing Claude Code CLI..."
+  curl -fsSL https://claude.ai/install.sh | bash
+fi
 export PATH="$HOME/.local/bin:$PATH"
 # shellcheck disable=SC2016
 grep -q 'local/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >>"$HOME/.bashrc"
 
 if command -v claude &>/dev/null && command -v jq &>/dev/null; then
+  marketplace_known() {
+    jq -e --arg n "$1" 'has($n)' "$HOME/.claude/plugins/known_marketplaces.json" &>/dev/null
+  }
+  plugin_installed() {
+    jq -e --arg p "$1" '(.plugins[$p] // []) | any(.scope == "user")' "$HOME/.claude/plugins/installed_plugins.json" &>/dev/null
+  }
   bootstrap_claude_plugins() {
     local settings_file="$1"
     [ -f "$settings_file" ] || return 0
@@ -55,12 +82,20 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
     echo "  reading $settings_file"
     jq -r '.extraKnownMarketplaces // {} | to_entries[] | select(.key != "claude-plugins-official") | select(.value.source != null and .value.source.repo != null) | "\(.key)\t\(.value.source.repo)"' \
       "$settings_file" 2>/dev/null | while IFS="$(printf '\t')" read -r name repo; do
+      if marketplace_known "$name"; then
+        echo "    marketplace: $name (already added)"
+        continue
+      fi
       echo "    marketplace: $name ($repo)"
       claude plugins marketplace add "$repo" --scope user ||
         echo "    WARNING: failed to add marketplace '$name'"
     done
     jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true or .value == "true") | select(.key | endswith("@claude-plugins-official") | not) | .key' \
       "$settings_file" 2>/dev/null | while IFS= read -r plugin; do
+      if plugin_installed "$plugin"; then
+        echo "    install: $plugin (already installed)"
+        continue
+      fi
       echo "    install: $plugin"
       claude plugins install "$plugin" --scope user ||
         echo "    WARNING: failed to install '$plugin'"
@@ -134,12 +169,22 @@ fi
 echo "Running devcontainer verification tests..."
 echo ""
 
+VERIFIED_STAMP="$HOME/.cache/devcontainer-post-create/verified-safe-chain-${SAFE_CHAIN_VERSION}"
+RUN_SLOW_CHECKS=true
+if [[ -e "$VERIFIED_STAMP" && "${DEVCONTAINER_VERIFY:-}" != 1 ]]; then
+  RUN_SLOW_CHECKS=false
+fi
+SLOW_CHECKS_PASSED=true
+
 if ! docker --version 2>&1 | grep -qi 'podman'; then
   fail "docker CLI is not Podman (got: $(docker --version 2>&1))"
+elif ! $RUN_SLOW_CHECKS; then
+  echo "  SKIP: Podman hello-world verified earlier (DEVCONTAINER_VERIFY=1 to force)"
 elif docker run --rm docker.io/library/hello-world &>/dev/null; then
   pass "Rootful Podman is working (docker → podman)"
 else
   echo "  SKIP: Podman not runnable yet (may start via agent script in Coder)"
+  SLOW_CHECKS_PASSED=false
 fi
 
 if pre-commit --version &>/dev/null; then
@@ -149,7 +194,9 @@ else
 fi
 
 SAFE_NPM="$HOME/.safe-chain/shims/npm"
-if [[ -x "$SAFE_NPM" ]]; then
+if [[ -x "$SAFE_NPM" ]] && ! $RUN_SLOW_CHECKS; then
+  echo "  SKIP: Safe-chain blocking test verified earlier (DEVCONTAINER_VERIFY=1 to force)"
+elif [[ -x "$SAFE_NPM" ]]; then
   TEMP_DIR=$(mktemp -d)
   SAFE_OUTPUT=$(cd "$TEMP_DIR" && "$SAFE_NPM" install safe-chain-test 2>&1 || true)
   rm -rf "$TEMP_DIR"
@@ -216,6 +263,10 @@ echo ""
 echo "Results: $PASSED passed, $FAILED failed"
 
 if [[ $FAILED -eq 0 ]]; then
+  if $RUN_SLOW_CHECKS && $SLOW_CHECKS_PASSED; then
+    mkdir -p "$(dirname "$VERIFIED_STAMP")"
+    touch "$VERIFIED_STAMP"
+  fi
   exit 0
 else
   exit 1
