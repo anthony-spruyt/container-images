@@ -42,7 +42,6 @@ safe_chain_installed() {
     [[ -x "$SAFE_CHAIN_SHIMS/$shim" ]] || return 1
   done <"$SAFE_CHAIN_MANIFEST"
 }
-SAFE_CHAIN_INSTALLED_NOW=false
 if safe_chain_installed; then
   echo "safe-chain ${SAFE_CHAIN_VERSION} already installed, skipping"
 else
@@ -50,8 +49,8 @@ else
   npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
   safe-chain setup
   safe-chain setup-ci
+  rm -f "$HOME"/.safe-chain/post-create-shims-*
   ls "$SAFE_CHAIN_SHIMS" >"$SAFE_CHAIN_MANIFEST" 2>/dev/null || true
-  SAFE_CHAIN_INSTALLED_NOW=true
 fi
 export PATH="$SAFE_CHAIN_SHIMS:$PATH"
 # shellcheck disable=SC2016
@@ -62,8 +61,7 @@ git config --unset-all core.hooksPath 2>/dev/null || true
 pre-commit install --install-hooks
 
 if "$HOME/.local/bin/claude" --version &>/dev/null; then
-  echo "Updating Claude Code CLI..."
-  "$HOME/.local/bin/claude" update || echo "WARNING: claude update failed; keeping installed version"
+  echo "Claude Code CLI already installed, skipping (it updates itself)"
 else
   echo "Installing Claude Code CLI..."
   curl -fsSL https://claude.ai/install.sh | bash
@@ -73,21 +71,20 @@ export PATH="$HOME/.local/bin:$PATH"
 grep -q 'local/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >>"$HOME/.bashrc"
 
 if command -v claude &>/dev/null && command -v jq &>/dev/null; then
+  any_path_exists() {
+    local path
+    while IFS= read -r path; do
+      [[ -n "$path" && -e "$path" ]] && return 0
+    done
+    return 1
+  }
   marketplace_known() {
-    local repo="$1" entry location
-    entry=$(jq -c --arg r "$repo" '[.[] | select(.source.repo == $r)] | first // empty' \
-      "$HOME/.claude/plugins/known_marketplaces.json" 2>/dev/null) || return 1
-    [[ -n "$entry" ]] || return 1
-    location=$(jq -r '.installLocation // empty' <<<"$entry")
-    [[ -z "$location" || -e "$location" ]]
+    local known="$1" repo="$2"
+    jq -r --arg r "$repo" '.[] | select(.repo == $r) | .installLocation // empty' <<<"$known" 2>/dev/null | any_path_exists
   }
   plugin_installed() {
-    local plugin="$1" path
-    while IFS= read -r path; do
-      [[ -z "$path" || -e "$path" ]] && return 0
-    done < <(jq -r --arg p "$plugin" '(.plugins[$p] // [])[] | select(.scope == "user") | .installPath // ""' \
-      "$HOME/.claude/plugins/installed_plugins.json" 2>/dev/null)
-    return 1
+    local installed="$1" plugin="$2"
+    jq -r --arg p "$plugin" '.[] | select(.id == $p and .scope == "user") | .installPath // empty' <<<"$installed" 2>/dev/null | any_path_exists
   }
   bootstrap_claude_plugins() {
     local settings_file="$1"
@@ -97,9 +94,11 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
       return 0
     }
     echo "  reading $settings_file"
+    local known installed
+    known=$(claude plugins marketplace list --json 2>/dev/null) || known='[]'
     jq -r '.extraKnownMarketplaces // {} | to_entries[] | select(.key != "claude-plugins-official") | select(.value.source != null and .value.source.repo != null) | "\(.key)\t\(.value.source.repo)"' \
       "$settings_file" 2>/dev/null | while IFS="$(printf '\t')" read -r name repo; do
-      if marketplace_known "$repo"; then
+      if marketplace_known "$known" "$repo"; then
         echo "    marketplace: $name (already added)"
         continue
       fi
@@ -107,9 +106,10 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
       claude plugins marketplace add "$repo" --scope user ||
         echo "    WARNING: failed to add marketplace '$name'"
     done
+    installed=$(claude plugins list --json 2>/dev/null) || installed='[]'
     jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true or .value == "true") | select(.key | endswith("@claude-plugins-official") | not) | .key' \
       "$settings_file" 2>/dev/null | while IFS= read -r plugin; do
-      if plugin_installed "$plugin"; then
+      if plugin_installed "$installed" "$plugin"; then
         echo "    install: $plugin (already installed)"
         continue
       fi
@@ -186,13 +186,6 @@ fi
 echo "Running devcontainer verification tests..."
 echo ""
 
-# /tmp dies with the container; $HOME can outlive it and would vouch for a rebuilt one
-VERIFIED_STAMP="${TMPDIR:-/tmp}/devcontainer-post-create-$(id -u)/verified-safe-chain-${SAFE_CHAIN_VERSION}"
-VERIFY_SAFE_CHAIN=true
-if [[ -O "$VERIFIED_STAMP" && "${DEVCONTAINER_VERIFY:-}" != 1 ]] && ! $SAFE_CHAIN_INSTALLED_NOW; then
-  VERIFY_SAFE_CHAIN=false
-fi
-
 if ! docker --version 2>&1 | grep -qi 'podman'; then
   fail "docker CLI is not Podman (got: $(docker --version 2>&1))"
 elif docker run --rm docker.io/library/hello-world &>/dev/null; then
@@ -208,9 +201,7 @@ else
 fi
 
 SAFE_NPM="$SAFE_CHAIN_SHIMS/npm"
-if [[ -x "$SAFE_NPM" ]] && ! $VERIFY_SAFE_CHAIN; then
-  skip "Safe-chain blocking test verified earlier (DEVCONTAINER_VERIFY=1 to force)"
-elif [[ -x "$SAFE_NPM" ]]; then
+if [[ -x "$SAFE_NPM" ]]; then
   TEMP_DIR=$(mktemp -d)
   SAFE_OUTPUT=$(cd "$TEMP_DIR" && "$SAFE_NPM" install safe-chain-test 2>&1 || true)
   rm -rf "$TEMP_DIR"
@@ -251,8 +242,9 @@ else
   fail "Claude Code CLI is not installed"
 fi
 
-if command -v agent-run &>/dev/null; then
-  agent_run_out=$(agent-run --privileged alpine true 2>&1 || true)
+AGENT_RUN=/usr/local/bin/agent-run
+if [[ -x "$AGENT_RUN" ]]; then
+  agent_run_out=$("$AGENT_RUN" --privileged alpine true 2>&1 || true)
   if echo "$agent_run_out" | grep -q 'forbidden flag'; then
     pass "agent-run wrapper installed and enforcing policy"
   else
@@ -277,10 +269,6 @@ echo ""
 echo "Results: $PASSED passed, $FAILED failed, $SKIPPED skipped"
 
 if [[ $FAILED -eq 0 ]]; then
-  if $VERIFY_SAFE_CHAIN; then
-    { mkdir -p "$(dirname "$VERIFIED_STAMP")" && touch "$VERIFIED_STAMP"; } 2>/dev/null ||
-      echo "WARNING: could not write $VERIFIED_STAMP; safe-chain will be re-verified next run"
-  fi
   exit 0
 else
   exit 1

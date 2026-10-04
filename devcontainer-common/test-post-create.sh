@@ -2,6 +2,7 @@
 set -euo pipefail
 
 # Usage: test-post-create.sh [post-create.sh]
+# Needs the image's /usr/local/bin/agent-run; run it inside devcontainer-common.
 SCRIPT=$(realpath "${1:-$(dirname "${BASH_SOURCE[0]}")/assets/post-create.sh}")
 
 ROOT=$(mktemp -d)
@@ -38,7 +39,7 @@ stub devcontainer-nexus-config </dev/null
 stub pre-commit </dev/null
 stub gh </dev/null
 stub agent-run <<'EOF'
-echo "forbidden flag"
+echo "running $*"
 EOF
 stub docker <<'EOF'
 [[ "$1" == --version ]] && echo "podman version 5.0.0"
@@ -73,20 +74,23 @@ if [[ "$1" == --version ]]; then
 fi
 dir="$HOME/.claude/plugins"
 mkdir -p "$dir"
-case "$2" in
-marketplace)
+markets="$dir/stub-marketplaces.json"
+plugins="$dir/stub-plugins.json"
+[[ -f "$markets" ]] || echo '[]' >"$markets"
+[[ -f "$plugins" ]] || echo '[]' >"$plugins"
+case "$2 $3" in
+"marketplace list") cat "$markets" ;;
+"marketplace add")
   name="${4##*/}"
-  file="$dir/known_marketplaces.json"
-  [[ -f "$file" ]] || echo '{}' >"$file"
   mkdir -p "$dir/marketplaces/$name"
   jq --arg n "$name" --arg r "$4" --arg l "$dir/marketplaces/$name" \
-    '.[$n] = {source: {source: "github", repo: $r}, installLocation: $l}' "$file" >"$file.tmp" && mv "$file.tmp" "$file"
+    'map(select(.name != $n)) + [{name: $n, source: "github", repo: $r, installLocation: $l}]' "$markets" >"$markets.tmp" && mv "$markets.tmp" "$markets"
   ;;
-install)
-  file="$dir/installed_plugins.json"
-  [[ -f "$file" ]] || echo '{"version":2,"plugins":{}}' >"$file"
+"list --json") cat "$plugins" ;;
+install*)
   mkdir -p "$dir/cache/$3"
-  jq --arg p "$3" --arg l "$dir/cache/$3" '.plugins[$p] = [{scope: "user", installPath: $l}]' "$file" >"$file.tmp" && mv "$file.tmp" "$file"
+  jq --arg p "$3" --arg l "$dir/cache/$3" \
+    'map(select(.id != $p)) + [{id: $p, scope: "user", installPath: $l}]' "$plugins" >"$plugins.tmp" && mv "$plugins.tmp" "$plugins"
   ;;
 esac
 EOF
@@ -107,10 +111,6 @@ run() {
     echo "$OUT"
     fail "script exited $rc before reporting clean results"
   fi
-}
-
-skipped_count() {
-  grep -oP '^Results:.* \K[0-9]+(?= skipped)' <<<"$OUT"
 }
 
 called() {
@@ -138,7 +138,6 @@ expect_called "claude plugins marketplace add owner/plugins-mp" "marketplace not
 expect_called "claude plugins install alpha@plugins-mp" "plugin not installed"
 expect_called "docker run" "podman verification skipped on first run"
 expect_called "shim-npm install safe-chain-test" "safe-chain verification skipped on first run"
-first_run_skipped=$(skipped_count) || fail "results line has no skipped count"
 echo "fresh install: OK"
 
 echo "=== second run skips finished work ==="
@@ -146,25 +145,17 @@ run
 expect_skipped "npm install -g" "safe-chain reinstalled"
 expect_skipped "safe-chain setup" "safe-chain setup re-run"
 expect_skipped "curl" "Claude Code reinstalled"
-expect_called "claude update" "installed Claude Code CLI not updated"
+expect_skipped "claude update" "working Claude Code CLI updated on every run"
 expect_called "pre-commit install --install-hooks" "pre-commit hooks not installed into the workspace"
 expect_skipped "claude plugins marketplace add" "marketplace re-added"
 expect_skipped "claude plugins install" "plugin reinstalled"
-expect_called "docker run" "podman verification skipped after per-container config rewrite"
-expect_skipped "shim-npm" "safe-chain verification repeated"
+expect_called "docker run" "podman verification skipped"
+expect_called "shim-npm install safe-chain-test" "safe-chain verification skipped"
+expect_skipped "agent-run" "agent-run resolved from PATH instead of the image's wrapper"
 expect_called "devcontainer-podman-config" "per-container podman config skipped"
 expect_called "sudo tee /etc/containers/storage.conf" "per-container /etc writes skipped"
-second_run_skipped=$(skipped_count) || fail "results line has no skipped count"
-((second_run_skipped > first_run_skipped)) || fail "skipped checks not reported ($first_run_skipped then $second_run_skipped)"
 [[ $(git config --global --get-all safe.directory | grep -cx '\*') -eq 1 ]] || fail "safe.directory duplicated in ~/.gitconfig"
 echo "second run: OK"
-
-echo "=== rebuilt container keeps HOME but must re-verify ==="
-rm -rf "${TMPDIR:?}/devcontainer-post-create-$(id -u)"
-run
-expect_called "docker run" "podman verification skipped in a rebuilt container"
-expect_called "shim-npm install safe-chain-test" "safe-chain verification skipped in a rebuilt container"
-echo "rebuilt container: OK"
 
 echo "=== broken Claude Code CLI is reinstalled ==="
 touch "$STUB_CLAUDE_BROKEN"
@@ -174,10 +165,9 @@ rm "$STUB_CLAUDE_BROKEN"
 echo "broken claude: OK"
 
 echo "=== empty safe-chain shims are repaired ==="
-rm "$HOME/.safe-chain/shims/npm"
+rm -f "$HOME"/.safe-chain/shims/*
 run
 expect_called "npm install -g @aikidosec/safe-chain@$version" "empty shims dir treated as installed"
-expect_called "shim-npm install safe-chain-test" "repaired safe-chain not verified"
 echo "empty shims: OK"
 
 echo "=== any lost safe-chain shim is repaired ==="
@@ -192,6 +182,13 @@ run
 expect_called "claude plugins marketplace add owner/plugins-mp" "marketplace with missing files trusted"
 expect_called "claude plugins install alpha@plugins-mp" "plugin with missing files trusted"
 echo "lost cache: OK"
+
+echo "=== plugin entry without an install path is reinstalled ==="
+jq 'map(.installPath = "")' "$HOME/.claude/plugins/stub-plugins.json" >"$ROOT/plugins.json"
+mv "$ROOT/plugins.json" "$HOME/.claude/plugins/stub-plugins.json"
+run
+expect_called "claude plugins install alpha@plugins-mp" "plugin without install path trusted"
+echo "pathless plugin: OK"
 
 echo "=== marketplace found by repo when settings key differs ==="
 jq '.extraKnownMarketplaces["alias"] = {source: {source: "github", repo: "owner/other-mp"}}' "$HOME/.claude/settings.json" >"$ROOT/settings.json"
@@ -210,24 +207,6 @@ expect_called "claude plugins marketplace add owner/fork-mp" "changed marketplac
 mv "$ROOT/settings.orig.json" "$HOME/.claude/settings.json"
 echo "changed marketplace repo: OK"
 
-echo "=== agent-run is found on PATH, not via env ==="
-AGENT_RUN=/nonexistent run
-expect_called "agent-run --privileged" "agent-run not resolved from PATH"
-echo "agent-run lookup: OK"
-
-echo "=== unwritable stamp dir does not fail a clean run ==="
-stamp_dir="$TMPDIR/devcontainer-post-create-$(id -u)"
-rm -rf "$stamp_dir" && mkdir -p "$stamp_dir" && chmod 555 "$stamp_dir"
-run
-chmod 755 "$stamp_dir"
-echo "unwritable stamp dir: OK"
-
-echo "=== DEVCONTAINER_VERIFY=1 forces verification ==="
-DEVCONTAINER_VERIFY=1 run
-expect_called "docker run" "podman verification not forced"
-expect_called "shim-npm install safe-chain-test" "safe-chain verification not forced"
-echo "forced verification: OK"
-
 echo "=== safe-chain missing from a fresh container ==="
 rm -rf "${STUB_NPM_ROOT:?}"/*
 run
@@ -239,6 +218,8 @@ sed "s/^SAFE_CHAIN_VERSION=.*/SAFE_CHAIN_VERSION=\"0.0.1\"/" "$SCRIPT" >"$ROOT/b
 run "$ROOT/bumped.sh"
 expect_called "npm install -g @aikidosec/safe-chain@0.0.1" "bumped safe-chain not installed"
 expect_called "safe-chain setup" "bumped safe-chain not set up"
+manifests=("$HOME"/.safe-chain/post-create-shims-*)
+[[ ${#manifests[@]} -eq 1 ]] || fail "stale safe-chain shim manifests kept: ${manifests[*]}"
 echo "version bump: OK"
 
 echo "=== new plugin installs only the new one ==="
