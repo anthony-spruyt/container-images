@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.3](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.2.2...devcontainer-common-2.2.3) (2026-10-04)
+
+
+### Bug Fixes
+
+* **devcontainer-common:** make post-create skip work already done ([#2052](https://github.com/anthony-spruyt/container-images/issues/2052)) ([dcb69e1](https://github.com/anthony-spruyt/container-images/commit/dcb69e1296c78f6130c1d176df9bfb20677ac059))
+
 ## [2.2.2](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.2.1...devcontainer-common-2.2.2) (2026-10-03)
 
 
