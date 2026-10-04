@@ -22,7 +22,8 @@ skip() {
   SKIPPED=$((SKIPPED + 1))
 }
 
-git config --global --add safe.directory '*'
+git config --global --get-all safe.directory 2>/dev/null | grep -qx '\*' ||
+  git config --global --add safe.directory '*'
 
 sudo mkdir -p /etc/containers/registries.conf.d /etc/containers/containers.conf.d
 sudo chmod a+rx /etc/containers /etc/containers/registries.conf.d /etc/containers/containers.conf.d
@@ -31,16 +32,28 @@ git ls-files -z '*.sh' | xargs -0 -r chmod +x 2>/dev/null || true
 
 # renovate: datasource=npm depName=@aikidosec/safe-chain
 SAFE_CHAIN_VERSION="1.5.21"
-installed_safe_chain=$(jq -r '.version // empty' "$(npm root -g)/@aikidosec/safe-chain/package.json" 2>/dev/null || true)
-if [[ "$installed_safe_chain" == "$SAFE_CHAIN_VERSION" && -x "$HOME/.safe-chain/shims/npm" ]]; then
+SAFE_CHAIN_SHIMS="$HOME/.safe-chain/shims"
+SAFE_CHAIN_MANIFEST="$HOME/.safe-chain/post-create-shims-${SAFE_CHAIN_VERSION}"
+safe_chain_installed() {
+  local installed shim
+  installed=$(jq -r '.version // empty' "$(npm root -g)/@aikidosec/safe-chain/package.json" 2>/dev/null || true)
+  [[ "$installed" == "$SAFE_CHAIN_VERSION" && -s "$SAFE_CHAIN_MANIFEST" ]] || return 1
+  while IFS= read -r shim; do
+    [[ -x "$SAFE_CHAIN_SHIMS/$shim" ]] || return 1
+  done <"$SAFE_CHAIN_MANIFEST"
+}
+SAFE_CHAIN_INSTALLED_NOW=false
+if safe_chain_installed; then
   echo "safe-chain ${SAFE_CHAIN_VERSION} already installed, skipping"
 else
   echo "Installing safe-chain ${SAFE_CHAIN_VERSION}..."
   npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
   safe-chain setup
   safe-chain setup-ci
+  ls "$SAFE_CHAIN_SHIMS" >"$SAFE_CHAIN_MANIFEST" 2>/dev/null || true
+  SAFE_CHAIN_INSTALLED_NOW=true
 fi
-export PATH="$HOME/.safe-chain/shims:$PATH"
+export PATH="$SAFE_CHAIN_SHIMS:$PATH"
 # shellcheck disable=SC2016
 grep -q 'safe-chain/shims' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.safe-chain/shims:$PATH"' >>"$HOME/.bashrc"
 
@@ -49,7 +62,8 @@ git config --unset-all core.hooksPath 2>/dev/null || true
 pre-commit install --install-hooks
 
 if "$HOME/.local/bin/claude" --version &>/dev/null; then
-  echo "Claude Code CLI already installed, skipping"
+  echo "Updating Claude Code CLI..."
+  "$HOME/.local/bin/claude" update || echo "WARNING: claude update failed; keeping installed version"
 else
   echo "Installing Claude Code CLI..."
   curl -fsSL https://claude.ai/install.sh | bash
@@ -60,8 +74,8 @@ grep -q 'local/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.loc
 
 if command -v claude &>/dev/null && command -v jq &>/dev/null; then
   marketplace_known() {
-    local name="$1" repo="$2" entry location
-    entry=$(jq -c --arg n "$name" --arg r "$repo" '.[$n] // ([.[] | select(.source.repo == $r)] | first) // empty' \
+    local repo="$1" entry location
+    entry=$(jq -c --arg r "$repo" '[.[] | select(.source.repo == $r)] | first // empty' \
       "$HOME/.claude/plugins/known_marketplaces.json" 2>/dev/null) || return 1
     [[ -n "$entry" ]] || return 1
     location=$(jq -r '.installLocation // empty' <<<"$entry")
@@ -85,7 +99,7 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
     echo "  reading $settings_file"
     jq -r '.extraKnownMarketplaces // {} | to_entries[] | select(.key != "claude-plugins-official") | select(.value.source != null and .value.source.repo != null) | "\(.key)\t\(.value.source.repo)"' \
       "$settings_file" 2>/dev/null | while IFS="$(printf '\t')" read -r name repo; do
-      if marketplace_known "$name" "$repo"; then
+      if marketplace_known "$repo"; then
         echo "    marketplace: $name (already added)"
         continue
       fi
@@ -173,22 +187,18 @@ echo "Running devcontainer verification tests..."
 echo ""
 
 # /tmp dies with the container; $HOME can outlive it and would vouch for a rebuilt one
-VERIFIED_STAMP="${TMPDIR:-/tmp}/devcontainer-post-create/verified-safe-chain-${SAFE_CHAIN_VERSION}"
-RUN_SLOW_CHECKS=true
-if [[ -e "$VERIFIED_STAMP" && "${DEVCONTAINER_VERIFY:-}" != 1 ]]; then
-  RUN_SLOW_CHECKS=false
+VERIFIED_STAMP="${TMPDIR:-/tmp}/devcontainer-post-create-$(id -u)/verified-safe-chain-${SAFE_CHAIN_VERSION}"
+VERIFY_SAFE_CHAIN=true
+if [[ -O "$VERIFIED_STAMP" && "${DEVCONTAINER_VERIFY:-}" != 1 ]] && ! $SAFE_CHAIN_INSTALLED_NOW; then
+  VERIFY_SAFE_CHAIN=false
 fi
-SLOW_CHECKS_PASSED=true
 
 if ! docker --version 2>&1 | grep -qi 'podman'; then
   fail "docker CLI is not Podman (got: $(docker --version 2>&1))"
-elif ! $RUN_SLOW_CHECKS; then
-  skip "Podman hello-world verified earlier (DEVCONTAINER_VERIFY=1 to force)"
 elif docker run --rm docker.io/library/hello-world &>/dev/null; then
   pass "Rootful Podman is working (docker → podman)"
 else
   skip "Podman not runnable yet (may start via agent script in Coder)"
-  SLOW_CHECKS_PASSED=false
 fi
 
 if pre-commit --version &>/dev/null; then
@@ -197,8 +207,8 @@ else
   fail "Pre-commit is not installed"
 fi
 
-SAFE_NPM="$HOME/.safe-chain/shims/npm"
-if [[ -x "$SAFE_NPM" ]] && ! $RUN_SLOW_CHECKS; then
+SAFE_NPM="$SAFE_CHAIN_SHIMS/npm"
+if [[ -x "$SAFE_NPM" ]] && ! $VERIFY_SAFE_CHAIN; then
   skip "Safe-chain blocking test verified earlier (DEVCONTAINER_VERIFY=1 to force)"
 elif [[ -x "$SAFE_NPM" ]]; then
   TEMP_DIR=$(mktemp -d)
@@ -241,9 +251,8 @@ else
   fail "Claude Code CLI is not installed"
 fi
 
-AGENT_RUN="${AGENT_RUN:-/usr/local/bin/agent-run}"
-if [[ -x "$AGENT_RUN" ]]; then
-  agent_run_out=$("$AGENT_RUN" --privileged alpine true 2>&1 || true)
+if command -v agent-run &>/dev/null; then
+  agent_run_out=$(agent-run --privileged alpine true 2>&1 || true)
   if echo "$agent_run_out" | grep -q 'forbidden flag'; then
     pass "agent-run wrapper installed and enforcing policy"
   else
@@ -268,9 +277,9 @@ echo ""
 echo "Results: $PASSED passed, $FAILED failed, $SKIPPED skipped"
 
 if [[ $FAILED -eq 0 ]]; then
-  if $RUN_SLOW_CHECKS && $SLOW_CHECKS_PASSED; then
-    mkdir -p "$(dirname "$VERIFIED_STAMP")"
-    touch "$VERIFIED_STAMP"
+  if $VERIFY_SAFE_CHAIN; then
+    { mkdir -p "$(dirname "$VERIFIED_STAMP")" && touch "$VERIFIED_STAMP"; } 2>/dev/null ||
+      echo "WARNING: could not write $VERIFIED_STAMP; safe-chain will be re-verified next run"
   fi
   exit 0
 else

@@ -12,6 +12,7 @@ on:
     paths:
       # Image files
       - "**/Dockerfile"
+      - "*/*.sh"
       - "**/metadata.yaml"
       - "**/flavor.yaml"
       - "**/assets/**"
@@ -139,7 +140,7 @@ jobs:
 
           # Collect changed images from direct file changes
           DIRECT_CHANGES=$(echo "$DIFF_FILES" | \
-            grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|test(-[a-z-]+)?\.sh|assets/|app/|metadata\.yaml|flavor\.yaml|\.rebuild-stamp)' | \
+            grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|[^/]+\.sh$|assets/|app/|metadata\.yaml|flavor\.yaml|\.rebuild-stamp)' | \
             cut -d'/' -f1 | sort -u | \
             while read -r img; do if [ -d "$img" ]; then echo "$img"; fi; done)
           DIRECT_CHANGES=$(add_build_context_dependents "$DIRECT_CHANGES")
