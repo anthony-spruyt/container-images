@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.28](https://github.com/anthony-spruyt/container-images/compare/coder-gitops-1.0.27...coder-gitops-1.0.28) (2026-10-03)
+
+
+### Dependencies
+
+* **deps:** update dependency kubernetes/kubernetes to v1.37.1 ([#1440](https://github.com/anthony-spruyt/container-images/issues/1440)) ([53dcee4](https://github.com/anthony-spruyt/container-images/commit/53dcee48088fbccb0ba8b97a2f39be3a3ae95cb2))
+
 ## [1.0.27](https://github.com/anthony-spruyt/container-images/compare/coder-gitops-1.0.26...coder-gitops-1.0.27) (2026-09-19)
 
 

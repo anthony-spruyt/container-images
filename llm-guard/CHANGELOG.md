@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.41](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.0.40...llm-guard-1.0.41) (2026-10-03)
+
+
+### Dependencies
+
+* **deps:** update container image python to 3.14-slim ([#2010](https://github.com/anthony-spruyt/container-images/issues/2010)) ([1401630](https://github.com/anthony-spruyt/container-images/commit/1401630f813ca13cc4d1ac7b63505e9333639c82))
+* **deps:** update dependency uvicorn to v0.54.0 ([#2013](https://github.com/anthony-spruyt/container-images/issues/2013)) ([b1d12fa](https://github.com/anthony-spruyt/container-images/commit/b1d12fa65e6b3900dbecb4d40524a2b77fd644f4))
+
 ## [1.0.40](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.0.39...llm-guard-1.0.40) (2026-09-26)
 
 

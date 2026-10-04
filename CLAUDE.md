@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Personal container images, published to `ghcr.io/<owner>/<image>`. CI scans each with Trivy and attaches build provenance.
+Personal container images, published to `ghcr.io/<owner>/<image>` and `docker.io/aspruyt/<image>`. Container retention only cleans ghcr.io. CI scans each with Trivy and attaches build provenance.
 
 ## Commands
 

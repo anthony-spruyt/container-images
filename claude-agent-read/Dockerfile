@@ -1,5 +1,5 @@
 # renovate: depName=ubuntu datasource=docker versioning=ubuntu
-FROM ubuntu:resolute@sha256:3595d7fc4286a33fad0fd853a4063e654287a9c3787437d7937c94ca3f7a804e
+FROM ubuntu:resolute@sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7
 
 # Ephemeral agent pod — lifespan managed by n8n spawner
 HEALTHCHECK NONE
@@ -73,7 +73,7 @@ ENV PATH="/home/node/.safe-chain/shims:${PATH}"
 
 # Claude Code CLI (native binary — npm datasource tracks versions)
 # renovate: depName=@anthropic-ai/claude-code datasource=npm
-ARG CLAUDE_VERSION="2.1.288"
+ARG CLAUDE_VERSION="2.1.289"
 RUN curl -fsSL https://claude.ai/install.sh | bash -s -- "$CLAUDE_VERSION"
 ENV PATH="/home/node/.local/bin:${PATH}"
 
