@@ -22,11 +22,12 @@ fail() {
 }
 
 stub() {
+  local name="$1"
   {
-    printf "#!/bin/bash\necho \"%s \$*\" >>\"\$STUB_LOG\"\n" "$1"
+    printf "#!/bin/bash\necho \"%s \$*\" >>\"\$STUB_LOG\"\n" "$name"
     cat
-  } >"$STUBS/$1"
-  chmod +x "$STUBS/$1"
+  } >"$STUBS/$name"
+  chmod +x "$STUBS/$name"
 }
 
 stub sudo </dev/null
@@ -92,9 +93,18 @@ run() {
   }
 }
 
-called() { grep -qF -- "$1" "$STUB_LOG"; }
-expect_called() { called "$1" || fail "$2"; }
-expect_skipped() { ! called "$1" || fail "$2"; }
+called() {
+  local pattern="$1"
+  grep -qF -- "$pattern" "$STUB_LOG"
+}
+expect_called() {
+  local pattern="$1" message="$2"
+  called "$pattern" || fail "$message"
+}
+expect_skipped() {
+  local pattern="$1" message="$2"
+  ! called "$pattern" || fail "$message"
+}
 
 version=$(grep -oP '^SAFE_CHAIN_VERSION="\K[^"]+' "$SCRIPT")
 

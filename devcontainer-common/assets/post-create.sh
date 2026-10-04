@@ -67,10 +67,12 @@ grep -q 'local/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.loc
 
 if command -v claude &>/dev/null && command -v jq &>/dev/null; then
   marketplace_known() {
-    jq -e --arg n "$1" 'has($n)' "$HOME/.claude/plugins/known_marketplaces.json" &>/dev/null
+    local name="$1"
+    jq -e --arg n "$name" 'has($n)' "$HOME/.claude/plugins/known_marketplaces.json" &>/dev/null
   }
   plugin_installed() {
-    jq -e --arg p "$1" '(.plugins[$p] // []) | any(.scope == "user")' "$HOME/.claude/plugins/installed_plugins.json" &>/dev/null
+    local plugin="$1"
+    jq -e --arg p "$plugin" '(.plugins[$p] // []) | any(.scope == "user")' "$HOME/.claude/plugins/installed_plugins.json" &>/dev/null
   }
   bootstrap_claude_plugins() {
     local settings_file="$1"
