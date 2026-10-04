@@ -12,6 +12,8 @@ on:
     paths:
       # Image files
       - "**/Dockerfile"
+      - "*/*.sh"
+      - "!.*/*.sh"
       - "**/metadata.yaml"
       - "**/flavor.yaml"
       - "**/assets/**"
@@ -116,7 +118,6 @@ jobs:
           }
 
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            # Manual dispatch: use specified image
             if ! echo "$INPUT_IMAGE" | grep -qE '^[a-zA-Z0-9_-]+$'; then
               echo "::error::Invalid image name format"
               exit 1
@@ -137,14 +138,13 @@ jobs:
             DIFF_FILES=$(git diff --name-only HEAD~1 HEAD)
           fi
 
-          # Collect changed images from direct file changes
           DIRECT_CHANGES=$(echo "$DIFF_FILES" | \
-            grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|test\.sh|assets/|app/|metadata\.yaml|flavor\.yaml|\.rebuild-stamp)' | \
+            grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|[^/]+\.sh$|assets/|app/|metadata\.yaml|flavor\.yaml|\.rebuild-stamp)' | \
             cut -d'/' -f1 | sort -u | \
             while read -r img; do if [ -d "$img" ]; then echo "$img"; fi; done)
-          DIRECT_CHANGES=$(add_build_context_dependents "$DIRECT_CHANGES")
+          DIRECT_CHANGES=$(add_build_context_dependents "$DIRECT_CHANGES" | \
+            while read -r img; do if [ -f "$img/Dockerfile" ] || [ -f "$img/flavor.yaml" ]; then echo "$img"; fi; done)
 
-          # If megalinter-factory changed, add all flavor directories
           if echo "$DIFF_FILES" | grep -qE '^megalinter-factory/'; then
             echo "MegaLinter factory changed - adding all flavors to build"
             echo "factory=true" >> "$GITHUB_OUTPUT"
@@ -166,7 +166,6 @@ jobs:
   build:
     name: Build ${{ matrix.image }}
     needs: [detect-changes, lint, factory-tests]
-    # Run if we have images AND (lint passed OR lint was skipped for renovate)
     if: |
       always() &&
       needs.detect-changes.outputs.images != '[]' &&
