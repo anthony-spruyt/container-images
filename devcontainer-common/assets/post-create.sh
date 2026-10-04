@@ -8,6 +8,7 @@ DEVCONTAINER_DIR="$WORKSPACE/.devcontainer"
 
 PASSED=0
 FAILED=0
+SKIPPED=0
 pass() {
   echo "✓ $1"
   PASSED=$((PASSED + 1))
@@ -15,6 +16,10 @@ pass() {
 fail() {
   echo "✗ $1"
   FAILED=$((FAILED + 1))
+}
+skip() {
+  echo "  SKIP: $1"
+  SKIPPED=$((SKIPPED + 1))
 }
 
 git config --global --add safe.directory '*'
@@ -27,7 +32,7 @@ git ls-files -z '*.sh' | xargs -0 -r chmod +x 2>/dev/null || true
 # renovate: datasource=npm depName=@aikidosec/safe-chain
 SAFE_CHAIN_VERSION="1.5.21"
 installed_safe_chain=$(jq -r '.version // empty' "$(npm root -g)/@aikidosec/safe-chain/package.json" 2>/dev/null || true)
-if [[ "$installed_safe_chain" == "$SAFE_CHAIN_VERSION" && -d "$HOME/.safe-chain/shims" ]]; then
+if [[ "$installed_safe_chain" == "$SAFE_CHAIN_VERSION" && -x "$HOME/.safe-chain/shims/npm" ]]; then
   echo "safe-chain ${SAFE_CHAIN_VERSION} already installed, skipping"
 else
   echo "Installing safe-chain ${SAFE_CHAIN_VERSION}..."
@@ -41,21 +46,9 @@ grep -q 'safe-chain/shims' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HO
 
 echo "Installing pre-commit hooks..."
 git config --unset-all core.hooksPath 2>/dev/null || true
-precommit_stamp=""
-if config_sum=$(sha256sum .pre-commit-config.yaml 2>/dev/null); then
-  precommit_stamp="${PRE_COMMIT_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/pre-commit}/.hook-envs-${config_sum%% *}"
-fi
-if [[ -n "$precommit_stamp" && -e "$precommit_stamp" ]]; then
-  pre-commit install
-else
-  pre-commit install --install-hooks
-  if [[ -n "$precommit_stamp" ]]; then
-    mkdir -p "$(dirname "$precommit_stamp")"
-    touch "$precommit_stamp"
-  fi
-fi
+pre-commit install --install-hooks
 
-if [[ -x "$HOME/.local/bin/claude" ]]; then
+if "$HOME/.local/bin/claude" --version &>/dev/null; then
   echo "Claude Code CLI already installed, skipping"
 else
   echo "Installing Claude Code CLI..."
@@ -67,12 +60,20 @@ grep -q 'local/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.loc
 
 if command -v claude &>/dev/null && command -v jq &>/dev/null; then
   marketplace_known() {
-    local name="$1"
-    jq -e --arg n "$name" 'has($n)' "$HOME/.claude/plugins/known_marketplaces.json" &>/dev/null
+    local name="$1" repo="$2" entry location
+    entry=$(jq -c --arg n "$name" --arg r "$repo" '.[$n] // ([.[] | select(.source.repo == $r)] | first) // empty' \
+      "$HOME/.claude/plugins/known_marketplaces.json" 2>/dev/null) || return 1
+    [[ -n "$entry" ]] || return 1
+    location=$(jq -r '.installLocation // empty' <<<"$entry")
+    [[ -z "$location" || -e "$location" ]]
   }
   plugin_installed() {
-    local plugin="$1"
-    jq -e --arg p "$plugin" '(.plugins[$p] // []) | any(.scope == "user")' "$HOME/.claude/plugins/installed_plugins.json" &>/dev/null
+    local plugin="$1" path
+    while IFS= read -r path; do
+      [[ -z "$path" || -e "$path" ]] && return 0
+    done < <(jq -r --arg p "$plugin" '(.plugins[$p] // [])[] | select(.scope == "user") | .installPath // ""' \
+      "$HOME/.claude/plugins/installed_plugins.json" 2>/dev/null)
+    return 1
   }
   bootstrap_claude_plugins() {
     local settings_file="$1"
@@ -84,7 +85,7 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
     echo "  reading $settings_file"
     jq -r '.extraKnownMarketplaces // {} | to_entries[] | select(.key != "claude-plugins-official") | select(.value.source != null and .value.source.repo != null) | "\(.key)\t\(.value.source.repo)"' \
       "$settings_file" 2>/dev/null | while IFS="$(printf '\t')" read -r name repo; do
-      if marketplace_known "$name"; then
+      if marketplace_known "$name" "$repo"; then
         echo "    marketplace: $name (already added)"
         continue
       fi
@@ -171,7 +172,8 @@ fi
 echo "Running devcontainer verification tests..."
 echo ""
 
-VERIFIED_STAMP="$HOME/.cache/devcontainer-post-create/verified-safe-chain-${SAFE_CHAIN_VERSION}"
+# /tmp dies with the container; $HOME can outlive it and would vouch for a rebuilt one
+VERIFIED_STAMP="${TMPDIR:-/tmp}/devcontainer-post-create/verified-safe-chain-${SAFE_CHAIN_VERSION}"
 RUN_SLOW_CHECKS=true
 if [[ -e "$VERIFIED_STAMP" && "${DEVCONTAINER_VERIFY:-}" != 1 ]]; then
   RUN_SLOW_CHECKS=false
@@ -181,11 +183,11 @@ SLOW_CHECKS_PASSED=true
 if ! docker --version 2>&1 | grep -qi 'podman'; then
   fail "docker CLI is not Podman (got: $(docker --version 2>&1))"
 elif ! $RUN_SLOW_CHECKS; then
-  echo "  SKIP: Podman hello-world verified earlier (DEVCONTAINER_VERIFY=1 to force)"
+  skip "Podman hello-world verified earlier (DEVCONTAINER_VERIFY=1 to force)"
 elif docker run --rm docker.io/library/hello-world &>/dev/null; then
   pass "Rootful Podman is working (docker → podman)"
 else
-  echo "  SKIP: Podman not runnable yet (may start via agent script in Coder)"
+  skip "Podman not runnable yet (may start via agent script in Coder)"
   SLOW_CHECKS_PASSED=false
 fi
 
@@ -197,7 +199,7 @@ fi
 
 SAFE_NPM="$HOME/.safe-chain/shims/npm"
 if [[ -x "$SAFE_NPM" ]] && ! $RUN_SLOW_CHECKS; then
-  echo "  SKIP: Safe-chain blocking test verified earlier (DEVCONTAINER_VERIFY=1 to force)"
+  skip "Safe-chain blocking test verified earlier (DEVCONTAINER_VERIFY=1 to force)"
 elif [[ -x "$SAFE_NPM" ]]; then
   TEMP_DIR=$(mktemp -d)
   SAFE_OUTPUT=$(cd "$TEMP_DIR" && "$SAFE_NPM" install safe-chain-test 2>&1 || true)
@@ -230,7 +232,7 @@ elif [[ -f "/etc/coder/ssh-keys/id_ed25519" ]]; then
 elif [[ -n "${GIT_SSH_COMMAND:-}" ]]; then
   pass "GIT_SSH_COMMAND configured"
 else
-  echo "  SKIP: No SSH key configured"
+  skip "No SSH key configured"
 fi
 
 if command -v claude &>/dev/null; then
@@ -239,8 +241,9 @@ else
   fail "Claude Code CLI is not installed"
 fi
 
-if [[ -x /usr/local/bin/agent-run ]]; then
-  agent_run_out=$(/usr/local/bin/agent-run --privileged alpine true 2>&1 || true)
+AGENT_RUN="${AGENT_RUN:-/usr/local/bin/agent-run}"
+if [[ -x "$AGENT_RUN" ]]; then
+  agent_run_out=$("$AGENT_RUN" --privileged alpine true 2>&1 || true)
   if echo "$agent_run_out" | grep -q 'forbidden flag'; then
     pass "agent-run wrapper installed and enforcing policy"
   else
@@ -255,14 +258,14 @@ if command -v podman &>/dev/null; then
   if [[ "$graph_driver" == "overlay" ]]; then
     pass "Podman storage driver is overlay"
   else
-    echo "  SKIP: Podman graph driver is '$graph_driver' (expected 'overlay')"
+    skip "Podman graph driver is '$graph_driver' (expected 'overlay')"
   fi
 else
   fail "Podman not installed"
 fi
 
 echo ""
-echo "Results: $PASSED passed, $FAILED failed"
+echo "Results: $PASSED passed, $FAILED failed, $SKIPPED skipped"
 
 if [[ $FAILED -eq 0 ]]; then
   if $RUN_SLOW_CHECKS && $SLOW_CHECKS_PASSED; then
