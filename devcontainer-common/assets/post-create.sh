@@ -22,7 +22,7 @@ skip() {
   SKIPPED=$((SKIPPED + 1))
 }
 
-git config --global --get-all safe.directory 2>/dev/null | grep -qx '\*' ||
+git config --global --get-all --fixed-value safe.directory '*' >/dev/null ||
   git config --global --add safe.directory '*'
 
 sudo mkdir -p /etc/containers/registries.conf.d /etc/containers/containers.conf.d
@@ -33,25 +33,17 @@ git ls-files -z '*.sh' | xargs -0 -r chmod +x 2>/dev/null || true
 # renovate: datasource=npm depName=@aikidosec/safe-chain
 SAFE_CHAIN_VERSION="1.5.21"
 SAFE_CHAIN_SHIMS="$HOME/.safe-chain/shims"
-SAFE_CHAIN_MANIFEST="$HOME/.safe-chain/post-create-shims-${SAFE_CHAIN_VERSION}"
-safe_chain_installed() {
-  local installed shim
-  installed=$(jq -r '.version // empty' "$(npm root -g)/@aikidosec/safe-chain/package.json" 2>/dev/null || true)
-  [[ "$installed" == "$SAFE_CHAIN_VERSION" && -s "$SAFE_CHAIN_MANIFEST" ]] || return 1
-  while IFS= read -r shim; do
-    [[ -x "$SAFE_CHAIN_SHIMS/$shim" ]] || return 1
-  done <"$SAFE_CHAIN_MANIFEST"
-}
-if safe_chain_installed; then
-  echo "safe-chain ${SAFE_CHAIN_VERSION} already installed, skipping"
+# Shims inherited from ~/.bashrc break npm when the global package behind them is gone
+PATH=$(tr ':' '\n' <<<"$PATH" | grep -vxF "$SAFE_CHAIN_SHIMS" | paste -sd: -)
+installed_safe_chain=$(jq -r '.version // empty' "$(npm root -g)/@aikidosec/safe-chain/package.json" 2>/dev/null || true)
+if [[ "$installed_safe_chain" == "$SAFE_CHAIN_VERSION" ]]; then
+  echo "safe-chain ${SAFE_CHAIN_VERSION} already installed, skipping npm install"
 else
   echo "Installing safe-chain ${SAFE_CHAIN_VERSION}..."
   npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
-  safe-chain setup
-  safe-chain setup-ci
-  rm -f "$HOME"/.safe-chain/post-create-shims-*
-  ls "$SAFE_CHAIN_SHIMS" >"$SAFE_CHAIN_MANIFEST" 2>/dev/null || true
 fi
+safe-chain setup
+safe-chain setup-ci
 export PATH="$SAFE_CHAIN_SHIMS:$PATH"
 # shellcheck disable=SC2016
 grep -q 'safe-chain/shims' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.safe-chain/shims:$PATH"' >>"$HOME/.bashrc"
@@ -82,41 +74,51 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
     local known="$1" repo="$2"
     jq -r --arg r "$repo" '.[] | select(.repo == $r) | .installLocation // empty' <<<"$known" 2>/dev/null | any_path_exists
   }
+  WORKSPACE_ABS=$(realpath "$WORKSPACE")
   plugin_installed() {
     local installed="$1" plugin="$2"
-    jq -r --arg p "$plugin" '.[] | select(.id == $p and .scope == "user") | .installPath // empty' <<<"$installed" 2>/dev/null | any_path_exists
+    jq -r --arg p "$plugin" --arg w "$WORKSPACE_ABS" \
+      '.[] | select(.id == $p and (.scope == "user" or .projectPath == $w)) | .installPath // empty' <<<"$installed" 2>/dev/null | any_path_exists
   }
   bootstrap_claude_plugins() {
-    local settings_file="$1"
+    local settings_file="$1" marketplaces plugins known installed name repo plugin
     [ -f "$settings_file" ] || return 0
     jq empty "$settings_file" 2>/dev/null || {
       echo "  WARNING: invalid JSON in $settings_file, skipping"
       return 0
     }
     echo "  reading $settings_file"
-    local known installed
-    known=$(claude plugins marketplace list --json 2>/dev/null) || known='[]'
-    jq -r '.extraKnownMarketplaces // {} | to_entries[] | select(.key != "claude-plugins-official") | select(.value.source != null and .value.source.repo != null) | "\(.key)\t\(.value.source.repo)"' \
-      "$settings_file" 2>/dev/null | while IFS="$(printf '\t')" read -r name repo; do
-      if marketplace_known "$known" "$repo"; then
-        echo "    marketplace: $name (already added)"
-        continue
-      fi
-      echo "    marketplace: $name ($repo)"
-      claude plugins marketplace add "$repo" --scope user ||
-        echo "    WARNING: failed to add marketplace '$name'"
-    done
+    marketplaces=$(jq -r '.extraKnownMarketplaces // {} | to_entries[] | select(.key != "claude-plugins-official") | select(.value.source != null and .value.source.repo != null) | "\(.key)\t\(.value.source.repo)"' "$settings_file")
+    if [[ -n "$marketplaces" ]]; then
+      known=$(claude plugins marketplace list --json 2>/dev/null) || known='[]'
+      while IFS=$'\t' read -r -u 3 name repo; do
+        if marketplace_known "$known" "$repo"; then
+          echo "    marketplace: $name (already added)"
+          continue
+        fi
+        echo "    marketplace: $name ($repo)"
+        if claude plugins marketplace add "$repo" --scope user; then
+          known=$(claude plugins marketplace list --json 2>/dev/null) || known='[]'
+        else
+          echo "    WARNING: failed to add marketplace '$name'"
+        fi
+      done 3<<<"$marketplaces"
+    fi
+    plugins=$(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true or .value == "true") | select(.key | endswith("@claude-plugins-official") | not) | .key' "$settings_file")
+    [[ -n "$plugins" ]] || return 0
     installed=$(claude plugins list --json 2>/dev/null) || installed='[]'
-    jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true or .value == "true") | select(.key | endswith("@claude-plugins-official") | not) | .key' \
-      "$settings_file" 2>/dev/null | while IFS= read -r plugin; do
+    while IFS= read -r -u 3 plugin; do
       if plugin_installed "$installed" "$plugin"; then
         echo "    install: $plugin (already installed)"
         continue
       fi
       echo "    install: $plugin"
-      claude plugins install "$plugin" --scope user ||
+      claude plugins install "$plugin" --scope user && continue
+      # A marketplace clone kept from an earlier run can predate the plugin
+      echo "    refreshing marketplace '${plugin##*@}' and retrying"
+      { claude plugins marketplace update "${plugin##*@}" && claude plugins install "$plugin" --scope user; } ||
         echo "    WARNING: failed to install '$plugin'"
-    done
+    done 3<<<"$plugins"
   }
   echo "Bootstrapping Claude Code plugins..."
   # Settings precedence: user → project → local

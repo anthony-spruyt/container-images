@@ -12,10 +12,12 @@ export STUB_LOG="$ROOT/calls.log"
 export STUB_NPM_ROOT="$ROOT/npm-root"
 export STUBS="$ROOT/stubs"
 export STUB_CLAUDE_BROKEN="$ROOT/claude-broken"
+export STUB_CATALOG="$ROOT/catalog"
 export TMPDIR="$ROOT/tmp"
 WORKSPACE="$ROOT/workspace"
 mkdir -p "$HOME/.claude" "$STUBS" "$STUB_NPM_ROOT" "$TMPDIR" "$WORKSPACE"
 git init -q "$WORKSPACE"
+printf '%s\n' alpha beta >"$STUB_CATALOG"
 
 fail() {
   echo "FAIL: $1"
@@ -58,11 +60,19 @@ install)
 esac
 EOF
 stub safe-chain <<'EOF'
-mkdir -p "$HOME/.safe-chain/shims"
-for shim in npm npx; do
-  printf '#!/bin/bash\necho "shim-%s $*" >>"$STUB_LOG"\necho "safe-chain blocked"\n' "$shim" >"$HOME/.safe-chain/shims/$shim"
-  chmod +x "$HOME/.safe-chain/shims/$shim"
-done
+case "$1" in
+setup)
+  grep -q init-posix "$HOME/.bashrc" 2>/dev/null ||
+    echo 'source ~/.safe-chain/scripts/init-posix.sh # Safe-chain' >>"$HOME/.bashrc"
+  ;;
+setup-ci)
+  mkdir -p "$HOME/.safe-chain/shims"
+  for shim in npm npx; do
+    printf '#!/bin/bash\necho "shim-%s $*" >>"$STUB_LOG"\necho "safe-chain blocked"\n' "$shim" >"$HOME/.safe-chain/shims/$shim"
+    chmod +x "$HOME/.safe-chain/shims/$shim"
+  done
+  ;;
+esac
 EOF
 stub curl <<'EOF'
 echo 'mkdir -p "$HOME/.local/bin" && cp "$STUBS/claude" "$HOME/.local/bin/claude"'
@@ -83,11 +93,17 @@ case "$2 $3" in
 "marketplace add")
   name="${4##*/}"
   mkdir -p "$dir/marketplaces/$name"
+  cp "$STUB_CATALOG" "$dir/marketplaces/$name/catalog"
   jq --arg n "$name" --arg r "$4" --arg l "$dir/marketplaces/$name" \
     'map(select(.name != $n)) + [{name: $n, source: "github", repo: $r, installLocation: $l}]' "$markets" >"$markets.tmp" && mv "$markets.tmp" "$markets"
   ;;
+"marketplace update") cp "$STUB_CATALOG" "$dir/marketplaces/$4/catalog" ;;
 "list --json") cat "$plugins" ;;
 install*)
+  grep -qx "${3%@*}" "$dir/marketplaces/${3##*@}/catalog" 2>/dev/null || {
+    echo "plugin $3 not found in marketplace" >&2
+    exit 1
+  }
   mkdir -p "$dir/cache/$3"
   jq --arg p "$3" --arg l "$dir/cache/$3" \
     'map(select(.id != $p)) + [{id: $p, scope: "user", installPath: $l}]' "$plugins" >"$plugins.tmp" && mv "$plugins.tmp" "$plugins"
@@ -97,16 +113,21 @@ EOF
 
 cat >"$HOME/.claude/settings.json" <<'JSON'
 {
-  "extraKnownMarketplaces": {"plugins-mp": {"source": {"source": "github", "repo": "owner/plugins-mp"}}},
+  "extraKnownMarketplaces": {
+    "plugins-mp": {"source": {"source": "github", "repo": "owner/plugins-mp"}},
+    "plugins-mp-dup": {"source": {"source": "github", "repo": "owner/plugins-mp"}}
+  },
   "enabledPlugins": {"alpha@plugins-mp": true}
 }
 JSON
+mkdir -p "$WORKSPACE/.claude"
+echo '{}' >"$WORKSPACE/.claude/settings.json"
 echo "repos: []" >"$WORKSPACE/.pre-commit-config.yaml"
 
 run() {
   local script="${1:-$SCRIPT}" rc=0
   : >"$STUB_LOG"
-  OUT=$(cd "$WORKSPACE" && PATH="$STUBS:$PATH" bash "$script" "$WORKSPACE" 2>&1) || rc=$?
+  OUT=$(cd "$WORKSPACE" && PATH="${EXTRA_PATH:+$EXTRA_PATH:}$STUBS:$PATH" bash "$script" "$WORKSPACE" 2>&1) || rc=$?
   if [[ $rc -ne 0 ]] || ! grep -q '^Results:' <<<"$OUT"; then
     echo "$OUT"
     fail "script exited $rc before reporting clean results"
@@ -120,6 +141,10 @@ called() {
 expect_called() {
   local pattern="$1" message="$2"
   called "$pattern" || fail "$message"
+}
+call_count() {
+  local pattern="$1"
+  grep -cF -- "$pattern" "$STUB_LOG" || true
 }
 expect_skipped() {
   local pattern="$1" message="$2"
@@ -135,6 +160,7 @@ expect_called "safe-chain setup-ci" "safe-chain setup-ci not run"
 expect_called "curl" "Claude Code not installed"
 expect_called "pre-commit install --install-hooks" "pre-commit hooks not installed"
 expect_called "claude plugins marketplace add owner/plugins-mp" "marketplace not added"
+[[ $(call_count "claude plugins marketplace add owner/plugins-mp") -eq 1 ]] || fail "marketplace shared by two settings keys added twice"
 expect_called "claude plugins install alpha@plugins-mp" "plugin not installed"
 expect_called "docker run" "podman verification skipped on first run"
 expect_called "shim-npm install safe-chain-test" "safe-chain verification skipped on first run"
@@ -143,12 +169,13 @@ echo "fresh install: OK"
 echo "=== second run skips finished work ==="
 run
 expect_skipped "npm install -g" "safe-chain reinstalled"
-expect_skipped "safe-chain setup" "safe-chain setup re-run"
+expect_called "safe-chain setup-ci" "safe-chain shims not refreshed"
 expect_skipped "curl" "Claude Code reinstalled"
-expect_skipped "claude update" "working Claude Code CLI updated on every run"
 expect_called "pre-commit install --install-hooks" "pre-commit hooks not installed into the workspace"
 expect_skipped "claude plugins marketplace add" "marketplace re-added"
 expect_skipped "claude plugins install" "plugin reinstalled"
+[[ $(call_count "claude plugins list --json") -eq 1 ]] || fail "plugin list queried for a settings file with no plugins"
+[[ $(call_count "claude plugins marketplace list --json") -eq 1 ]] || fail "marketplace list queried for a settings file with no marketplaces"
 expect_called "docker run" "podman verification skipped"
 expect_called "shim-npm install safe-chain-test" "safe-chain verification skipped"
 expect_skipped "agent-run" "agent-run resolved from PATH instead of the image's wrapper"
@@ -157,6 +184,32 @@ expect_called "sudo tee /etc/containers/storage.conf" "per-container /etc writes
 [[ $(git config --global --get-all safe.directory | grep -cx '\*') -eq 1 ]] || fail "safe.directory duplicated in ~/.gitconfig"
 echo "second run: OK"
 
+echo "=== reset ~/.bashrc gets safe-chain shell integration back ==="
+sed -i '/init-posix/d' "$HOME/.bashrc"
+run
+grep -q init-posix "$HOME/.bashrc" || fail "safe-chain shell integration not restored"
+echo "bashrc reset: OK"
+
+echo "=== project-scope install for this workspace counts ==="
+mkdir -p "$ROOT/delta"
+jq --arg w "$WORKSPACE" --arg l "$ROOT/delta" '. + [{id: "delta@plugins-mp", scope: "project", projectPath: $w, installPath: $l}]' \
+  "$HOME/.claude/plugins/stub-plugins.json" >"$ROOT/plugins.json"
+mv "$ROOT/plugins.json" "$HOME/.claude/plugins/stub-plugins.json"
+echo '{"enabledPlugins": {"delta@plugins-mp": true}}' >"$WORKSPACE/.claude/settings.json"
+run
+expect_skipped "claude plugins install delta@plugins-mp" "project-scope plugin reinstalled at user scope"
+echo '{}' >"$WORKSPACE/.claude/settings.json"
+echo "project scope: OK"
+
+echo "=== plugin published after the marketplace was cloned ==="
+echo gamma >>"$STUB_CATALOG"
+jq '.enabledPlugins["gamma@plugins-mp"] = true' "$HOME/.claude/settings.json" >"$ROOT/settings.json"
+mv "$ROOT/settings.json" "$HOME/.claude/settings.json"
+run
+expect_called "claude plugins marketplace update plugins-mp" "stale marketplace not refreshed"
+jq -e 'any(.[]; .id == "gamma@plugins-mp")' "$HOME/.claude/plugins/stub-plugins.json" >/dev/null || fail "newly published plugin not installed"
+echo "stale marketplace: OK"
+
 echo "=== broken Claude Code CLI is reinstalled ==="
 touch "$STUB_CLAUDE_BROKEN"
 run
@@ -164,17 +217,12 @@ expect_called "curl" "broken Claude Code CLI kept"
 rm "$STUB_CLAUDE_BROKEN"
 echo "broken claude: OK"
 
-echo "=== empty safe-chain shims are repaired ==="
+echo "=== lost safe-chain shims are restored without reinstalling ==="
 rm -f "$HOME"/.safe-chain/shims/*
 run
-expect_called "npm install -g @aikidosec/safe-chain@$version" "empty shims dir treated as installed"
-echo "empty shims: OK"
-
-echo "=== any lost safe-chain shim is repaired ==="
-rm "$HOME/.safe-chain/shims/npx"
-run
-expect_called "npm install -g @aikidosec/safe-chain@$version" "missing npx shim treated as installed"
-echo "lost shim: OK"
+[[ -x "$HOME/.safe-chain/shims/npm" && -x "$HOME/.safe-chain/shims/npx" ]] || fail "lost shims not restored"
+expect_skipped "npm install -g" "safe-chain reinstalled to restore shims"
+echo "lost shims: OK"
 
 echo "=== lost plugin cache is restored ==="
 rm -rf "$HOME/.claude/plugins/cache" "$HOME/.claude/plugins/marketplaces"
@@ -209,8 +257,11 @@ echo "changed marketplace repo: OK"
 
 echo "=== safe-chain missing from a fresh container ==="
 rm -rf "${STUB_NPM_ROOT:?}"/*
-run
-expect_called "npm install -g @aikidosec/safe-chain@$version" "safe-chain not reinstalled after losing the global package"
+EXTRA_PATH="$HOME/.safe-chain/shims" run
+expect_skipped "shim-npm root" "npm resolved to a safe-chain shim before reinstall"
+expect_skipped "shim-npm install -g" "npm resolved to a safe-chain shim before reinstall"
+[[ $(jq -r .version "$STUB_NPM_ROOT/@aikidosec/safe-chain/package.json" 2>/dev/null) == "$version" ]] ||
+  fail "safe-chain not reinstalled after losing the global package"
 echo "reinstall after lost global package: OK"
 
 echo "=== pinned safe-chain bump upgrades ==="
@@ -218,8 +269,6 @@ sed "s/^SAFE_CHAIN_VERSION=.*/SAFE_CHAIN_VERSION=\"0.0.1\"/" "$SCRIPT" >"$ROOT/b
 run "$ROOT/bumped.sh"
 expect_called "npm install -g @aikidosec/safe-chain@0.0.1" "bumped safe-chain not installed"
 expect_called "safe-chain setup" "bumped safe-chain not set up"
-manifests=("$HOME"/.safe-chain/post-create-shims-*)
-[[ ${#manifests[@]} -eq 1 ]] || fail "stale safe-chain shim manifests kept: ${manifests[*]}"
 echo "version bump: OK"
 
 echo "=== new plugin installs only the new one ==="
