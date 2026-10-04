@@ -5,19 +5,12 @@ set -euo pipefail
 # Needs the image's /usr/local/bin/agent-run; run it inside devcontainer-common.
 SCRIPT=$(realpath "${1:-$(dirname "${BASH_SOURCE[0]}")/assets/post-create.sh}")
 
-IFS=: read -ra path_entries <<<"$PATH"
-path_without_claude=""
-for entry in "${path_entries[@]}"; do
-  [[ -x "$entry/claude" ]] || path_without_claude+="${path_without_claude:+:}$entry"
-done
-PATH="$path_without_claude"
-
 ROOT=$(mktemp -d)
 trap 'rm -rf "$ROOT"' EXIT
 export HOME="$ROOT/home"
 export STUB_LOG="$ROOT/calls.log"
-export STUB_NPM_ROOT="$ROOT/npm-root"
 export STUB_NPM_PREFIX="$ROOT/npm-prefix"
+export STUB_NPM_ROOT="$STUB_NPM_PREFIX/lib/node_modules"
 export STUBS="$ROOT/stubs"
 export STUB_CLAUDE_BROKEN="$ROOT/claude-broken"
 export STUB_CATALOG="$ROOT/catalog"
@@ -45,6 +38,11 @@ stub() {
 }
 
 stub sudo </dev/null
+stub timeout <<'EOF'
+[[ "$1" == --foreground ]] && shift
+shift
+exec "$@"
+EOF
 stub devcontainer-podman-config </dev/null
 stub devcontainer-nexus-config </dev/null
 stub pre-commit </dev/null
@@ -123,6 +121,10 @@ install*)
 esac
 EOF
 mv "$STUBS/claude" "$STUB_SRC/claude"
+# Shadows any host claude until the stubbed installer puts one in ~/.local/bin
+stub claude <<'EOF'
+exit 127
+EOF
 
 cat >"$HOME/.claude/settings.json" <<'JSON'
 {
@@ -157,7 +159,7 @@ expect_called() {
 }
 call_count() {
   local pattern="$1"
-  grep -cF -- "$pattern" "$STUB_LOG" || true
+  awk -v p="$pattern" 'index($0, p) == 1' "$STUB_LOG" | wc -l
 }
 expect_skipped() {
   local pattern="$1" message="$2"
@@ -173,6 +175,8 @@ expect_called "safe-chain setup-ci" "safe-chain setup-ci not run"
 expect_called "curl" "Claude Code not installed"
 expect_called "pre-commit install --install-hooks" "pre-commit hooks not installed"
 expect_called "claude plugins marketplace add owner/plugins-mp" "marketplace not added"
+expect_called "timeout --foreground 120 claude plugins marketplace add" "marketplace add has no timeout"
+expect_called "timeout --foreground 120 claude plugins install alpha@plugins-mp" "plugin install has no timeout"
 [[ $(call_count "claude plugins marketplace add owner/plugins-mp") -eq 1 ]] || fail "marketplace shared by two settings keys added twice"
 [[ $(call_count "claude plugins marketplace list --json") -eq 1 ]] || fail "marketplace list re-queried after an add"
 expect_called "claude plugins install alpha@plugins-mp" "plugin not installed"
@@ -185,7 +189,8 @@ run
 expect_skipped "npm install -g" "safe-chain reinstalled"
 expect_called "safe-chain setup-ci" "safe-chain shims not refreshed"
 expect_skipped "curl" "Claude Code reinstalled"
-expect_called "claude update" "installed Claude Code CLI not updated"
+expect_called "timeout --foreground 120 claude update" "installed Claude Code CLI not updated under a timeout"
+expect_skipped "npm root" "npm started twice to check safe-chain"
 expect_called "pre-commit install --install-hooks" "pre-commit hooks not installed into the workspace"
 expect_skipped "claude plugins marketplace add" "marketplace re-added"
 expect_skipped "claude plugins install" "plugin reinstalled"
@@ -236,6 +241,13 @@ mv "$ROOT/plugins.json" "$HOME/.claude/plugins/stub-plugins.json"
 echo '{"enabledPlugins": {"delta@plugins-mp": true}}' >"$WORKSPACE/.claude/settings.json"
 run
 expect_skipped "claude plugins install delta@plugins-mp" "project-scope plugin reinstalled at user scope"
+[[ $(call_count "claude plugins list --json") -eq 1 ]] || fail "plugin list queried once per settings file"
+jq '.enabledPlugins["delta@plugins-mp"] = true' "$HOME/.claude/settings.json" >"$ROOT/settings.json"
+mv "$ROOT/settings.json" "$HOME/.claude/settings.json"
+run
+expect_called "claude plugins install delta@plugins-mp" "project-scope install trusted for user settings"
+jq '.enabledPlugins |= del(.["delta@plugins-mp"])' "$HOME/.claude/settings.json" >"$ROOT/settings.json"
+mv "$ROOT/settings.json" "$HOME/.claude/settings.json"
 echo '{}' >"$WORKSPACE/.claude/settings.json"
 echo "project scope: OK"
 
@@ -246,8 +258,11 @@ run
 [[ $(call_count "claude plugins marketplace update plugins-mp") -eq 1 ]] || fail "marketplace refreshed more than once in a run"
 echo gamma >>"$STUB_CATALOG"
 run
-expect_called "claude plugins marketplace update plugins-mp" "stale marketplace not refreshed"
+expect_called "timeout --foreground 120 claude plugins marketplace update plugins-mp" "stale marketplace not refreshed under a timeout"
 jq -e 'any(.[]; .id == "gamma@plugins-mp")' "$HOME/.claude/plugins/stub-plugins.json" >/dev/null || fail "newly published plugin not installed"
+rm -rf "$HOME/.claude/plugins/marketplaces"
+run
+expect_skipped "claude plugins marketplace update" "marketplace refreshed right after it was cloned"
 jq '.enabledPlugins |= del(.["omega@plugins-mp"])' "$HOME/.claude/settings.json" >"$ROOT/settings.json"
 mv "$ROOT/settings.json" "$HOME/.claude/settings.json"
 echo "stale marketplace: OK"
@@ -299,7 +314,7 @@ echo "changed marketplace repo: OK"
 
 echo "=== safe-chain missing from a fresh container ==="
 rm -rf "${STUB_NPM_ROOT:?}"/*
-EXTRA_PATH="$HOME/.safe-chain/shims/" run
+EXTRA_PATH="$HOME/.safe-chain//shims/" run
 expect_skipped "shim-npm root" "npm resolved to a safe-chain shim before reinstall"
 expect_skipped "shim-npm install -g" "npm resolved to a safe-chain shim before reinstall"
 [[ $(jq -r .version "$STUB_NPM_ROOT/@aikidosec/safe-chain/package.json" 2>/dev/null) == "$version" ]] ||

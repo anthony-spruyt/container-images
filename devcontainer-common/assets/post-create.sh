@@ -22,7 +22,7 @@ skip() {
   SKIPPED=$((SKIPPED + 1))
 }
 
-git config --global --get-all --fixed-value safe.directory '*' >/dev/null ||
+git config --global --get-all safe.directory 2>/dev/null | grep -xF '*' >/dev/null ||
   git config --global --add safe.directory '*'
 
 sudo mkdir -p /etc/containers/registries.conf.d /etc/containers/containers.conf.d
@@ -34,18 +34,19 @@ git ls-files -z '*.sh' | xargs -0 -r chmod +x 2>/dev/null || true
 SAFE_CHAIN_VERSION="1.5.21"
 SAFE_CHAIN_SHIMS="$HOME/.safe-chain/shims"
 # Shims inherited from ~/.bashrc break npm when the global package behind them is gone
+shims_real=$(realpath -m "$SAFE_CHAIN_SHIMS")
 IFS=: read -ra path_entries <<<"$PATH"
-path_without_shims=""
+npm_path=""
 for entry in "${path_entries[@]}"; do
-  [[ "${entry%/}" == "$SAFE_CHAIN_SHIMS" ]] || path_without_shims+="${path_without_shims:+:}$entry"
+  [[ "$(realpath -m "$entry" 2>/dev/null)" == "$shims_real" ]] || npm_path+="${npm_path:+:}$entry"
 done
-PATH="$path_without_shims"
-installed_safe_chain=$(jq -r '.version // empty' "$(npm root -g)/@aikidosec/safe-chain/package.json" 2>/dev/null || true)
-if [[ "$installed_safe_chain" == "$SAFE_CHAIN_VERSION" && -x "$(npm prefix -g)/bin/safe-chain" ]]; then
+npm_prefix=$(PATH="$npm_path" npm prefix -g)
+installed_safe_chain=$(jq -r '.version // empty' "$npm_prefix/lib/node_modules/@aikidosec/safe-chain/package.json" 2>/dev/null || true)
+if [[ "$installed_safe_chain" == "$SAFE_CHAIN_VERSION" && -x "$npm_prefix/bin/safe-chain" ]]; then
   echo "safe-chain ${SAFE_CHAIN_VERSION} already installed, skipping npm install"
 else
   echo "Installing safe-chain ${SAFE_CHAIN_VERSION}..."
-  npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
+  PATH="$npm_path" npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}"
 fi
 safe-chain setup
 safe-chain setup-ci
@@ -58,10 +59,13 @@ git config --unset-all core.hooksPath 2>/dev/null || true
 pre-commit install --install-hooks
 
 export PATH="$HOME/.local/bin:$PATH"
+claude_with_timeout() {
+  timeout --foreground 120 claude "$@" </dev/null
+}
 if claude --version &>/dev/null; then
   # Self-update is off where CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC is set
   echo "Updating Claude Code CLI..."
-  claude update </dev/null || echo "WARNING: claude update failed; keeping installed version"
+  claude_with_timeout update || echo "WARNING: claude update failed; keeping installed version"
 else
   echo "Installing Claude Code CLI..."
   curl -fsSL https://claude.ai/install.sh | bash
@@ -70,6 +74,12 @@ fi
 grep -q 'local/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >>"$HOME/.bashrc"
 
 if command -v claude &>/dev/null && command -v jq &>/dev/null; then
+  WORKSPACE_ABS=$(realpath "$WORKSPACE")
+  KNOWN_MARKETPLACES=""
+  INSTALLED_PLUGINS=""
+  ADDED_REPOS=""
+  NEW_PLUGINS=""
+  REFRESHED_MARKETPLACES=""
   any_path_exists() {
     local path
     while IFS= read -r path; do
@@ -78,17 +88,29 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
     return 1
   }
   marketplace_known() {
-    local known="$1" repo="$2"
-    jq -r --arg r "$repo" '.[] | select(.repo == $r) | .installLocation // empty' <<<"$known" 2>/dev/null | any_path_exists
+    local repo="$1"
+    grep -qxF -- "$repo" <<<"$ADDED_REPOS" && return 0
+    [[ -n "$KNOWN_MARKETPLACES" ]] || KNOWN_MARKETPLACES=$(claude plugins marketplace list --json 2>/dev/null) || KNOWN_MARKETPLACES='[]'
+    jq -r --arg r "$repo" '.[] | select(.repo == $r) | .installLocation // empty' <<<"$KNOWN_MARKETPLACES" 2>/dev/null | any_path_exists
   }
-  WORKSPACE_ABS=$(realpath "$WORKSPACE")
   plugin_installed() {
-    local installed="$1" plugin="$2"
-    jq -r --arg p "$plugin" --arg w "$WORKSPACE_ABS" \
-      '.[] | select(.id == $p and (.scope == "user" or .projectPath == $w)) | .installPath // empty' <<<"$installed" 2>/dev/null | any_path_exists
+    local plugin="$1" project_scope_counts="$2"
+    grep -qxF -- "$plugin" <<<"$NEW_PLUGINS" && return 0
+    [[ -n "$INSTALLED_PLUGINS" ]] || INSTALLED_PLUGINS=$(claude plugins list --json 2>/dev/null) || INSTALLED_PLUGINS='[]'
+    jq -r --arg p "$plugin" --arg w "$WORKSPACE_ABS" --argjson project "$project_scope_counts" \
+      '.[] | select(.id == $p and (.scope == "user" or ($project and .projectPath == $w))) | .installPath // empty' <<<"$INSTALLED_PLUGINS" 2>/dev/null | any_path_exists
+  }
+  install_plugin() {
+    local plugin="$1" marketplace="${1##*@}"
+    claude_with_timeout plugins install "$plugin" --scope user && return 0
+    # A marketplace clone kept from an earlier run can predate the plugin
+    grep -qxF -- "$marketplace" <<<"$REFRESHED_MARKETPLACES" && return 1
+    REFRESHED_MARKETPLACES+="$marketplace"$'\n'
+    echo "    refreshing marketplace '$marketplace' and retrying"
+    claude_with_timeout plugins marketplace update "$marketplace" && claude_with_timeout plugins install "$plugin" --scope user
   }
   bootstrap_claude_plugins() {
-    local settings_file="$1" marketplaces plugins known installed name repo plugin added=""
+    local settings_file="$1" project_scope_counts="$2" marketplaces plugins name repo plugin
     [ -f "$settings_file" ] || return 0
     jq empty "$settings_file" 2>/dev/null || {
       echo "  WARNING: invalid JSON in $settings_file, skipping"
@@ -100,15 +122,15 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
       marketplaces=""
     }
     if [[ -n "$marketplaces" ]]; then
-      known=$(claude plugins marketplace list --json 2>/dev/null) || known='[]'
       while IFS=$'\t' read -r -u 3 name repo; do
-        if marketplace_known "$known" "$repo" || grep -qxF -- "$repo" <<<"$added"; then
+        if marketplace_known "$repo"; then
           echo "    marketplace: $name (already added)"
           continue
         fi
         echo "    marketplace: $name ($repo)"
-        if claude plugins marketplace add "$repo" --scope user; then
-          added+="$repo"$'\n'
+        if claude_with_timeout plugins marketplace add "$repo" --scope user; then
+          ADDED_REPOS+="$repo"$'\n'
+          REFRESHED_MARKETPLACES+="$name"$'\n'
         else
           echo "    WARNING: failed to add marketplace '$name'"
         fi
@@ -119,29 +141,24 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
       plugins=""
     }
     [[ -n "$plugins" ]] || return 0
-    installed=$(claude plugins list --json 2>/dev/null) || installed='[]'
     while IFS= read -r -u 3 plugin; do
-      if plugin_installed "$installed" "$plugin"; then
+      if plugin_installed "$plugin" "$project_scope_counts"; then
         echo "    install: $plugin (already installed)"
         continue
       fi
       echo "    install: $plugin"
-      claude plugins install "$plugin" --scope user && continue
-      # A marketplace clone kept from an earlier run can predate the plugin
-      if ! grep -qxF -- "${plugin##*@}" <<<"$REFRESHED_MARKETPLACES"; then
-        REFRESHED_MARKETPLACES+="${plugin##*@}"$'\n'
-        echo "    refreshing marketplace '${plugin##*@}' and retrying"
-        claude plugins marketplace update "${plugin##*@}" && claude plugins install "$plugin" --scope user && continue
+      if install_plugin "$plugin"; then
+        NEW_PLUGINS+="$plugin"$'\n'
+      else
+        echo "    WARNING: failed to install '$plugin'"
       fi
-      echo "    WARNING: failed to install '$plugin'"
     done 3<<<"$plugins"
   }
-  REFRESHED_MARKETPLACES=""
   echo "Bootstrapping Claude Code plugins..."
   # Settings precedence: user → project → local
-  bootstrap_claude_plugins "$HOME/.claude/settings.json"
-  bootstrap_claude_plugins "$WORKSPACE/.claude/settings.json"
-  bootstrap_claude_plugins "$WORKSPACE/.claude/settings.local.json"
+  bootstrap_claude_plugins "$HOME/.claude/settings.json" false
+  bootstrap_claude_plugins "$WORKSPACE/.claude/settings.json" true
+  bootstrap_claude_plugins "$WORKSPACE/.claude/settings.local.json" true
 fi
 
 # Podman runs rootful (see /usr/local/bin/podman), so config lives in /etc.
