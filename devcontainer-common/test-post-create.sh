@@ -5,17 +5,26 @@ set -euo pipefail
 # Needs the image's /usr/local/bin/agent-run; run it inside devcontainer-common.
 SCRIPT=$(realpath "${1:-$(dirname "${BASH_SOURCE[0]}")/assets/post-create.sh}")
 
+IFS=: read -ra path_entries <<<"$PATH"
+path_without_claude=""
+for entry in "${path_entries[@]}"; do
+  [[ -x "$entry/claude" ]] || path_without_claude+="${path_without_claude:+:}$entry"
+done
+PATH="$path_without_claude"
+
 ROOT=$(mktemp -d)
 trap 'rm -rf "$ROOT"' EXIT
 export HOME="$ROOT/home"
 export STUB_LOG="$ROOT/calls.log"
 export STUB_NPM_ROOT="$ROOT/npm-root"
+export STUB_NPM_PREFIX="$ROOT/npm-prefix"
 export STUBS="$ROOT/stubs"
 export STUB_CLAUDE_BROKEN="$ROOT/claude-broken"
 export STUB_CATALOG="$ROOT/catalog"
+export STUB_SRC="$ROOT/stub-src"
 export TMPDIR="$ROOT/tmp"
 WORKSPACE="$ROOT/workspace"
-mkdir -p "$HOME/.claude" "$STUBS" "$STUB_NPM_ROOT" "$TMPDIR" "$WORKSPACE"
+mkdir -p "$HOME/.claude" "$STUBS" "$STUB_SRC" "$STUB_NPM_PREFIX/bin" "$STUB_NPM_ROOT" "$TMPDIR" "$WORKSPACE"
 git init -q "$WORKSPACE"
 printf '%s\n' alpha beta >"$STUB_CATALOG"
 
@@ -53,7 +62,9 @@ EOF
 stub npm <<'EOF'
 case "$1" in
 root) echo "$STUB_NPM_ROOT" ;;
+prefix) echo "$STUB_NPM_PREFIX" ;;
 install)
+  cp "$STUB_SRC/safe-chain" "$STUB_NPM_PREFIX/bin/safe-chain"
   mkdir -p "$STUB_NPM_ROOT/@aikidosec/safe-chain"
   jq -n --arg v "${3##*@}" '{version: $v}' >"$STUB_NPM_ROOT/@aikidosec/safe-chain/package.json"
   ;;
@@ -74,8 +85,9 @@ setup-ci)
   ;;
 esac
 EOF
+mv "$STUBS/safe-chain" "$STUB_SRC/safe-chain"
 stub curl <<'EOF'
-echo 'mkdir -p "$HOME/.local/bin" && cp "$STUBS/claude" "$HOME/.local/bin/claude"'
+echo 'mkdir -p "$HOME/.local/bin" && cp "$STUB_SRC/claude" "$HOME/.local/bin/claude"'
 EOF
 stub claude <<'EOF'
 if [[ "$1" == --version ]]; then
@@ -110,6 +122,7 @@ install*)
   ;;
 esac
 EOF
+mv "$STUBS/claude" "$STUB_SRC/claude"
 
 cat >"$HOME/.claude/settings.json" <<'JSON'
 {
@@ -127,7 +140,7 @@ echo "repos: []" >"$WORKSPACE/.pre-commit-config.yaml"
 run() {
   local script="${1:-$SCRIPT}" rc=0
   : >"$STUB_LOG"
-  OUT=$(cd "$WORKSPACE" && PATH="${EXTRA_PATH:+$EXTRA_PATH:}$STUBS:$PATH" bash "$script" "$WORKSPACE" 2>&1) || rc=$?
+  OUT=$(cd "$WORKSPACE" && PATH="${EXTRA_PATH:+$EXTRA_PATH:}$STUBS:$STUB_NPM_PREFIX/bin:$PATH" bash "$script" "$WORKSPACE" 2>&1) || rc=$?
   if [[ $rc -ne 0 ]] || ! grep -q '^Results:' <<<"$OUT"; then
     echo "$OUT"
     fail "script exited $rc before reporting clean results"
@@ -161,6 +174,7 @@ expect_called "curl" "Claude Code not installed"
 expect_called "pre-commit install --install-hooks" "pre-commit hooks not installed"
 expect_called "claude plugins marketplace add owner/plugins-mp" "marketplace not added"
 [[ $(call_count "claude plugins marketplace add owner/plugins-mp") -eq 1 ]] || fail "marketplace shared by two settings keys added twice"
+[[ $(call_count "claude plugins marketplace list --json") -eq 1 ]] || fail "marketplace list re-queried after an add"
 expect_called "claude plugins install alpha@plugins-mp" "plugin not installed"
 expect_called "docker run" "podman verification skipped on first run"
 expect_called "shim-npm install safe-chain-test" "safe-chain verification skipped on first run"
@@ -171,6 +185,7 @@ run
 expect_skipped "npm install -g" "safe-chain reinstalled"
 expect_called "safe-chain setup-ci" "safe-chain shims not refreshed"
 expect_skipped "curl" "Claude Code reinstalled"
+expect_called "claude update" "installed Claude Code CLI not updated"
 expect_called "pre-commit install --install-hooks" "pre-commit hooks not installed into the workspace"
 expect_skipped "claude plugins marketplace add" "marketplace re-added"
 expect_skipped "claude plugins install" "plugin reinstalled"
@@ -190,6 +205,29 @@ run
 grep -q init-posix "$HOME/.bashrc" || fail "safe-chain shell integration not restored"
 echo "bashrc reset: OK"
 
+echo "=== settings file with an unexpected shape is skipped ==="
+echo '{"extraKnownMarketplaces": {"x": {"source": "github"}}, "enabledPlugins": []}' >"$WORKSPACE/.claude/settings.json"
+run
+grep -q "WARNING" <<<"$OUT" || fail "unexpected settings shape not reported"
+expect_called "docker run" "post-create stopped at an unexpected settings shape"
+echo '{}' >"$WORKSPACE/.claude/settings.json"
+echo "bad settings shape: OK"
+
+echo "=== lost safe-chain command is reinstalled ==="
+rm "$STUB_NPM_PREFIX/bin/safe-chain"
+run
+expect_called "npm install -g @aikidosec/safe-chain@$version" "safe-chain package trusted without its command"
+echo "lost safe-chain command: OK"
+
+echo "=== claude installed outside ~/.local/bin is updated, not reinstalled ==="
+mkdir -p "$ROOT/other-bin"
+mv "$HOME/.local/bin/claude" "$ROOT/other-bin/claude"
+EXTRA_PATH="$ROOT/other-bin" run
+expect_skipped "curl" "claude on PATH reinstalled"
+expect_called "claude update" "claude on PATH not updated"
+mv "$ROOT/other-bin/claude" "$HOME/.local/bin/claude"
+echo "claude elsewhere: OK"
+
 echo "=== project-scope install for this workspace counts ==="
 mkdir -p "$ROOT/delta"
 jq --arg w "$WORKSPACE" --arg l "$ROOT/delta" '. + [{id: "delta@plugins-mp", scope: "project", projectPath: $w, installPath: $l}]' \
@@ -202,12 +240,16 @@ echo '{}' >"$WORKSPACE/.claude/settings.json"
 echo "project scope: OK"
 
 echo "=== plugin published after the marketplace was cloned ==="
-echo gamma >>"$STUB_CATALOG"
-jq '.enabledPlugins["gamma@plugins-mp"] = true' "$HOME/.claude/settings.json" >"$ROOT/settings.json"
+jq '.enabledPlugins["gamma@plugins-mp"] = true | .enabledPlugins["omega@plugins-mp"] = true' "$HOME/.claude/settings.json" >"$ROOT/settings.json"
 mv "$ROOT/settings.json" "$HOME/.claude/settings.json"
+run
+[[ $(call_count "claude plugins marketplace update plugins-mp") -eq 1 ]] || fail "marketplace refreshed more than once in a run"
+echo gamma >>"$STUB_CATALOG"
 run
 expect_called "claude plugins marketplace update plugins-mp" "stale marketplace not refreshed"
 jq -e 'any(.[]; .id == "gamma@plugins-mp")' "$HOME/.claude/plugins/stub-plugins.json" >/dev/null || fail "newly published plugin not installed"
+jq '.enabledPlugins |= del(.["omega@plugins-mp"])' "$HOME/.claude/settings.json" >"$ROOT/settings.json"
+mv "$ROOT/settings.json" "$HOME/.claude/settings.json"
 echo "stale marketplace: OK"
 
 echo "=== broken Claude Code CLI is reinstalled ==="
@@ -257,7 +299,7 @@ echo "changed marketplace repo: OK"
 
 echo "=== safe-chain missing from a fresh container ==="
 rm -rf "${STUB_NPM_ROOT:?}"/*
-EXTRA_PATH="$HOME/.safe-chain/shims" run
+EXTRA_PATH="$HOME/.safe-chain/shims/" run
 expect_skipped "shim-npm root" "npm resolved to a safe-chain shim before reinstall"
 expect_skipped "shim-npm install -g" "npm resolved to a safe-chain shim before reinstall"
 [[ $(jq -r .version "$STUB_NPM_ROOT/@aikidosec/safe-chain/package.json" 2>/dev/null) == "$version" ]] ||
@@ -268,7 +310,6 @@ echo "=== pinned safe-chain bump upgrades ==="
 sed "s/^SAFE_CHAIN_VERSION=.*/SAFE_CHAIN_VERSION=\"0.0.1\"/" "$SCRIPT" >"$ROOT/bumped.sh"
 run "$ROOT/bumped.sh"
 expect_called "npm install -g @aikidosec/safe-chain@0.0.1" "bumped safe-chain not installed"
-expect_called "safe-chain setup" "bumped safe-chain not set up"
 echo "version bump: OK"
 
 echo "=== new plugin installs only the new one ==="

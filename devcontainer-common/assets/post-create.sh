@@ -34,9 +34,14 @@ git ls-files -z '*.sh' | xargs -0 -r chmod +x 2>/dev/null || true
 SAFE_CHAIN_VERSION="1.5.21"
 SAFE_CHAIN_SHIMS="$HOME/.safe-chain/shims"
 # Shims inherited from ~/.bashrc break npm when the global package behind them is gone
-PATH=$(tr ':' '\n' <<<"$PATH" | grep -vxF "$SAFE_CHAIN_SHIMS" | paste -sd: -)
+IFS=: read -ra path_entries <<<"$PATH"
+path_without_shims=""
+for entry in "${path_entries[@]}"; do
+  [[ "${entry%/}" == "$SAFE_CHAIN_SHIMS" ]] || path_without_shims+="${path_without_shims:+:}$entry"
+done
+PATH="$path_without_shims"
 installed_safe_chain=$(jq -r '.version // empty' "$(npm root -g)/@aikidosec/safe-chain/package.json" 2>/dev/null || true)
-if [[ "$installed_safe_chain" == "$SAFE_CHAIN_VERSION" ]]; then
+if [[ "$installed_safe_chain" == "$SAFE_CHAIN_VERSION" && -x "$(npm prefix -g)/bin/safe-chain" ]]; then
   echo "safe-chain ${SAFE_CHAIN_VERSION} already installed, skipping npm install"
 else
   echo "Installing safe-chain ${SAFE_CHAIN_VERSION}..."
@@ -52,13 +57,15 @@ echo "Installing pre-commit hooks..."
 git config --unset-all core.hooksPath 2>/dev/null || true
 pre-commit install --install-hooks
 
-if "$HOME/.local/bin/claude" --version &>/dev/null; then
-  echo "Claude Code CLI already installed, skipping (it updates itself)"
+export PATH="$HOME/.local/bin:$PATH"
+if claude --version &>/dev/null; then
+  # Self-update is off where CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC is set
+  echo "Updating Claude Code CLI..."
+  claude update </dev/null || echo "WARNING: claude update failed; keeping installed version"
 else
   echo "Installing Claude Code CLI..."
   curl -fsSL https://claude.ai/install.sh | bash
 fi
-export PATH="$HOME/.local/bin:$PATH"
 # shellcheck disable=SC2016
 grep -q 'local/bin' "$HOME/.bashrc" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >>"$HOME/.bashrc"
 
@@ -81,30 +88,36 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
       '.[] | select(.id == $p and (.scope == "user" or .projectPath == $w)) | .installPath // empty' <<<"$installed" 2>/dev/null | any_path_exists
   }
   bootstrap_claude_plugins() {
-    local settings_file="$1" marketplaces plugins known installed name repo plugin
+    local settings_file="$1" marketplaces plugins known installed name repo plugin added=""
     [ -f "$settings_file" ] || return 0
     jq empty "$settings_file" 2>/dev/null || {
       echo "  WARNING: invalid JSON in $settings_file, skipping"
       return 0
     }
     echo "  reading $settings_file"
-    marketplaces=$(jq -r '.extraKnownMarketplaces // {} | to_entries[] | select(.key != "claude-plugins-official") | select(.value.source != null and .value.source.repo != null) | "\(.key)\t\(.value.source.repo)"' "$settings_file")
+    marketplaces=$(jq -r '.extraKnownMarketplaces // {} | to_entries[] | select(.key != "claude-plugins-official") | select(.value.source != null and .value.source.repo != null) | "\(.key)\t\(.value.source.repo)"' "$settings_file" 2>/dev/null) || {
+      echo "    WARNING: unexpected extraKnownMarketplaces shape in $settings_file, skipping marketplaces"
+      marketplaces=""
+    }
     if [[ -n "$marketplaces" ]]; then
       known=$(claude plugins marketplace list --json 2>/dev/null) || known='[]'
       while IFS=$'\t' read -r -u 3 name repo; do
-        if marketplace_known "$known" "$repo"; then
+        if marketplace_known "$known" "$repo" || grep -qxF -- "$repo" <<<"$added"; then
           echo "    marketplace: $name (already added)"
           continue
         fi
         echo "    marketplace: $name ($repo)"
         if claude plugins marketplace add "$repo" --scope user; then
-          known=$(claude plugins marketplace list --json 2>/dev/null) || known='[]'
+          added+="$repo"$'\n'
         else
           echo "    WARNING: failed to add marketplace '$name'"
         fi
       done 3<<<"$marketplaces"
     fi
-    plugins=$(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true or .value == "true") | select(.key | endswith("@claude-plugins-official") | not) | .key' "$settings_file")
+    plugins=$(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true or .value == "true") | select(.key | endswith("@claude-plugins-official") | not) | .key' "$settings_file" 2>/dev/null) || {
+      echo "    WARNING: unexpected enabledPlugins shape in $settings_file, skipping plugins"
+      plugins=""
+    }
     [[ -n "$plugins" ]] || return 0
     installed=$(claude plugins list --json 2>/dev/null) || installed='[]'
     while IFS= read -r -u 3 plugin; do
@@ -115,11 +128,15 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
       echo "    install: $plugin"
       claude plugins install "$plugin" --scope user && continue
       # A marketplace clone kept from an earlier run can predate the plugin
-      echo "    refreshing marketplace '${plugin##*@}' and retrying"
-      { claude plugins marketplace update "${plugin##*@}" && claude plugins install "$plugin" --scope user; } ||
-        echo "    WARNING: failed to install '$plugin'"
+      if ! grep -qxF -- "${plugin##*@}" <<<"$REFRESHED_MARKETPLACES"; then
+        REFRESHED_MARKETPLACES+="${plugin##*@}"$'\n'
+        echo "    refreshing marketplace '${plugin##*@}' and retrying"
+        claude plugins marketplace update "${plugin##*@}" && claude plugins install "$plugin" --scope user && continue
+      fi
+      echo "    WARNING: failed to install '$plugin'"
     done 3<<<"$plugins"
   }
+  REFRESHED_MARKETPLACES=""
   echo "Bootstrapping Claude Code plugins..."
   # Settings precedence: user → project → local
   bootstrap_claude_plugins "$HOME/.claude/settings.json"
@@ -244,9 +261,8 @@ else
   fail "Claude Code CLI is not installed"
 fi
 
-AGENT_RUN=/usr/local/bin/agent-run
-if [[ -x "$AGENT_RUN" ]]; then
-  agent_run_out=$("$AGENT_RUN" --privileged alpine true 2>&1 || true)
+if [[ -x /usr/local/bin/agent-run ]]; then
+  agent_run_out=$(/usr/local/bin/agent-run --privileged alpine true 2>&1 || true)
   if echo "$agent_run_out" | grep -q 'forbidden flag'; then
     pass "agent-run wrapper installed and enforcing policy"
   else
