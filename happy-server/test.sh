@@ -1,7 +1,7 @@
 #!/bin/bash
 # Test happy-server image: non-root user, PSA-restricted run (read-only rootfs),
-# migrations, health endpoint, bundled webapp, state surviving a restart, and
-# Bytes columns reading back through PGlite.
+# migrations, health endpoint, bundled webapp, state surviving a restart,
+# Bytes columns reading back through PGlite, and push suppression.
 # Usage: ./test.sh <image-ref>
 
 set -euo pipefail
@@ -144,6 +144,62 @@ if [[ "$DEK_OUT" != "ok" ]]; then
   exit 1
 fi
 echo "  encryption key ok"
+
+echo "Test 9: a connected coding session does not suppress its own push..."
+PUSH_OUT=$(docker exec "$NAME" node -e '
+const crypto = require("node:crypto");
+const base = "http://127.0.0.1:3005";
+(async () => {
+  const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
+  const challenge = crypto.randomBytes(32);
+  const auth = await fetch(base + "/v1/auth", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      publicKey: Buffer.from(publicKey.export({ format: "jwk" }).x, "base64url").toString("base64"),
+      challenge: challenge.toString("base64"),
+      signature: crypto.sign(null, challenge, privateKey).toString("base64"),
+    }),
+  }).then((r) => r.json());
+  const headers = { authorization: "Bearer " + auth.token, "content-type": "application/json" };
+  const { session } = await fetch(base + "/v1/sessions", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ tag: "push-test", metadata: "m" }),
+  }).then((r) => r.json());
+  const ws = new WebSocket("ws://127.0.0.1:3005/v1/updates/?EIO=4&transport=websocket");
+  await new Promise((resolve, reject) => {
+    ws.onerror = reject;
+    ws.onmessage = ({ data }) => {
+      if (data.startsWith("0")) ws.send("40" + JSON.stringify({ token: auth.token, clientType: "session-scoped", sessionId: session.id }));
+      else if (data.startsWith("40")) resolve();
+      else if (data.startsWith("44")) reject(new Error(data));
+    };
+  });
+  const res = await fetch(base + "/v1/sessions/" + session.id + "/push-event", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ kind: "done", title: "t", body: "b" }),
+  });
+  await new Promise((r) => setTimeout(r, 1000));
+  ws.close();
+  console.log(res.status === 200 ? session.id : "status=" + res.status);
+})();
+' 2>&1)
+if [[ ! "$PUSH_OUT" =~ ^[a-z0-9]+$ ]]; then
+  echo "  ERROR: push-event request failed: $PUSH_OUT" >&2
+  exit 1
+fi
+if grep -q "Suppressed session-event push .* session $PUSH_OUT" <<<"$(docker logs "$NAME" 2>&1)"; then
+  echo "  ERROR: the session's own socket suppressed its push" >&2
+  exit 1
+fi
+if ! grep -q "No push tokens for user .* session $PUSH_OUT" <<<"$(docker logs "$NAME" 2>&1)"; then
+  echo "  ERROR: push dispatch never reached the token lookup" >&2
+  docker logs "$NAME" 2>&1 | grep -i push | tail -n 10
+  exit 1
+fi
+echo "  push suppression ok"
 
 echo ""
 echo "=== All tests passed ==="

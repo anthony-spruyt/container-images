@@ -30,6 +30,13 @@ RUN apt-get update \
       sed -i 's/return parsePgBytes(serializedBytes);/return Array.from(parsePgBytes(serializedBytes));/' "$f" \
       && grep -q 'return Array.from(parsePgBytes(serializedBytes));' "$f"; \
     done \
+    # Any coding session's socket counts as an active UI client, so every push is suppressed;
+    # drop once slopus/happy@1862c2c ships in the npm package.
+    && f=/usr/local/lib/node_modules/happy-server-self-host/dist/standalone.mjs \
+    && old='return appState !== "background";' \
+    && new='return s.data.clientType === "user-scoped" \&\& appState === "active";' \
+    && sed -i "s/$old/$new/" "$f" \
+    && grep -qF 'return s.data.clientType === "user-scoped" && appState === "active";' "$f" \
     && install -d -o 1000 -g 1000 /data
 
 ENV NODE_ENV=production \
