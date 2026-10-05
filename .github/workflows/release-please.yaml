@@ -38,6 +38,9 @@ jobs:
       devcontainer-common-released: ${{ steps.release.outputs['devcontainer-common--release_created'] }}
       devcontainer-common-version: ${{ steps.release.outputs['devcontainer-common--version'] }}
       devcontainer-common-tag: ${{ steps.release.outputs['devcontainer-common--tag_name'] }}
+      happy-server-released: ${{ steps.release.outputs['happy-server--release_created'] }}
+      happy-server-version: ${{ steps.release.outputs['happy-server--version'] }}
+      happy-server-tag: ${{ steps.release.outputs['happy-server--tag_name'] }}
       llm-guard-released: ${{ steps.release.outputs['llm-guard--release_created'] }}
       llm-guard-version: ${{ steps.release.outputs['llm-guard--version'] }}
       llm-guard-tag: ${{ steps.release.outputs['llm-guard--tag_name'] }}
@@ -192,6 +195,24 @@ jobs:
       push: true
       version: ${{ needs.release-please.outputs.devcontainer-common-version }}
       tag-name: ${{ needs.release-please.outputs.devcontainer-common-tag }}
+
+  happy-server:
+    name: happy-server
+    needs: release-please
+    if: needs.release-please.outputs.happy-server-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: happy-server
+      push: true
+      version: ${{ needs.release-please.outputs.happy-server-version }}
+      tag-name: ${{ needs.release-please.outputs.happy-server-tag }}
 
   llm-guard:
     name: llm-guard

@@ -54,6 +54,12 @@
       "sourceDirectory": "devcontainer-common",
     },
     {
+      "description": "Release notes for own images: happy-server",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/happy-server"],
+      "sourceDirectory": "happy-server",
+    },
+    {
       "description": "Release notes for own images: llm-guard",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["ghcr.io/anthony-spruyt/llm-guard"],

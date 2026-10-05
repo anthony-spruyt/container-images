@@ -81,6 +81,13 @@
       "include-component-in-tag": true,
       "include-v-in-tag": false
     },
+    "happy-server": {
+      "release-type": "simple",
+      "component": "happy-server",
+      "tag-separator": "-",
+      "include-component-in-tag": true,
+      "include-v-in-tag": false
+    },
     "llm-guard": {
       "release-type": "simple",
       "component": "llm-guard",
