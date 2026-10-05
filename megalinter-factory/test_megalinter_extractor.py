@@ -69,6 +69,28 @@ linters:
     linter_name: prettier
 """
 
+PYTHON_DESCRIPTOR = """---
+descriptor_id: PYTHON
+linters:
+  - linter_name: ruff
+    name: PYTHON_RUFF
+    install:
+      dockerfile:
+        - |-
+          ARG PIP_RUFF_VERSION=0.16.5
+      pip:
+        - ruff==${PIP_RUFF_VERSION}
+  - linter_name: ruff-format
+    name: PYTHON_RUFF_FORMAT
+    cli_executable: ruff
+    install:
+      dockerfile:
+        - |-
+          ARG PIP_RUFF_VERSION=0.16.5
+      pip:
+        - ruff==${PIP_RUFF_VERSION}
+"""
+
 
 # Mirrors upstream's generated manifest: the authoritative flavor -> linters map.
 # REPOSITORY_BETTERLEAKS declares `all_flavors`, so upstream puts it in every flavor.
@@ -101,6 +123,7 @@ def descriptors_dir_fixture(tmp_path: Path) -> Path:
     (shared / "biome.megalinter-linter.yml").write_text(SHARED_BIOME)
     (tmp_path / "javascript.megalinter-descriptor.yml").write_text(JAVASCRIPT_DESCRIPTOR)
     (tmp_path / "typescript.megalinter-descriptor.yml").write_text(TYPESCRIPT_DESCRIPTOR)
+    (tmp_path / "python.megalinter-descriptor.yml").write_text(PYTHON_DESCRIPTOR)
     (tmp_path / "all_flavors.json").write_text(json.dumps(ALL_FLAVORS))
     return tmp_path
 
@@ -124,6 +147,14 @@ def test_own_keys_win_over_shared(descriptors_dir: Path) -> None:
     assert linters["JAVASCRIPT_ES"]["package"] == "eslint"
     assert linters["JAVASCRIPT_ES"]["version"] == "9.40.0"
     assert "@microsoft/eslint-formatter-sarif" in linters["JAVASCRIPT_ES"]["npm_packages"]
+
+
+def test_version_command_uses_cli_executable(descriptors_dir: Path) -> None:
+    """A linter whose binary differs from its name is versioned via that binary."""
+    linters = extract_linter_info(descriptors_dir)
+
+    assert linters["PYTHON_RUFF_FORMAT"]["version_command"] == "ruff --version"
+    assert linters["PYTHON_RUFF"]["version_command"] == "ruff --version"
 
 
 @pytest.mark.parametrize(
