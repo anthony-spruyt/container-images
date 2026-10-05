@@ -24,6 +24,12 @@ RUN apt-get update \
     && /usr/local/lib/node_modules/happy-server-self-host/node_modules/.bin/prisma generate --generator client \
       --schema=/usr/local/lib/node_modules/happy-server-self-host/prisma/schema.prisma \
     && npm cache clean --force \
+    # PGlite Bytes columns fail to read (P2023); drop once slopus/happy#686 ships in the npm package.
+    && for f in /usr/local/lib/node_modules/happy-server-self-host/node_modules/pglite-prisma-adapter/dist/index.mjs \
+      /usr/local/lib/node_modules/happy-server-self-host/node_modules/pglite-prisma-adapter/dist/index.cjs; do \
+      sed -i 's/return parsePgBytes(serializedBytes);/return Array.from(parsePgBytes(serializedBytes));/' "$f" \
+      && grep -q 'return Array.from(parsePgBytes(serializedBytes));' "$f"; \
+    done \
     && install -d -o 1000 -g 1000 /data
 
 ENV NODE_ENV=production \

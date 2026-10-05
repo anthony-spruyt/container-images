@@ -1,6 +1,7 @@
 #!/bin/bash
 # Test happy-server image: non-root user, PSA-restricted run (read-only rootfs),
-# migrations, health endpoint, bundled webapp, and state surviving a restart.
+# migrations, health endpoint, bundled webapp, state surviving a restart, and
+# Bytes columns reading back through PGlite.
 # Usage: ./test.sh <image-ref>
 
 set -euo pipefail
@@ -108,6 +109,41 @@ if ! grep -q "No new migrations to apply" <<<"$(docker logs "$NAME" 2>&1)"; then
   exit 1
 fi
 echo "  restart ok"
+
+echo "Test 8: machine encryption key reads back..."
+DEK_OUT=$(docker exec "$NAME" node -e '
+const crypto = require("node:crypto");
+const base = "http://127.0.0.1:3005";
+(async () => {
+  const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
+  const challenge = crypto.randomBytes(32);
+  const auth = await fetch(base + "/v1/auth", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      publicKey: Buffer.from(publicKey.export({ format: "jwk" }).x, "base64url").toString("base64"),
+      challenge: challenge.toString("base64"),
+      signature: crypto.sign(null, challenge, privateKey).toString("base64"),
+    }),
+  }).then((r) => r.json());
+  const headers = { authorization: "Bearer " + auth.token, "content-type": "application/json" };
+  const dek = crypto.randomBytes(105).toString("base64");
+  await fetch(base + "/v1/machines", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ id: "test-machine", metadata: "m", dataEncryptionKey: dek }),
+  });
+  const res = await fetch(base + "/v1/machines", { headers });
+  const body = await res.json();
+  console.log(res.status === 200 && body[0]?.dataEncryptionKey === dek ? "ok" : "status=" + res.status);
+})();
+' 2>&1)
+if [[ "$DEK_OUT" != "ok" ]]; then
+  echo "  ERROR: dataEncryptionKey did not round-trip: $DEK_OUT" >&2
+  docker logs "$NAME" 2>&1 | grep -m 3 P2023 || true
+  exit 1
+fi
+echo "  encryption key ok"
 
 echo ""
 echo "=== All tests passed ==="
