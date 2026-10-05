@@ -10,6 +10,8 @@
   "llm-guard-cuda": "1.0.14",
   "megalinter-chromance": "1.1.1",
   "megalinter-container-images": "11.0.3",
+  "megalinter-go": "0.0.0",
+  "megalinter-python": "0.0.0",
   "megalinter-spruyt-labs": "2.0.4",
   "megalinter-sungather": "2.0.3",
   "megalinter-xfg": "2.0.4",
