@@ -1,10 +1,10 @@
 {
   "chrony": "5.0.6",
   "claude-agent-read": "1.0.104",
-  "claude-agent-spruyt-labs": "1.0.108",
+  "claude-agent-spruyt-labs": "1.0.109",
   "claude-agent-write": "1.0.96",
   "coder-gitops": "1.0.28",
-  "devcontainer-common": "2.2.3",
+  "devcontainer-common": "2.3.0",
   "happy-server": "1.0.1",
   "llm-guard": "1.0.42",
   "llm-guard-cuda": "1.0.14",
