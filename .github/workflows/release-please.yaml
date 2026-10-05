@@ -310,7 +310,6 @@ jobs:
       push: true
       version: ${{ needs.release-please.outputs.megalinter-go-version }}
       tag-name: ${{ needs.release-please.outputs.megalinter-go-tag }}
-      tag-prefix: "v"
 
   megalinter-python:
     name: megalinter-python
@@ -329,7 +328,6 @@ jobs:
       push: true
       version: ${{ needs.release-please.outputs.megalinter-python-version }}
       tag-name: ${{ needs.release-please.outputs.megalinter-python-tag }}
-      tag-prefix: "v"
 
   megalinter-spruyt-labs:
     name: megalinter-spruyt-labs
