@@ -5,6 +5,7 @@
   "claude-agent-write": "1.0.95",
   "coder-gitops": "1.0.28",
   "devcontainer-common": "2.2.3",
+  "happy-server": "0.0.0",
   "llm-guard": "1.0.42",
   "llm-guard-cuda": "1.0.14",
   "megalinter-chromance": "1.1.1",
