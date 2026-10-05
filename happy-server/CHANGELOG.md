@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.1...happy-server-1.0.2) (2026-10-05)
+
+
+### Bug Fixes
+
+* **happy-server:** stop coding sessions suppressing their own pushes ([#2080](https://github.com/anthony-spruyt/container-images/issues/2080)) ([39e2695](https://github.com/anthony-spruyt/container-images/commit/39e2695b2b0db3678344ebc44a8ccf1788749df8))
+
 ## [1.0.1](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.0...happy-server-1.0.1) (2026-10-05)
 
 
