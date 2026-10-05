@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.109](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.108...claude-agent-spruyt-labs-1.0.109) (2026-10-05)
+
+
+### Dependencies
+
+* **deps:** update container image ghcr.io/anthony-spruyt/claude-agent-write to v1.0.96 ([#2066](https://github.com/anthony-spruyt/container-images/issues/2066)) ([958fa6b](https://github.com/anthony-spruyt/container-images/commit/958fa6b69749cc6dc8792c660e7a951342e3e5ee))
+* **deps:** update dependency vmware-tanzu/velero to v1.18.4 ([#2077](https://github.com/anthony-spruyt/container-images/issues/2077)) ([92cc80d](https://github.com/anthony-spruyt/container-images/commit/92cc80da720f724ac791316127de111fb9b55cac))
+
 ## [1.0.108](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.107...claude-agent-spruyt-labs-1.0.108) (2026-10-05)
 
 

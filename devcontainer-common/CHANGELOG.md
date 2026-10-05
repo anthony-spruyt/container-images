@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.3.0](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.2.3...devcontainer-common-2.3.0) (2026-10-05)
+
+
+### Features
+
+* **devcontainer-common:** bake bats into the image ([#2074](https://github.com/anthony-spruyt/container-images/issues/2074)) ([658ce4c](https://github.com/anthony-spruyt/container-images/commit/658ce4c1fd0cd5693958f6e747c69e272216b2f4))
+
+
+### Dependencies
+
+* **deps:** update dependency pipx to v1.17.7 ([#2075](https://github.com/anthony-spruyt/container-images/issues/2075)) ([d088d1a](https://github.com/anthony-spruyt/container-images/commit/d088d1a6321038d98476c25a54fa420d62889ef8))
+
 ## [2.2.3](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.2.2...devcontainer-common-2.2.3) (2026-10-04)
 
 
