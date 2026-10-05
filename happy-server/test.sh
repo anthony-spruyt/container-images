@@ -27,7 +27,8 @@ start_server() {
 }
 
 in_container_get() {
-  docker exec "$NAME" curl -fsS "http://127.0.0.1:3005$1"
+  local path="$1"
+  docker exec "$NAME" curl -fsS "http://127.0.0.1:3005${path}"
 }
 
 wait_healthy() {
@@ -37,7 +38,7 @@ wait_healthy() {
     fi
     sleep 1
   done
-  echo "  ERROR: /health did not answer within 60s"
+  echo "  ERROR: /health did not answer within 60s" >&2
   docker logs "$NAME" 2>&1 | tail -n 50
   return 1
 }
@@ -47,15 +48,15 @@ echo "Image: $IMAGE_REF"
 
 echo "Test 1: non-root user..."
 UID_OUT=$(docker run --rm --entrypoint id "$IMAGE_REF" -u)
-if [ "$UID_OUT" != "1000" ]; then
-  echo "  ERROR: expected UID 1000, got $UID_OUT"
+if [[ "$UID_OUT" != "1000" ]]; then
+  echo "  ERROR: expected UID 1000, got $UID_OUT" >&2
   exit 1
 fi
 echo "  UID=1000 ok"
 
 echo "Test 2: happy-server on PATH..."
 if ! docker run --rm --entrypoint sh "$IMAGE_REF" -c "command -v happy-server >/dev/null"; then
-  echo "  ERROR: happy-server not on PATH"
+  echo "  ERROR: happy-server not on PATH" >&2
   exit 1
 fi
 echo "  happy-server ok"
@@ -64,7 +65,7 @@ echo "Test 3: fails fast without HANDY_MASTER_SECRET..."
 OUTPUT=$(docker run --rm --read-only --tmpfs /tmp:rw,size=64m --tmpfs /data:rw,size=64m,mode=1777 \
   "$IMAGE_REF" 2>&1 || true)
 if ! grep -q "HANDY_MASTER_SECRET is required" <<<"$OUTPUT"; then
-  echo "  ERROR: server did not reject a missing master secret"
+  echo "  ERROR: server did not reject a missing master secret" >&2
   echo "$OUTPUT" | tail -n 20
   exit 1
 fi
@@ -80,19 +81,19 @@ echo "  health ok"
 
 echo "Test 5: migrations applied to /data/pglite..."
 if ! grep -q "Applied [0-9]* migration" <<<"$(docker logs "$NAME" 2>&1)"; then
-  echo "  ERROR: no migrations applied on first start"
+  echo "  ERROR: no migrations applied on first start" >&2
   docker logs "$NAME" 2>&1 | tail -n 30
   exit 1
 fi
 if ! docker exec "$NAME" test -d /data/pglite; then
-  echo "  ERROR: /data/pglite missing"
+  echo "  ERROR: /data/pglite missing" >&2
   exit 1
 fi
 echo "  migrations ok"
 
 echo "Test 6: bundled webapp served at /..."
 if ! grep -qi "<html" <<<"$(in_container_get /)"; then
-  echo "  ERROR: / did not return the webapp"
+  echo "  ERROR: / did not return the webapp" >&2
   exit 1
 fi
 echo "  webapp ok"
@@ -102,7 +103,7 @@ docker rm -f "$NAME" >/dev/null
 start_server
 wait_healthy
 if ! grep -q "No new migrations to apply" <<<"$(docker logs "$NAME" 2>&1)"; then
-  echo "  ERROR: database was not reused after restart"
+  echo "  ERROR: database was not reused after restart" >&2
   docker logs "$NAME" 2>&1 | tail -n 30
   exit 1
 fi

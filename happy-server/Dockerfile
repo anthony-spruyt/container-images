@@ -14,15 +14,15 @@ FROM node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584
 # renovate: datasource=npm depName=happy-server-self-host
 ARG HAPPY_SERVER_VERSION=1.1.11
 
-# openssl: Prisma's query engine links libssl and probes for it at generate time
+# openssl: Prisma's query engine links libssl and probes for it at generate time.
+# Install scripts stay off; the only one needed is `prisma generate` for the runtime client.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl openssl \
-    && rm -rf /var/lib/apt/lists/*
-
-# npm 11 skips install scripts unless allowed; these fetch Prisma's engines and run `prisma generate`.
-RUN npm install -g --no-fund --no-audit \
-      --allow-scripts=happy-server-self-host,@prisma/client,prisma,@prisma/engines,sharp \
+    && rm -rf /var/lib/apt/lists/* \
+    && npm install -g --no-fund --no-audit --ignore-scripts \
       "happy-server-self-host@${HAPPY_SERVER_VERSION}" \
+    && /usr/local/lib/node_modules/happy-server-self-host/node_modules/.bin/prisma generate --generator client \
+      --schema=/usr/local/lib/node_modules/happy-server-self-host/prisma/schema.prisma \
     && npm cache clean --force \
     && install -d -o 1000 -g 1000 /data
 
