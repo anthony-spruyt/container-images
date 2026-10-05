@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.0...happy-server-1.0.1) (2026-10-05)
+
+
+### Bug Fixes
+
+* **happy-server:** read PGlite Bytes columns back ([#2065](https://github.com/anthony-spruyt/container-images/issues/2065)) ([8fc7fa8](https://github.com/anthony-spruyt/container-images/commit/8fc7fa865a53e8f4e3bc585c4e02be32100fe07e))
+
 ## 1.0.0 (2026-10-05)
 
 
