@@ -13,6 +13,11 @@ docker run --rm "$IMAGE_REF" bash -c '
   pip show mdformat-frontmatter &&
   pip show mdformat-admon &&
   gh --version &&
+  echo "=== bats ===" &&
+  bats --version &&
+  printf "%s\n" "bats_load_library bats-support" "bats_load_library bats-assert" \
+    "@test \"helpers load\" { run echo ok; assert_success; assert_output ok; }" >/tmp/helpers.bats &&
+  bats /tmp/helpers.bats &&
   echo "=== Podman ===" &&
   command -v podman &&
   podman --version &&
