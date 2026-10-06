@@ -1,0 +1,66 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/github-workflow.json
+name: Removal Guard
+
+# Separate from CI so a title edit re-runs only this; see docs/releases.md
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - edited
+
+permissions: {}
+
+concurrency:
+  group: removal-guard-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  removal-guard:
+    name: Guard Linter Removals
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # HEAD is the PR's test merge: HEAD^1 is main, HEAD^2 the PR head
+      - name: Guard linter removals
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.head_ref }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          # Queue PRs carry Mergify's title and merge commits; the queued PR was checked itself
+          if [[ "$HEAD_REF" == mergify/merge-queue/* && "$PR_AUTHOR" == "mergify[bot]" ]]; then
+            echo "::notice::Mergify merge-queue PR, checked on the queued PR"
+            exit 0
+          fi
+          pip install -q --require-hashes --only-binary :all: \
+            -r megalinter-factory/requirements.txt
+          # Read live, not from the event: a re-run of an older run must see the current title
+          TITLE=$(gh pr view "$PR_NUMBER" --json title --jq .title)
+          git worktree add -q --detach "$RUNNER_TEMP/base" HEAD^1
+          git log --format='%B%x00' HEAD^1..HEAD^2 > "$RUNNER_TEMP/commits"
+          git diff --name-only HEAD^1 HEAD > "$RUNNER_TEMP/changed"
+          jq -n --arg title "$TITLE" \
+            --rawfile commits "$RUNNER_TEMP/commits" \
+            --rawfile changed "$RUNNER_TEMP/changed" \
+            '{$title, $commits, $changed}' |
+            python megalinter-factory/removal_guard.py --base "$RUNNER_TEMP/base"
