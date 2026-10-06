@@ -20,7 +20,7 @@ on:
         type: string
         default: ""
       tag-name:
-        description: "Git tag release-please created (e.g., llm-guard-cuda/v1.0.7). Required when push is true."
+        description: "Git tag release-please created (e.g., llm-guard-cuda-1.0.16). Required when push is true."
         required: false
         type: string
         default: ""
@@ -56,12 +56,54 @@ jobs:
         with:
           egress-policy: audit
 
+      # The provenance attestation always names the run's commit (github.sha), so build only that commit.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.tag-name }}
+          persist-credentials: false
+
+      - name: Verify the tag is the commit being built
+        id: verify
+        if: inputs.push
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          IMAGE_NAME: ${{ inputs.image }}
+          TAG_NAME: ${{ inputs.tag-name }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [ -z "$TAG_NAME" ] || [ -z "$VERSION" ]; then
+            echo "::error::tag-name and version are required when push is true"
+            exit 1
+          fi
+          if ! DRAFT=$(gh release view "$TAG_NAME" --json isDraft --jq .isDraft); then
+            echo "::error::No release found for ${TAG_NAME}."
+            exit 1
+          fi
+          case "$DRAFT" in
+            true) ;;
+            false)
+              echo "::notice::Release ${TAG_NAME} is already published; skipping the build"
+              echo "published=true" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+            *)
+              echo "::error::Unexpected isDraft '${DRAFT}' for ${TAG_NAME}"
+              exit 1
+              ;;
+          esac
+          if ! TAG_SHA=$(gh api "repos/${GH_REPO}/commits/refs/tags/${TAG_NAME}" --jq .sha) || [ -z "$TAG_SHA" ]; then
+            echo "::error::Could not resolve the commit of tag ${TAG_NAME}."
+            exit 1
+          fi
+          HEAD_SHA=$(git rev-parse HEAD)
+          if [ "$TAG_SHA" != "$HEAD_SHA" ]; then
+            echo "::error::Tag ${TAG_NAME} is ${TAG_SHA}, but this run started from ${HEAD_SHA}, so its provenance would name the wrong source. The release stays a draft. Run Rebuild Release from the tag: gh workflow run rebuild-release.yaml --ref ${TAG_NAME} -f image=${IMAGE_NAME} -f version=${VERSION}"
+            exit 1
+          fi
 
       - name: Free up disk space
+        if: steps.verify.outputs.published != 'true'
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
           sudo apt-get clean
@@ -70,12 +112,11 @@ jobs:
 
       - name: Prepare build context
         id: context
+        if: steps.verify.outputs.published != 'true'
         env:
           IMAGE_NAME: ${{ inputs.image }}
         run: |
-          # Optional build_context: build against another image's directory
-          # using this image's own Dockerfile (variant images sharing sources).
-          # metadata.yaml is optional and only variant images carry one.
+          # Variant images set build_context to reuse another image's sources with their own Dockerfile.
           BUILD_CONTEXT=""
           if [ -f "$IMAGE_NAME/metadata.yaml" ]; then
             BUILD_CONTEXT=$(yq -r '.build_context // ""' "$IMAGE_NAME/metadata.yaml")
@@ -99,6 +140,7 @@ jobs:
           echo "dockerfile=$IMAGE_NAME/Dockerfile" >> "$GITHUB_OUTPUT"
 
       - name: Generate flavor files
+        if: steps.verify.outputs.published != 'true'
         env:
           IMAGE_NAME: ${{ inputs.image }}
         run: |
@@ -112,6 +154,7 @@ jobs:
           fi
 
       - name: Verify Dockerfile exists
+        if: steps.verify.outputs.published != 'true'
         env:
           DOCKERFILE: ${{ steps.context.outputs.dockerfile }}
         run: |
@@ -122,6 +165,7 @@ jobs:
 
       - name: Resolve test command
         id: test
+        if: steps.verify.outputs.published != 'true'
         env:
           IMAGE_NAME: ${{ inputs.image }}
         run: |
@@ -137,6 +181,7 @@ jobs:
 
       - name: Build image
         id: build
+        if: steps.verify.outputs.published != 'true'
         uses: anthony-spruyt/repo-operator/.github/actions/build-image@main
         with:
           image: ${{ inputs.image }}
@@ -150,10 +195,9 @@ jobs:
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
           test-command: ${{ steps.test.outputs.command }}
 
-      # Must stay last: on failure the release stays a draft, so a published
-      # release always has an image behind it.
+      # Must stay last: on failure the release stays a draft, so a published release always has an image.
       - name: Publish release
-        if: inputs.push
+        if: inputs.push && steps.verify.outputs.published != 'true'
         uses: anthony-spruyt/repo-operator/.github/actions/publish-release@main
         with:
           tag: ${{ inputs.tag-name }}
