@@ -20,7 +20,7 @@ Versions are owned by release-please. See [docs/releases.md](docs/releases.md).
 1. Create `<image-name>/Dockerfile`.
 2. Register the image in `release-please-config.json` and `.release-please-manifest.json`.
 3. Add its outputs and build job to `.github/workflows/release-please.yaml`.
-4. Add a `sourceDirectory` rule to `.github/renovate-overrides.json5` so Renovate shows its release notes.
+4. Add a `sourceDirectory` rule to `.github/renovate-overrides.json5` so Renovate shows its release notes. `megalinter-*` flavors get theirs in repo-operator's `.github/renovate/package-rules.json5` instead.
 
 ### Variant of an existing image (`build_context`)
 
@@ -68,7 +68,9 @@ Never commit or push directly to the `main` branch. Always create a feature bran
 
 Base (`.mega-linter-base.yml`): ACTION_ACTIONLINT, BASH_SHELLCHECK, BASH_SHFMT, JSON_JSONLINT, MARKDOWN_MARKDOWNLINT, REPOSITORY_BETTERLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY, SPELL_LYCHEE, YAML_YAMLLINT
 
-Project-specific (`.mega-linter.yml`): DOCKERFILE_HADOLINT, PYTHON_PYLINT
+Project-specific (`.mega-linter.yml`): DOCKERFILE_HADOLINT
+
+Python: ruff with `pyproject.toml` (extends `ruff-base.toml`). MegaLinter doesn't run it until repo-operator moves this repo to `megalinter-python`, so run `ruff check` and `ruff format --check` yourself.
 
 ## MegaLinter Flavor Factory
 

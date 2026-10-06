@@ -1,0 +1,4 @@
+[tool.ruff]
+extend = "ruff-base.toml"
+target-version = "py312"
+src = ["megalinter-factory", "llm-guard/app"]
