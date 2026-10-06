@@ -1,0 +1,9 @@
+---
+name: typescript
+description: "MegaLinter for TypeScript and JavaScript repositories"
+
+# renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-ci_light
+upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:v10.1.0@sha256:e40b320afe3152cd0e856019ff9c74a827d179ed45512148e5790871c3d08259"
+
+languages:
+  - typescript

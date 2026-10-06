@@ -74,7 +74,7 @@ Python: ruff with `pyproject.toml` (extends `ruff-base.toml`). MegaLinter doesn'
 
 ## MegaLinter Flavor Factory
 
-Flavors are named by the languages they lint and shared by every repo with that mix (`megalinter-go`, `megalinter-python`, `megalinter-go-python`). CI generates the Dockerfile at build time.
+Flavors are named by the languages they lint and shared by every repo with that mix (`megalinter-go`, `megalinter-python`, `megalinter-go-python`). `megalinter-base` (`languages: []`) serves repos with no language to lint. CI generates the Dockerfile at build time.
 
 Each language's linters and toolchain are defined once in `megalinter-factory/languages/<language>.yaml`. `megalinter-factory/base.yaml` holds the linters every flavor gets on top of its upstream base. A flavor lists the languages it combines; never copy a language's linters into a flavor.
 

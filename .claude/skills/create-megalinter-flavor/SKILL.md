@@ -114,10 +114,11 @@ Copy `<version>` and `<digest>` from an existing ci_light flavor's `flavor.yaml`
 
 Versions are owned by release-please. See [docs/releases.md](../../../docs/releases.md).
 
-1. Add `megalinter-<name>` to `packages` in `release-please-config.json`, copying an existing flavor's entry. New flavors have no `v` prefix, so set `"include-v-in-tag": false`.
-2. Add `"megalinter-<name>": "1.0.0"` to `.release-please-manifest.json`.
+1. Add `megalinter-<name>` to `packages` in `release-please-config.json`, copying `megalinter-python`'s entry. New flavors have no `v` prefix (`"include-v-in-tag": false`) and start at `"initial-version": "1.0.0"`.
+2. Add `"megalinter-<name>": "0.0.0"` to `.release-please-manifest.json`. A non-zero entry with no matching tag counts as already released, so the first `feat` would ship 1.1.0.
 3. Add outputs and a build job to `.github/workflows/release-please.yaml`, copying an existing flavor without a `v` prefix. Omit `tag-prefix: "v"` — it must match `include-v-in-tag`.
-4. Add a `sourceDirectory` rule for `ghcr.io/anthony-spruyt/megalinter-<name>` to `.github/renovate-overrides.json5` so Renovate renders its release notes.
+4. Add the flavor to `EXPECTED_LINTERS` in `megalinter-factory/test_compose.py`.
+5. Release it with a `feat(megalinter):` commit. Renovate's `sourceDirectory` rule for flavors lives in repo-operator's `.github/renovate/package-rules.json5`; ask for one there.
 
 ## Step 6: Run Factory Generator
 
