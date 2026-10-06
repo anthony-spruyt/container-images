@@ -88,6 +88,17 @@ def get_linter_display_name(linter_key: str, version_command: str | None = None)
     return linter_key.lower()
 
 
+def unique_by_package(linters: list[dict]) -> list[dict]:
+    """Keep the first linter per package so a shared package is installed once."""
+    seen = set()
+    unique = []
+    for linter in linters:
+        if linter["package"] not in seen:
+            seen.add(linter["package"])
+            unique.append(linter)
+    return unique
+
+
 def resolve_linters(
     flavor: dict, megalinter_data: dict
 ) -> tuple[list[str], list[dict], list[dict]]:
@@ -243,7 +254,7 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disa
     # Group custom linters by type
     docker_binary_linters = [l for l in custom_linters if l["type"] == "docker_binary"]
     npm_linters = [l for l in custom_linters if l["type"] == "npm"]
-    pip_linters = [l for l in custom_linters if l["type"] == "pip"]
+    pip_linters = unique_by_package([l for l in custom_linters if l["type"] == "pip"])
     go_linters = [l for l in custom_linters if l["type"] == "go"]
     cargo_linters = [l for l in custom_linters if l["type"] == "cargo"]
     gem_linters = [l for l in custom_linters if l["type"] == "gem"]

@@ -422,7 +422,11 @@ def build_linter_info(linter: dict, descriptor_id: str) -> dict:
 
     install = linter.get("install", {})
     version_arg = linter.get("cli_version_arg_name", "--version")
-    cli_name = linter_name_raw or linter_key.rsplit("_", maxsplit=1)[-1].lower()
+    cli_name = (
+        linter.get("cli_executable")
+        or linter_name_raw
+        or linter_key.rsplit("_", maxsplit=1)[-1].lower()
+    )
 
     linter_info = {
         "linter_key": linter_key,
