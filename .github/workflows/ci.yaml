@@ -57,7 +57,7 @@ jobs:
   factory-tests:
     name: MegaLinter Factory Tests
     needs: detect-changes
-    if: needs.detect-changes.outputs.factory == 'true'
+    if: needs.detect-changes.outputs.factory == 'true' || needs.detect-changes.outputs.flavor-config == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
@@ -67,6 +67,9 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Run tests
         run: |
@@ -75,12 +78,32 @@ jobs:
             -r megalinter-factory/requirements-test.txt
           python -m pytest megalinter-factory/ -q
 
+      # HEAD is the PR's test merge: HEAD^1 is main, HEAD^2 the PR head
+      - name: Guard linter removals
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # Read live, not from the event: a re-run after a title fix must see the new title
+          TITLE=$(gh pr view "$PR_NUMBER" --json title --jq .title)
+          git worktree add -q --detach "$RUNNER_TEMP/base" HEAD^1
+          git log --format='%B%x00' HEAD^1..HEAD^2 > "$RUNNER_TEMP/commits"
+          git diff --name-only HEAD^1 HEAD > "$RUNNER_TEMP/changed"
+          python megalinter-factory/removal_guard.py \
+            --base "$RUNNER_TEMP/base" \
+            --title "$TITLE" \
+            --commits "$RUNNER_TEMP/commits" \
+            --changed "$RUNNER_TEMP/changed"
+
   detect-changes:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
       images: ${{ steps.detect.outputs.images }}
       factory: ${{ steps.detect.outputs.factory }}
+      flavor-config: ${{ steps.detect.outputs.flavor-config }}
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -126,8 +149,11 @@ jobs:
               echo "::error::Image directory does not exist: $INPUT_IMAGE"
               exit 1
             fi
-            echo "images=[\"$INPUT_IMAGE\"]" >> "$GITHUB_OUTPUT"
-            echo "factory=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "images=[\"$INPUT_IMAGE\"]"
+              echo "factory=false"
+              echo "flavor-config=false"
+            } >> "$GITHUB_OUTPUT"
             echo "Manual dispatch for image: $INPUT_IMAGE"
             exit 0
           fi
@@ -144,6 +170,12 @@ jobs:
             while read -r img; do if [ -d "$img" ]; then echo "$img"; fi; done)
           DIRECT_CHANGES=$(add_build_context_dependents "$DIRECT_CHANGES" | \
             while read -r img; do if [ -f "$img/Dockerfile" ] || [ -f "$img/flavor.yaml" ]; then echo "$img"; fi; done)
+
+          if echo "$DIFF_FILES" | grep -qE '^megalinter-[a-zA-Z0-9_-]+/flavor\.yaml$'; then
+            echo "flavor-config=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "flavor-config=false" >> "$GITHUB_OUTPUT"
+          fi
 
           if echo "$DIFF_FILES" | grep -qE '^megalinter-factory/'; then
             echo "MegaLinter factory changed - adding all flavors to build"

@@ -108,12 +108,14 @@ def compose_flavor(flavor: dict, factory_dir: Path) -> dict:
 
 
 def flavors_affected(changed_files: list[str], repo_root: Path) -> list[str]:
-    """Return the flavor directories whose composition reads any of the changed files."""
+    """Return the unstamped flavor directories whose composition reads a changed file."""
     factory = "megalinter-factory"
     changed = set(changed_files)
     base_changed = f"{factory}/base.yaml" in changed
     affected = []
     for flavor_yaml in sorted(repo_root.glob("megalinter-*/flavor.yaml")):
+        if f"{flavor_yaml.parent.name}/.rebuild-stamp" in changed:
+            continue
         flavor = _load(flavor_yaml)
         names = _string_list(flavor_yaml.parent.name, "languages", flavor.get("languages"))
         used = resolve_languages(names, repo_root / factory / "languages")
