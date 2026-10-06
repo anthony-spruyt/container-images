@@ -18,8 +18,9 @@ import sys
 from pathlib import Path
 
 import yaml
-from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from compose import compose_flavor
 from megalinter_extractor import get_megalinter_linters
 
 
@@ -43,17 +44,13 @@ def parse_image_ref(image_ref: str) -> dict:
     digest = None
     tag = "latest"
 
-    # Split off digest first (after @)
     if "@" in image_ref:
         image_ref, digest = image_ref.split("@", 1)
 
-    # Split repository and tag
     if ":" in image_ref:
         # Handle potential port numbers in registry (e.g., localhost:5000/repo:tag)
         parts = image_ref.rsplit(":", 1)
-        # Check if the last part looks like a tag (not a port number)
         if "/" in parts[1] or parts[1].isdigit():
-            # This is likely a port, not a tag
             repository = image_ref
         else:
             repository = parts[0]
@@ -77,11 +74,9 @@ def get_linter_display_name(linter_key: str, version_command: str | None = None)
     2. Last part of linter_key after underscore (e.g., "hadolint" from "DOCKERFILE_HADOLINT")
     """
     if version_command:
-        # Extract first word from version command
         first_word = version_command.split()[0]
         return first_word
 
-    # Fallback: use last part of linter key
     parts = linter_key.split("_")
     if len(parts) > 1:
         return parts[-1].lower()
@@ -118,7 +113,6 @@ def resolve_linters(
     extracted_linters = megalinter_data.get("linters", {})
     base_flavor_linters = megalinter_data.get("base_flavor_linters", {})
 
-    # Get base linters from extracted MegaLinter data
     base_linter_keys = base_flavor_linters.get(base_flavor, [])
 
     base_linters = []
@@ -134,20 +128,8 @@ def resolve_linters(
             }
         )
 
-    # Process custom linters from flavor.yaml
-    # Support both old format (list of dicts) and new format (list of strings)
     custom_linters = []
-    for linter_entry in flavor.get("custom_linters", []):
-        # Handle new simple format: just a linter key string
-        if isinstance(linter_entry, str):
-            linter_key = linter_entry
-            linter_config = {}
-        else:
-            # Handle old format: dict with linter_key and overrides
-            linter_key = linter_entry.get("linter_key")
-            linter_config = linter_entry
-
-        # Look up linter info from extracted MegaLinter data
+    for linter_key in flavor.get("custom_linters", []):
         extracted = extracted_linters.get(linter_key, {})
 
         if not extracted:
@@ -157,59 +139,37 @@ def resolve_linters(
                 "remove it from custom_linters or fix the key."
             )
 
-        # Get version command
-        version_cmd = linter_config.get(
-            "version_command", extracted.get("version_command")
-        )
+        version_cmd = extracted.get("version_command")
 
-        # Build resolved linter config, allowing flavor.yaml to override
         resolved = {
             "linter_key": linter_key,
-            "name": linter_config.get(
-                "name", get_linter_display_name(linter_key, version_cmd)
-            ),
-            "type": linter_config.get("type", extracted.get("type")),
-            "version": linter_config.get("version", extracted.get("version")),
+            "name": get_linter_display_name(linter_key, version_cmd),
+            "type": extracted.get("type"),
+            "version": extracted.get("version"),
             "version_command": version_cmd,
-            "description": linter_config.get(
-                "description", extracted.get("description", "")
-            ),
+            "description": extracted.get("description", ""),
         }
 
-        # Type-specific fields
         if resolved["type"] == "docker_binary":
-            resolved["binary_path"] = linter_config.get(
-                "binary_path", extracted.get("binary_path")
-            )
-            resolved["target_path"] = linter_config.get(
-                "target_path", extracted.get("target_path")
-            )
-            resolved["source_image"] = linter_config.get(
-                "source_image", extracted.get("source_image")
-            )
-            resolved["digest"] = linter_config.get("digest", "")
-            # Build full image reference for Dockerfile
+            resolved["binary_path"] = extracted.get("binary_path")
+            resolved["target_path"] = extracted.get("target_path")
+            resolved["source_image"] = extracted.get("source_image")
+            resolved["digest"] = ""
             if resolved["source_image"] and resolved["version"]:
                 resolved["image"] = f"{resolved['source_image']}:{resolved['version']}"
 
         elif resolved["type"] in ("npm", "pip", "go", "cargo"):
-            resolved["package"] = linter_config.get(
-                "package", extracted.get("package")
-            )
-            # For npm linters, include all required packages (not just primary)
+            resolved["package"] = extracted.get("package")
             if resolved["type"] == "npm":
                 resolved["npm_packages"] = extracted.get("npm_packages", [resolved["package"]])
 
         elif resolved["type"] == "script":
-            # Script-based linters have raw dockerfile instructions
             resolved["dockerfile"] = extracted.get("dockerfile", [])
 
-        # APK dependencies apply to all linter types
         resolved["apk_packages"] = extracted.get("apk_packages", [])
 
         custom_linters.append(resolved)
 
-    # Build all linters list
     all_linters = base_linter_keys.copy()
     for linter in custom_linters:
         if linter["linter_key"] not in all_linters:
@@ -218,40 +178,37 @@ def resolve_linters(
     return all_linters, base_linters, custom_linters
 
 
-def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disable=too-many-locals
-    """Generate Dockerfile and test.sh from flavor.yaml."""
-    flavor_yaml_path = flavor_dir / "flavor.yaml"
-    templates_dir = factory_dir / "templates"
-
-    # Load flavor configuration
-    flavor = load_yaml(flavor_yaml_path)
-
-    # Extract linter info from MegaLinter (clones repo if needed)
-    print("Extracting linter info from MegaLinter...")
-    megalinter_data = get_megalinter_linters()
-    print(f"  Found {len(megalinter_data['linters'])} linters in MegaLinter")
-
-    # Parse upstream_image if present (new format)
+def derive_upstream_fields(flavor: dict) -> dict:
+    """Set the upstream_* fields and base_flavor from upstream_image."""
     if "upstream_image" in flavor:
         parsed = parse_image_ref(flavor["upstream_image"])
         flavor["upstream_repository"] = parsed["repository"]
         flavor["upstream_tag"] = parsed["tag"]
         flavor["upstream_digest"] = parsed["digest"]
-        # Derive base_flavor from repository name (e.g., oxsecurity/megalinter-ci_light -> ci_light)
         repo_name = parsed["repository"].split("/")[-1]
         if repo_name.startswith("megalinter-"):
             flavor["base_flavor"] = repo_name[len("megalinter-"):]
         elif "base_flavor" not in flavor:
-            flavor["base_flavor"] = "ci_light"  # Default fallback
+            flavor["base_flavor"] = "ci_light"
     else:
-        # Legacy format compatibility
         flavor["upstream_tag"] = flavor.get("upstream_version", "latest")
         flavor["upstream_digest"] = flavor.get("upstream_digest")
+    return flavor
 
-    # Resolve linters using extracted MegaLinter data
+
+def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disable=too-many-locals
+    """Generate Dockerfile and test.sh from flavor.yaml."""
+    flavor_yaml_path = flavor_dir / "flavor.yaml"
+    templates_dir = factory_dir / "templates"
+
+    flavor = compose_flavor(derive_upstream_fields(load_yaml(flavor_yaml_path)), factory_dir)
+
+    print("Extracting linter info from MegaLinter...")
+    megalinter_data = get_megalinter_linters()
+    print(f"  Found {len(megalinter_data['linters'])} linters in MegaLinter")
+
     all_linters, base_linters, custom_linters = resolve_linters(flavor, megalinter_data)
 
-    # Group custom linters by type
     docker_binary_linters = [l for l in custom_linters if l["type"] == "docker_binary"]
     npm_linters = [l for l in custom_linters if l["type"] == "npm"]
     pip_linters = unique_by_package([l for l in custom_linters if l["type"] == "pip"])
@@ -261,46 +218,28 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disa
     # Script and dockerfile types both use raw dockerfile instructions
     script_linters = [l for l in custom_linters if l["type"] in ("script", "dockerfile")]
 
-    # Collect all APK dependencies from custom linters (deduplicated)
     all_apk_packages = sorted(set(
         pkg for linter in custom_linters for pkg in linter.get("apk_packages", [])
     ))
 
-    # Collect and deduplicate all npm packages across all npm linters
-    # Track which packages have versions (primary packages) vs those without
     npm_versioned_packages = {}  # package -> (linter_name, version)
     npm_unversioned_packages = set()
     for linter in npm_linters:
         packages = linter.get("npm_packages", [linter["package"]])
         for i, pkg in enumerate(packages):
             if i == 0:
-                # Primary package gets the version
                 npm_versioned_packages[pkg] = (linter["name"], linter["version"])
             else:
-                # Secondary packages are unversioned (unless already versioned)
                 if pkg not in npm_versioned_packages:
                     npm_unversioned_packages.add(pkg)
-    # Remove any unversioned that are also in versioned
     npm_unversioned_packages -= set(npm_versioned_packages.keys())
 
-    # Set up Jinja2 environment
     env = Environment(
         loader=FileSystemLoader(templates_dir),
         autoescape=select_autoescape(),
         keep_trailing_newline=True,
     )
 
-    # Process extra_dockerfile through Jinja2 so it can reference flavor fields.
-    # Caveat: any literal {{ }} in the content will be interpreted as Jinja2.
-    if flavor.get("extra_dockerfile"):
-        # Autoescaping disabled: output is a Dockerfile, not HTML.
-        extra_tpl = Environment(
-            autoescape=select_autoescape(enabled_extensions=(), default=False),
-            undefined=StrictUndefined,
-        ).from_string(flavor["extra_dockerfile"])
-        flavor["extra_dockerfile"] = extra_tpl.render(flavor=flavor)
-
-    # Template context
     context = {
         "flavor": flavor,
         "all_linters": all_linters,
@@ -318,14 +257,12 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disa
         "apk_packages": all_apk_packages,
     }
 
-    # Generate Dockerfile
     dockerfile_template = env.get_template("Dockerfile.j2")
     dockerfile_content = dockerfile_template.render(context)
     dockerfile_path = flavor_dir / "Dockerfile"
     dockerfile_path.write_text(dockerfile_content)
     print(f"Generated: {dockerfile_path}")
 
-    # Generate test.sh
     testsh_template = env.get_template("test.sh.j2")
     testsh_content = testsh_template.render(context)
     testsh_path = flavor_dir / "test.sh"
@@ -352,11 +289,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    # Resolve paths
     flavor_dir = args.flavor_dir.resolve()
     factory_dir = Path(__file__).parent.resolve()
 
-    # Validate inputs
     if not flavor_dir.is_dir():
         print(f"Error: {flavor_dir} is not a directory", file=sys.stderr)
         return 1

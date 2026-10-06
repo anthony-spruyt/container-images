@@ -1,0 +1,8 @@
+---
+# typescript-eslint configs are JavaScript and import globals
+languages:
+  - javascript
+
+linters:
+  - TYPESCRIPT_ES
+  - TYPESCRIPT_PRETTIER

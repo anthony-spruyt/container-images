@@ -1,0 +1,12 @@
+---
+linters:
+  - PYTHON_RUFF
+  - PYTHON_RUFF_FORMAT
+
+# PYTHON_RUFF_FORMAT stays inactive unless this is ruff; black is not installed
+extra_dockerfile: |
+  ENV PYTHON_DEFAULT_STYLE=ruff
+
+extra_test_env_vars:
+  - name: PYTHON_DEFAULT_STYLE
+    contains: "ruff"

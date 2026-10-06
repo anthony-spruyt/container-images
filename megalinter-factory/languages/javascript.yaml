@@ -1,0 +1,12 @@
+---
+linters:
+  - JAVASCRIPT_ES
+  - JAVASCRIPT_PRETTIER
+
+# Must be top-level: eslint plugins vendor globals nested, out of NODE_PATH reach
+# renovate: datasource=npm depName=globals
+globals_version: "17.12.0"
+
+extra_dockerfile: |
+  ARG GLOBALS_VERSION={{ language.globals_version }}
+  RUN npm install -g globals@${GLOBALS_VERSION} && npm cache clean --force && rm -rf /root/.npm/_cacache

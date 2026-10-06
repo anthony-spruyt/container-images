@@ -1,0 +1,5 @@
+---
+linters:
+  - CPP_CLANG_FORMAT
+  - CPP_CPPCHECK
+  - CPP_CPPLINT
