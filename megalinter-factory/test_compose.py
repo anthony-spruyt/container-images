@@ -228,3 +228,81 @@ def test_base_change_affects_every_flavor(repo: Path) -> None:
 def test_unrelated_change_affects_no_flavor(repo: Path) -> None:
     """Factory code and docs are not language definitions."""
     assert not flavors_affected(["megalinter-factory/generate.py", "README.md"], repo)
+
+
+def test_included_language_fragment_renders_before_the_including_one(tmp_path: Path) -> None:
+    """A language's Dockerfile fragment can rely on the toolchain its includes install."""
+    factory = write_factory(
+        tmp_path,
+        base={"linters": []},
+        languages={
+            "app": {"languages": ["zlib"], "extra_dockerfile": "RUN needs-zlib\n"},
+            "zlib": {"extra_dockerfile": "RUN install-zlib\n"},
+            "aaa": {"extra_dockerfile": "RUN aaa\n"},
+        },
+    )
+
+    flavor = compose_flavor({"name": "x", "languages": ["app", "aaa"]}, factory)
+
+    assert flavor["extra_dockerfile"] == "RUN aaa\nRUN install-zlib\nRUN needs-zlib"
+
+
+def test_dict_custom_linter_is_rejected_with_a_clear_error(factory: Path) -> None:
+    """Per-linter overrides are not supported; say so instead of failing inside a set."""
+    with pytest.raises(ValueError, match="custom_linters.*linter keys"):
+        compose_flavor(
+            {"name": "x", "custom_linters": [{"linter_key": "GO_LINT", "version_command": "x"}]},
+            factory,
+        )
+
+
+def test_languages_given_as_a_string_is_rejected(factory: Path) -> None:
+    """`languages: go` would otherwise iterate its characters."""
+    with pytest.raises(ValueError, match="languages.*list"):
+        compose_flavor({"name": "go", "languages": "go"}, factory)
+
+
+EXPECTED_LINTERS = {
+    "megalinter-chromance": [
+        "ACTION_ACTIONLINT", "CPP_CLANG_FORMAT", "CPP_CPPCHECK", "CPP_CPPLINT",
+        "MARKDOWN_MARKDOWNLINT", "SPELL_LYCHEE",
+    ],
+    "megalinter-container-images": [
+        "ACTION_ACTIONLINT", "MARKDOWN_MARKDOWNLINT", "PYTHON_PYLINT", "SPELL_LYCHEE",
+    ],
+    "megalinter-go": [
+        "ACTION_ACTIONLINT", "GO_GOLANGCI_LINT", "MARKDOWN_MARKDOWNLINT", "PYTHON_PYLINT",
+        "SPELL_LYCHEE",
+    ],
+    "megalinter-python": [
+        "ACTION_ACTIONLINT", "MARKDOWN_MARKDOWNLINT", "PYTHON_RUFF", "PYTHON_RUFF_FORMAT",
+        "SPELL_LYCHEE",
+    ],
+    "megalinter-spruyt-labs": [
+        "ACTION_ACTIONLINT", "MARKDOWN_MARKDOWNLINT", "PYTHON_PYLINT", "SPELL_LYCHEE",
+        "TERRAFORM_TFLINT",
+    ],
+    "megalinter-sungather": [
+        "ACTION_ACTIONLINT", "MARKDOWN_MARKDOWNLINT", "PYTHON_PYLINT", "SPELL_LYCHEE",
+    ],
+    "megalinter-xfg": [
+        "ACTION_ACTIONLINT", "JAVASCRIPT_ES", "JAVASCRIPT_PRETTIER", "MARKDOWN_MARKDOWNLINT",
+        "SPELL_LYCHEE", "TYPESCRIPT_ES", "TYPESCRIPT_PRETTIER",
+    ],
+}
+
+
+def test_golden_linters_cover_every_repository_flavor() -> None:
+    """A new flavor must be added to the golden list below."""
+    flavors = {p.parent.name for p in FACTORY_DIR.parent.glob("megalinter-*/flavor.yaml")}
+
+    assert flavors == set(EXPECTED_LINTERS)
+
+
+@pytest.mark.parametrize("flavor_dir", sorted(EXPECTED_LINTERS))
+def test_repository_flavor_composes_its_golden_linters(flavor_dir: str) -> None:
+    """A base or language change that alters a published flavor must update this list on purpose."""
+    path = FACTORY_DIR.parent / flavor_dir / "flavor.yaml"
+    flavor = yaml.safe_load(path.read_text(encoding="utf-8"))
+
+    assert compose_flavor(flavor, FACTORY_DIR)["custom_linters"] == EXPECTED_LINTERS[flavor_dir]

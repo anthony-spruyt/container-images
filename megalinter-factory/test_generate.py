@@ -61,3 +61,33 @@ def test_unique_by_package_drops_linters_sharing_a_package() -> None:
     ]
 
     assert [l["package"] for l in unique_by_package(linters)] == ["ruff", "pylint"]
+
+
+def test_flavor_fragment_sees_fields_derived_from_upstream_image(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """extra_dockerfile can use base_flavor and upstream_tag, as it could before composition."""
+    factory = tmp_path / "factory"
+    shutil.copytree(FACTORY_DIR / "templates", factory / "templates")
+    (factory / "base.yaml").write_text(yaml.safe_dump({"linters": []}))
+    (factory / "languages").mkdir()
+    flavor_dir = tmp_path / "megalinter-x"
+    flavor_dir.mkdir()
+    (flavor_dir / "flavor.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "name": "x",
+                "upstream_image": "ghcr.io/oxsecurity/megalinter-go:v10.1.0@sha256:abc",
+                "extra_dockerfile": (
+                    "LABEL base={{ flavor.base_flavor }} tag={{ flavor.upstream_tag }}\n"
+                ),
+            }
+        )
+    )
+    monkeypatch.setattr(
+        generate, "get_megalinter_linters", lambda: {"linters": {}, "base_flavor_linters": {}}
+    )
+
+    generate.generate_files(flavor_dir, factory)
+
+    assert "LABEL base=go tag=v10.1.0\n" in (flavor_dir / "Dockerfile").read_text()

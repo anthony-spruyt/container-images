@@ -129,14 +129,7 @@ def resolve_linters(
         )
 
     custom_linters = []
-    for linter_entry in flavor.get("custom_linters", []):
-        if isinstance(linter_entry, str):
-            linter_key = linter_entry
-            linter_config = {}
-        else:
-            linter_key = linter_entry.get("linter_key")
-            linter_config = linter_entry
-
+    for linter_key in flavor.get("custom_linters", []):
         extracted = extracted_linters.get(linter_key, {})
 
         if not extracted:
@@ -146,42 +139,27 @@ def resolve_linters(
                 "remove it from custom_linters or fix the key."
             )
 
-        version_cmd = linter_config.get(
-            "version_command", extracted.get("version_command")
-        )
+        version_cmd = extracted.get("version_command")
 
         resolved = {
             "linter_key": linter_key,
-            "name": linter_config.get(
-                "name", get_linter_display_name(linter_key, version_cmd)
-            ),
-            "type": linter_config.get("type", extracted.get("type")),
-            "version": linter_config.get("version", extracted.get("version")),
+            "name": get_linter_display_name(linter_key, version_cmd),
+            "type": extracted.get("type"),
+            "version": extracted.get("version"),
             "version_command": version_cmd,
-            "description": linter_config.get(
-                "description", extracted.get("description", "")
-            ),
+            "description": extracted.get("description", ""),
         }
 
         if resolved["type"] == "docker_binary":
-            resolved["binary_path"] = linter_config.get(
-                "binary_path", extracted.get("binary_path")
-            )
-            resolved["target_path"] = linter_config.get(
-                "target_path", extracted.get("target_path")
-            )
-            resolved["source_image"] = linter_config.get(
-                "source_image", extracted.get("source_image")
-            )
-            resolved["digest"] = linter_config.get("digest", "")
+            resolved["binary_path"] = extracted.get("binary_path")
+            resolved["target_path"] = extracted.get("target_path")
+            resolved["source_image"] = extracted.get("source_image")
+            resolved["digest"] = ""
             if resolved["source_image"] and resolved["version"]:
                 resolved["image"] = f"{resolved['source_image']}:{resolved['version']}"
 
         elif resolved["type"] in ("npm", "pip", "go", "cargo"):
-            resolved["package"] = linter_config.get(
-                "package", extracted.get("package")
-            )
-            # For npm linters, include all required packages (not just primary)
+            resolved["package"] = extracted.get("package")
             if resolved["type"] == "npm":
                 resolved["npm_packages"] = extracted.get("npm_packages", [resolved["package"]])
 
@@ -200,17 +178,8 @@ def resolve_linters(
     return all_linters, base_linters, custom_linters
 
 
-def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disable=too-many-locals
-    """Generate Dockerfile and test.sh from flavor.yaml."""
-    flavor_yaml_path = flavor_dir / "flavor.yaml"
-    templates_dir = factory_dir / "templates"
-
-    flavor = compose_flavor(load_yaml(flavor_yaml_path), factory_dir)
-
-    print("Extracting linter info from MegaLinter...")
-    megalinter_data = get_megalinter_linters()
-    print(f"  Found {len(megalinter_data['linters'])} linters in MegaLinter")
-
+def derive_upstream_fields(flavor: dict) -> dict:
+    """Set the upstream_* fields and base_flavor from upstream_image."""
     if "upstream_image" in flavor:
         parsed = parse_image_ref(flavor["upstream_image"])
         flavor["upstream_repository"] = parsed["repository"]
@@ -220,10 +189,23 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disa
         if repo_name.startswith("megalinter-"):
             flavor["base_flavor"] = repo_name[len("megalinter-"):]
         elif "base_flavor" not in flavor:
-            flavor["base_flavor"] = "ci_light"  # Default fallback
+            flavor["base_flavor"] = "ci_light"
     else:
         flavor["upstream_tag"] = flavor.get("upstream_version", "latest")
         flavor["upstream_digest"] = flavor.get("upstream_digest")
+    return flavor
+
+
+def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disable=too-many-locals
+    """Generate Dockerfile and test.sh from flavor.yaml."""
+    flavor_yaml_path = flavor_dir / "flavor.yaml"
+    templates_dir = factory_dir / "templates"
+
+    flavor = compose_flavor(derive_upstream_fields(load_yaml(flavor_yaml_path)), factory_dir)
+
+    print("Extracting linter info from MegaLinter...")
+    megalinter_data = get_megalinter_linters()
+    print(f"  Found {len(megalinter_data['linters'])} linters in MegaLinter")
 
     all_linters, base_linters, custom_linters = resolve_linters(flavor, megalinter_data)
 

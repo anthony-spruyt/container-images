@@ -25,17 +25,37 @@ def _load_language(name: str, languages_dir: Path) -> dict:
     return _load(path)
 
 
+def _string_list(owner: str, field: str, value: object) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+        raise ValueError(
+            f"{owner}: {field} must be a list of names (linter keys or languages), got {value!r}"
+        )
+    return value
+
+
 def resolve_languages(names: list[str], languages_dir: Path) -> list[tuple[str, dict]]:
-    """Return every listed language plus the ones it includes, each once, sorted by name."""
-    resolved: dict[str, dict] = {}
-    pending = list(names)
-    while pending:
-        name = pending.pop()
-        if name in resolved:
-            continue
-        resolved[name] = _load_language(name, languages_dir)
-        pending.extend(resolved[name].get("languages", []))
-    return sorted(resolved.items())
+    """
+    Return every listed language plus the ones it includes, each once.
+
+    Includes come before the language that includes them; otherwise by name.
+    """
+    seen: set[str] = set()
+    ordered: list[tuple[str, dict]] = []
+
+    def visit(name: str) -> None:
+        if name in seen:
+            return
+        seen.add(name)
+        language = _load_language(name, languages_dir)
+        for include in sorted(_string_list(name, "languages", language.get("languages"))):
+            visit(include)
+        ordered.append((name, language))
+
+    for name in sorted(names):
+        visit(name)
+    return ordered
 
 
 def _render(fragment: str, **context: dict) -> str:
@@ -53,23 +73,26 @@ def compose_flavor(flavor: dict, factory_dir: Path) -> dict:
 
     Linters are deduplicated and sorted so a compound flavor does not depend on
     the order its languages are listed in. Dockerfile fragments and test checks
-    run in language-name order, with the flavor's own last.
+    follow resolve_languages order, with the flavor's own last.
     """
+    name = flavor.get("name", "flavor")
     base = _load(factory_dir / "base.yaml")
-    languages = resolve_languages(flavor.get("languages", []), factory_dir / "languages")
+    languages = resolve_languages(
+        _string_list(name, "languages", flavor.get("languages")), factory_dir / "languages"
+    )
 
-    linters = set(base.get("linters", []))
+    linters = set(_string_list("base.yaml", "linters", base.get("linters")))
     fragments = []
     test_linters = []
     test_env_vars = []
-    for _, language in languages:
-        linters.update(language.get("linters", []))
+    for language_name, language in languages:
+        linters.update(_string_list(language_name, "linters", language.get("linters")))
         if language.get("extra_dockerfile"):
             fragments.append(_render(language["extra_dockerfile"], language=language))
         test_linters.extend(language.get("extra_test_linters", []))
         test_env_vars.extend(language.get("extra_test_env_vars", []))
 
-    linters.update(flavor.get("custom_linters", []))
+    linters.update(_string_list(name, "custom_linters", flavor.get("custom_linters")))
     if flavor.get("extra_dockerfile"):
         fragments.append(_render(flavor["extra_dockerfile"], flavor=flavor))
     test_linters.extend(flavor.get("extra_test_linters", []))
@@ -92,7 +115,8 @@ def flavors_affected(changed_files: list[str], repo_root: Path) -> list[str]:
     affected = []
     for flavor_yaml in sorted(repo_root.glob("megalinter-*/flavor.yaml")):
         flavor = _load(flavor_yaml)
-        used = resolve_languages(flavor.get("languages", []), repo_root / factory / "languages")
+        names = _string_list(flavor_yaml.parent.name, "languages", flavor.get("languages"))
+        used = resolve_languages(names, repo_root / factory / "languages")
         if base_changed or any(f"{factory}/languages/{name}.yaml" in changed for name, _ in used):
             affected.append(flavor_yaml.parent.name)
     return affected
