@@ -48,7 +48,6 @@ jobs:
       packages: write # Push to GHCR
       id-token: write # OIDC for attestations
       attestations: write # Build provenance
-      security-events: write # SARIF upload to GitHub code scanning
     outputs:
       digest: ${{ steps.build.outputs.digest }}
     steps:
