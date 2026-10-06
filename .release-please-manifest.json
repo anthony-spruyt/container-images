@@ -9,14 +9,10 @@
   "llm-guard": "1.0.44",
   "llm-guard-cuda": "1.0.16",
   "megalinter-base": "1.0.0",
-  "megalinter-chromance": "1.1.1",
-  "megalinter-container-images": "12.0.0",
   "megalinter-cpp": "1.0.0",
   "megalinter-go": "2.0.0",
   "megalinter-python": "1.0.0",
   "megalinter-spruyt-labs": "3.0.0",
-  "megalinter-sungather": "3.0.0",
   "megalinter-typescript": "1.0.0",
-  "megalinter-xfg": "2.0.4",
   "ssh-key-rotation": "2.0.10"
 }

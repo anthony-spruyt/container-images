@@ -9,7 +9,7 @@ Usage:
     python generate.py <flavor-directory>
 
 Example:
-    python megalinter-factory/generate.py megalinter-container-images/
+    python megalinter-factory/generate.py megalinter-python/
 """
 
 import argparse
