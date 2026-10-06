@@ -1,0 +1,22 @@
+---
+linters:
+  - GO_GOLANGCI_LINT
+
+# Upstream's go flavor installs Go from apk, which trails the go directive our modules declare
+# renovate: datasource=docker depName=golang
+go_image: "docker.io/library/golang:1.27.1-alpine@sha256:8a5910f31396cd4d89662f56c68b3ae31d374308270a1c3bd96672ee5ed43414"
+
+# GOTOOLCHAIN=local: a newer go directive must fail the run, not download a toolchain golangci-lint cannot load
+# GOMODCACHE: the default under /go is root-owned, and lint.sh runs the container as the host user
+extra_dockerfile: |
+  COPY --link --from={{ language.go_image }} /usr/local/go /usr/lib/go
+  ENV GOTOOLCHAIN=local \
+      GOMODCACHE=/tmp/go/mod
+
+extra_test_linters:
+  - name: go
+    version_command: "go version"
+
+extra_test_env_vars:
+  - name: GOTOOLCHAIN
+    contains: "local"

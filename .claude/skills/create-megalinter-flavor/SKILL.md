@@ -1,24 +1,25 @@
 ---
 name: create-megalinter-flavor
-description: Create a new MegaLinter flavor image configuration
+description: Create a new MegaLinter flavor image configuration from language definitions
 allowed-tools:
   - Read
   - Write
   - Bash
   - AskUserQuestion
-argument-hint: <name> [LINTER1,LINTER2,...]
+argument-hint: <languages> (e.g. go-python)
 ---
 
 # Create MegaLinter Flavor
 
 You are creating a new MegaLinter flavor image configuration. Follow these steps precisely.
 
+Flavors are named by the languages they lint and shared by every repo with that mix. Each language's linters and toolchain live once in `megalinter-factory/languages/<language>.yaml`; a flavor lists languages, it does not copy their linters. Only create a flavor a repo actually needs.
+
 ## Input Parsing
 
 Parse the arguments provided: `$ARGUMENTS`
 
-- **name**: The first argument (required) - the flavor name
-- **linters**: Optional comma-separated list of linter keys (e.g., `ACTION_ACTIONLINT,MARKDOWN_MARKDOWNLINT`)
+- **name**: The first argument (required) - the languages joined by `-`, e.g. `go-python`
 
 ## Step 1: Validate Name
 
@@ -45,11 +46,16 @@ python megalinter-factory/megalinter_extractor.py 2>&1 | head -100
 
 This extracts linter information directly from MegaLinter's descriptors.
 
-## Step 3: Get Linter Selection
+## Step 3: Resolve Languages
 
-If linters were provided as arguments, validate each one exists in MegaLinter (check extractor output).
+Split the name on `-` into languages (a language file name may itself contain `-`; match the longest names in `megalinter-factory/languages/` first). For each one:
 
-**Important**: Some linters are already included in the `ci_light` base flavor. The extractor output shows `ci_light has N linters` - these DON'T need to be in `custom_linters`. Only add linters that aren't in the base flavor.
+- If `megalinter-factory/languages/<language>.yaml` exists, use it as is.
+- Otherwise create it: `linters` lists the MegaLinter keys (validate each against the extractor output), plus `extra_dockerfile`, `extra_test_linters` and `extra_test_env_vars` when the language needs a toolchain or settings the upstream base lacks. Fragments reference the file's own fields as `{{ language.<field> }}`. Put a `# renovate:` annotation on every pinned version. See `languages/go.yaml` for a toolchain example. Never name a file after a tool: a language file is that language's one linter set.
+
+`megalinter-factory/base.yaml` already gives every flavor ACTION_ACTIONLINT, MARKDOWN_MARKDOWNLINT and SPELL_LYCHEE; do not repeat them.
+
+**Important**: Some linters are already included in the `ci_light` base flavor. The extractor output shows `ci_light has N linters` - these DON'T need to be in a language's `linters`.
 
 Linters already in `ci_light` as of MegaLinter v10.1.0 (23 total) — the extractor output is authoritative if it disagrees:
 
@@ -62,13 +68,6 @@ Linters already in `ci_light` as of MegaLinter v10.1.0 (23 total) — the extrac
 - REPOSITORY_OSV_SCANNER
 - COPYPASTE_JSCPD, XML_XMLLINT, ENV_DOTENV_LINTER, GROOVY_NPM_GROOVY_LINT
 
-**NOT in `ci_light`** (must be added as custom_linters):
-
-- ACTION_ACTIONLINT
-- MARKDOWN_MARKDOWNLINT, SPELL_LYCHEE
-- PYTHON_PYLINT, PYTHON_RUFF
-- (and most language-specific linters)
-
 **Built-in linters requiring specific base flavors:**
 
 Some linters are built-in (no install needed) but require tools only available in specific base flavors:
@@ -79,24 +78,10 @@ Some linters are built-in (no install needed) but require tools only available i
 | CSHARP_DOTNET_FORMAT    | `dotnet` or `dotnetweb`           |
 | VBDOTNET_DOTNET_FORMAT  | `dotnet` or `dotnetweb`           |
 | SWIFT_SWIFTLINT         | `swift`                           |
-| GO\_\* linters          | `go`                              |
 | JAVA\_\* linters        | `java`                            |
-| PYTHON\_\* linters      | `python` (or `ci_light` for some) |
 | RUST_CLIPPY             | `rust`                            |
 
-If a user requests these linters with `ci_light` base, warn them they need to change `upstream_image` to the appropriate flavor (e.g., `oxsecurity/megalinter-terraform`).
-
-If NO linters were provided, use AskUserQuestion to help the user select linters interactively. Present linters grouped by category:
-
-- ACTION: GitHub Actions linters
-- BASH: Shell script linters
-- DOCKERFILE: Container linters
-- JSON/YAML: Data format linters
-- MARKDOWN: Documentation linters
-- PYTHON: Python linters
-- REPOSITORY: Security/scanning linters
-- TERRAFORM: Infrastructure linters
-- (etc.)
+Prefer bringing the toolchain in through the language's `extra_dockerfile` (as `go.yaml` does) so the flavor can stay on `ci_light`. If that is not practical, warn the user they need to change `upstream_image` to the matching upstream flavor.
 
 ## Step 4: Auto-Select Base Flavor
 
@@ -108,29 +93,19 @@ Create the directory and both required configuration files.
 
 ### 5a: Create flavor.yaml
 
-Create `megalinter-<name>/flavor.yaml` with this simple structure:
+Create `megalinter-<name>/flavor.yaml`:
 
 ```yaml
-# MegaLinter Flavor Factory Configuration
-# Source of truth for megalinter-<name> flavor
-#
-# To regenerate Dockerfile and test.sh:
-#   python megalinter-factory/generate.py megalinter-<name>/
-#
-# Linter versions are automatically extracted from MegaLinter at build time.
 ---
 name: <name>
-description: "<user-provided or auto-generated description>"
+description: "MegaLinter for <languages> repositories"
 
-# Upstream MegaLinter base image (Renovate tracks this)
 # renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-ci_light
 upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:<version>@sha256:<digest>"
 
-# Additional linters not in base flavor
-# Just list linter keys - versions come from MegaLinter automatically
-custom_linters:
-  - <LINTER_KEY_1>
-  - <LINTER_KEY_2>
+languages:
+  - <language-1>
+  - <language-2>
 ```
 
 Copy `<version>` and `<digest>` from an existing ci_light flavor's `flavor.yaml` so all flavors share one base that Renovate keeps current.
@@ -160,6 +135,7 @@ Inform the user:
 
 1. Configuration files created:
    - `megalinter-<name>/flavor.yaml` - flavor configuration
+   - any new `megalinter-factory/languages/<language>.yaml`
 2. Registered with release-please and Renovate; the daily Trivy scan finds the image on GHCR by itself
 3. Linter versions will be extracted from MegaLinter at build time
 4. Next steps:
@@ -169,25 +145,26 @@ Inform the user:
 
 ## Validation Rules Summary
 
-| Check           | Validation                                 |
-| --------------- | ------------------------------------------ |
-| Name format     | `^[a-z][a-z0-9-]*$`                        |
-| Name uniqueness | No existing `megalinter-<name>/` directory |
-| Linter keys     | Must exist in MegaLinter descriptors       |
+| Check           | Validation                                                  |
+| --------------- | ----------------------------------------------------------- |
+| Name format     | `^[a-z][a-z0-9-]*$`                                         |
+| Name uniqueness | No existing `megalinter-<name>/` directory                  |
+| Languages       | Each has `megalinter-factory/languages/<language>.yaml`     |
+| Linter keys     | Must exist in MegaLinter descriptors                        |
 
 ## Example Output
 
-For `/create-megalinter-flavor test-ci ACTION_ACTIONLINT,MARKDOWN_MARKDOWNLINT`:
+For `/create-megalinter-flavor go-python`, both languages already exist, so only the flavor is written:
 
 ```yaml
 ---
-name: test-ci
-description: "Custom MegaLinter for CI testing"
+name: go-python
+description: "MegaLinter for Go and Python repositories"
 
 # renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-ci_light
 upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:<version>@sha256:<digest>"
 
-custom_linters:
-  - ACTION_ACTIONLINT
-  - MARKDOWN_MARKDOWNLINT
+languages:
+  - go
+  - python
 ```

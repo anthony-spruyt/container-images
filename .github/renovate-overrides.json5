@@ -14,6 +14,12 @@
         "commitMessageTopic": "torch (cpu + cuda)",
       },
     },
+    {
+      "description": "Label toolchain pins in MegaLinter language definitions like flavor pins",
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": ["megalinter-factory/base.yaml", "megalinter-factory/languages/*.yaml"],
+      "addLabels": ["renovate/megalinter-flavor"],
+    },
     // release-please writes a CHANGELOG.md per image directory. Without
     // sourceDirectory Renovate looks for release notes at the repo root and
     // finds none, so updates to our own images render with an empty body.

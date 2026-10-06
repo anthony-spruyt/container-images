@@ -37,7 +37,7 @@ This repo builds container images from upstream sources or custom Dockerfiles, p
 .github/workflows/    # CI/CD pipelines
 .devcontainer/        # Dev environment setup
 .pre-commit-config.yaml
-megalinter-factory/   # MegaLinter flavor generator (generate.py, templates/)
+megalinter-factory/   # MegaLinter flavor generator (generate.py, templates/, languages/<lang>.yaml)
 ```
 
 ## Downstream Consumer Discovery
@@ -82,6 +82,7 @@ Classify dependency type from labels and changed files:
 | -------------------------------------------- | ----------------- | ------------------------------- |
 | `renovate/script` + `Dockerfile` changed     | upstream-source   | GitHub repo from the pinned ARG |
 | `renovate/script` + `flavor.yaml` changed    | docker-base-image | Container registry project      |
+| `megalinter-factory/languages/*.yaml` changed | language-toolchain | Toolchain's registry or repo   |
 | `renovate/github-actions` + workflow changed | github-actions    | Action's GitHub repo            |
 | `renovate/script` + `.devcontainer/` changed | script-dep        | Tool's GitHub repo              |
 | `renovate/devcontainer`                      | devcontainer-dep  | Devcontainer feature repo       |
@@ -135,8 +136,8 @@ A breaking change only matters if it affects what we actually use.
 
 #### For Docker base image updates (flavor.yaml):
 
-1. Read `<flavor>/flavor.yaml` — get list of `custom_linters`
-2. Check if ALL linters in `custom_linters` still exist in new version
+1. Read `<flavor>/flavor.yaml` — get its `languages` and any `custom_linters`, then the `linters` of `megalinter-factory/base.yaml` and each `megalinter-factory/languages/<lang>.yaml`
+2. Check if ALL those linters still exist in new version
 3. Check `megalinter-factory/generate.py` and templates for compatibility
 4. Linter removed/renamed that we use → HIGH_IMPACT
 5. Only new linters added → NO_IMPACT
