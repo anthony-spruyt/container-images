@@ -65,12 +65,12 @@ A squash merge here takes its subject from the commit when the PR has only one, 
 
 ### Removal guard
 
-`MegaLinter Factory Tests` enforces this on every PR that changes the factory or a `flavor.yaml`. `megalinter-factory/removal_guard.py` composes every flavor on `main` and on the PR. If a flavor present on both sides loses a linter, the check fails unless:
+The `Guard Linter Removals` check (`.github/workflows/removal-guard.yaml`) enforces this on every PR. `megalinter-factory/removal_guard.py` composes every flavor on `main` and on the PR. If a flavor present on both sides loses a linter, the check fails unless:
 
 - the squash subject has `!`, or a commit has a `BREAKING CHANGE:` footer, and
 - the PR changes the `.rebuild-stamp` of every flavor that loses a linter and touches no other flavor directory. The stamp, not just any file, is what makes the refresh skip the flavor.
 
-It compares composed linter sets (base, languages and `custom_linters`), not upstream image changes. New and deleted flavors are not removals. The job reads the PR title live, so after fixing the title, re-run the failed job.
+It compares composed linter sets (base, languages and `custom_linters`), not upstream image changes. New and deleted flavors are not removals. The check also runs when the PR is edited, outside the rest of CI, so dropping the `!` from the title after a green run fails it again.
 
 ## Variant images
 

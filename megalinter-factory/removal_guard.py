@@ -67,7 +67,7 @@ def check(
         errors.append(
             f"{lost}. Removing a linter breaks repos that enable it: title the PR "
             "`<type>(<scope>)!: <what consumers must change>` (the commit subject for a "
-            "one-commit PR), or add a BREAKING CHANGE: footer, then re-run this job"
+            "one-commit PR), or add a BREAKING CHANGE: footer"
         )
     touched = touched_flavors(changed_files, head_root)
     # The refresh skips only flavors whose stamp the push changed

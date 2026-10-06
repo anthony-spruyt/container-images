@@ -68,7 +68,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
           persist-credentials: false
 
       - name: Run tests
@@ -77,25 +76,6 @@ jobs:
             -r megalinter-factory/requirements.txt \
             -r megalinter-factory/requirements-test.txt
           python -m pytest megalinter-factory/ -q
-
-      # HEAD is the PR's test merge: HEAD^1 is main, HEAD^2 the PR head
-      - name: Guard linter removals
-        if: github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          # Read live, not from the event: a re-run after a title fix must see the new title
-          TITLE=$(gh pr view "$PR_NUMBER" --json title --jq .title)
-          git worktree add -q --detach "$RUNNER_TEMP/base" HEAD^1
-          git log --format='%B%x00' HEAD^1..HEAD^2 > "$RUNNER_TEMP/commits"
-          git diff --name-only HEAD^1 HEAD > "$RUNNER_TEMP/changed"
-          jq -n --arg title "$TITLE" \
-            --rawfile commits "$RUNNER_TEMP/commits" \
-            --rawfile changed "$RUNNER_TEMP/changed" \
-            '{$title, $commits, $changed}' |
-            python megalinter-factory/removal_guard.py --base "$RUNNER_TEMP/base"
 
   detect-changes:
     name: Detect Changes
