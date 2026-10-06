@@ -1,4 +1,0 @@
----
-# Python repos not yet moved to ruff; new Python repos use the python language
-linters:
-  - PYTHON_PYLINT

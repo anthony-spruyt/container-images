@@ -306,3 +306,67 @@ def test_repository_flavor_composes_its_golden_linters(flavor_dir: str) -> None:
     flavor = yaml.safe_load(path.read_text(encoding="utf-8"))
 
     assert compose_flavor(flavor, FACTORY_DIR)["custom_linters"] == EXPECTED_LINTERS[flavor_dir]
+
+
+@pytest.fixture(name="options_factory")
+def fixture_options_factory(tmp_path: Path) -> Path:
+    """A python language whose default is ruff, with a pylint option."""
+    return write_factory(
+        tmp_path,
+        base={"linters": ["SPELL_LYCHEE"]},
+        languages={
+            "python": {
+                "linters": ["PYTHON_RUFF"],
+                "extra_dockerfile": "ENV PYTHON_DEFAULT_STYLE=ruff\n",
+                "extra_test_env_vars": [{"name": "PYTHON_DEFAULT_STYLE", "contains": "ruff"}],
+                "options": {"pylint": {"linters": ["PYTHON_PYLINT"]}},
+            },
+        },
+    )
+
+
+def test_plain_language_entry_uses_its_default(options_factory: Path) -> None:
+    """`- python` gets the default linter set."""
+    flavor = compose_flavor({"name": "x", "languages": ["python"]}, options_factory)
+
+    assert flavor["custom_linters"] == ["PYTHON_RUFF", "SPELL_LYCHEE"]
+    assert flavor["extra_dockerfile"] == "ENV PYTHON_DEFAULT_STYLE=ruff"
+
+
+def test_language_option_replaces_the_default(options_factory: Path) -> None:
+    """`- python: pylint` gets only the option's linters and extras, not the default's."""
+    flavor = compose_flavor({"name": "x", "languages": [{"python": "pylint"}]}, options_factory)
+
+    assert flavor["custom_linters"] == ["PYTHON_PYLINT", "SPELL_LYCHEE"]
+    assert not flavor["extra_dockerfile"]
+    assert not flavor["extra_test_env_vars"]
+
+
+def test_unknown_language_option_is_an_error(options_factory: Path) -> None:
+    """A typo in the option fails the build and names the options that exist."""
+    with pytest.raises(ValueError, match="pylnt.*pylint"):
+        compose_flavor({"name": "x", "languages": [{"python": "pylnt"}]}, options_factory)
+
+
+def test_language_entry_with_two_keys_is_an_error(options_factory: Path) -> None:
+    """Each entry names one language."""
+    with pytest.raises(ValueError, match="languages"):
+        compose_flavor(
+            {"name": "x", "languages": [{"python": "pylint", "go": "x"}]}, options_factory
+        )
+
+
+def test_change_to_language_file_affects_flavors_using_an_option(options_factory: Path) -> None:
+    """An option lives in its language's file, so editing that file rebuilds its flavors."""
+    root = options_factory / "repo"
+    (root / "megalinter-factory").mkdir(parents=True)
+    for part in ("base.yaml", "languages"):
+        (options_factory / part).rename(root / "megalinter-factory" / part)
+    (root / "megalinter-legacy").mkdir()
+    (root / "megalinter-legacy" / "flavor.yaml").write_text(
+        yaml.safe_dump({"name": "legacy", "languages": [{"python": "pylint"}]}), encoding="utf-8"
+    )
+
+    assert flavors_affected(["megalinter-factory/languages/python.yaml"], root) == [
+        "megalinter-legacy"
+    ]

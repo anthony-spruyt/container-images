@@ -6,7 +6,7 @@ description: "MegaLinter for spruyt-labs - Go, Terraform, TypeScript, and infras
 upstream_image: "ghcr.io/oxsecurity/megalinter-go:v10.1.0@sha256:42e091a4bcbe9141fe420c2520ed7addf75ae60a0c9d42e3df1278eef1c90a88"
 
 languages:
-  - pylint
+  - python: pylint
   - terraform
 
 # Biome is not in MegaLinter upstream; its descriptor ships in mega-linter-plugin-biome/

@@ -15,14 +15,22 @@ def _load(path: Path) -> dict:
         return yaml.safe_load(f) or {}
 
 
-def _load_language(name: str, languages_dir: Path) -> dict:
+def _load_language(name: str, option: str | None, languages_dir: Path) -> dict:
     path = languages_dir / f"{name}.yaml"
     if not LANGUAGE_NAME.match(name) or not path.is_file():
         raise ValueError(
             f"Language {name!r} has no definition in {languages_dir} - "
             "add megalinter-factory/languages/<name>.yaml or fix the name."
         )
-    return _load(path)
+    definition = _load(path)
+    options = definition.pop("options", {})
+    if option is None:
+        return definition
+    if option not in options:
+        raise ValueError(
+            f"Language {name!r} has no option {option!r}; options: {sorted(options) or 'none'}"
+        )
+    return options[option]
 
 
 def _string_list(owner: str, field: str, value: object) -> list[str]:
@@ -35,26 +43,60 @@ def _string_list(owner: str, field: str, value: object) -> list[str]:
     return value
 
 
-def resolve_languages(names: list[str], languages_dir: Path) -> list[tuple[str, dict]]:
+def _language_entries(owner: str, value: object) -> list[tuple[str, str | None]]:
+    """Parse `languages`: each entry is `name`, or `{name: option}` to pick an option."""
+    if value is None:
+        return []
+    entries = []
+    if isinstance(value, list):
+        for entry in value:
+            if isinstance(entry, str):
+                entries.append((entry, None))
+            elif (
+                isinstance(entry, dict)
+                and len(entry) == 1
+                and all(isinstance(v, str) for v in (*entry, *entry.values()))
+            ):
+                entries.append(next(iter(entry.items())))
+            else:
+                break
+        else:
+            return entries
+    raise ValueError(
+        f"{owner}: languages must be a list of language names or {{name: option}}, got {value!r}"
+    )
+
+
+def _entry_key(entry: tuple[str, str | None]) -> tuple[str, str]:
+    return entry[0], entry[1] or ""
+
+
+def resolve_languages(
+    entries: list[tuple[str, str | None]], languages_dir: Path
+) -> list[tuple[str, dict]]:
     """
     Return every listed language plus the ones it includes, each once.
 
     Includes come before the language that includes them; otherwise by name.
     """
-    seen: set[str] = set()
+    chosen: dict[str, str | None] = {}
     ordered: list[tuple[str, dict]] = []
 
-    def visit(name: str) -> None:
-        if name in seen:
+    def visit(name: str, option: str | None) -> None:
+        if name in chosen:
+            if chosen[name] != option:
+                raise ValueError(
+                    f"Language {name!r} is used both as {chosen[name]!r} and {option!r}"
+                )
             return
-        seen.add(name)
-        language = _load_language(name, languages_dir)
-        for include in sorted(_string_list(name, "languages", language.get("languages"))):
-            visit(include)
+        chosen[name] = option
+        language = _load_language(name, option, languages_dir)
+        for include in sorted(_language_entries(name, language.get("languages")), key=_entry_key):
+            visit(*include)
         ordered.append((name, language))
 
-    for name in sorted(names):
-        visit(name)
+    for entry in sorted(entries, key=_entry_key):
+        visit(*entry)
     return ordered
 
 
@@ -78,7 +120,7 @@ def compose_flavor(flavor: dict, factory_dir: Path) -> dict:
     name = flavor.get("name", "flavor")
     base = _load(factory_dir / "base.yaml")
     languages = resolve_languages(
-        _string_list(name, "languages", flavor.get("languages")), factory_dir / "languages"
+        _language_entries(name, flavor.get("languages")), factory_dir / "languages"
     )
 
     linters = set(_string_list("base.yaml", "linters", base.get("linters")))
@@ -115,8 +157,8 @@ def flavors_affected(changed_files: list[str], repo_root: Path) -> list[str]:
     affected = []
     for flavor_yaml in sorted(repo_root.glob("megalinter-*/flavor.yaml")):
         flavor = _load(flavor_yaml)
-        names = _string_list(flavor_yaml.parent.name, "languages", flavor.get("languages"))
-        used = resolve_languages(names, repo_root / factory / "languages")
+        entries = _language_entries(flavor_yaml.parent.name, flavor.get("languages"))
+        used = resolve_languages(entries, repo_root / factory / "languages")
         if base_changed or any(f"{factory}/languages/{name}.yaml" in changed for name, _ in used):
             affected.append(flavor_yaml.parent.name)
     return affected

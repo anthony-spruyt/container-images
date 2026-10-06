@@ -10,3 +10,10 @@ extra_dockerfile: |
 extra_test_env_vars:
   - name: PYTHON_DEFAULT_STYLE
     contains: "ruff"
+
+# A flavor picks one with `- python: <option>`; it replaces everything above
+options:
+  # For repos not yet moved to ruff
+  pylint:
+    linters:
+      - PYTHON_PYLINT

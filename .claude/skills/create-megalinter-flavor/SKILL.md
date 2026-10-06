@@ -51,7 +51,7 @@ This extracts linter information directly from MegaLinter's descriptors.
 Split the name on `-` into languages (a language file name may itself contain `-`; match the longest names in `megalinter-factory/languages/` first). For each one:
 
 - If `megalinter-factory/languages/<language>.yaml` exists, use it as is.
-- Otherwise create it: `linters` lists the MegaLinter keys (validate each against the extractor output), plus `extra_dockerfile`, `extra_test_linters` and `extra_test_env_vars` when the language needs a toolchain or settings the upstream base lacks. Fragments reference the file's own fields as `{{ language.<field> }}`. Put a `# renovate:` annotation on every pinned version. See `languages/go.yaml` for a toolchain example.
+- Otherwise create it: `linters` lists the MegaLinter keys (validate each against the extractor output), plus `extra_dockerfile`, `extra_test_linters` and `extra_test_env_vars` when the language needs a toolchain or settings the upstream base lacks. Fragments reference the file's own fields as `{{ language.<field> }}`. Put a `# renovate:` annotation on every pinned version. See `languages/go.yaml` for a toolchain example. Never name a file after a tool: an alternative linter set for a language goes under `options:` in that language's file (see `languages/python.yaml`), and the flavor lists `- <language>: <option>`.
 
 `megalinter-factory/base.yaml` already gives every flavor ACTION_ACTIONLINT, MARKDOWN_MARKDOWNLINT and SPELL_LYCHEE; do not repeat them.
 
