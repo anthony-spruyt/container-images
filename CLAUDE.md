@@ -68,7 +68,9 @@ Never commit or push directly to the `main` branch. Always create a feature bran
 
 Base (`.mega-linter-base.yml`): ACTION_ACTIONLINT, BASH_SHELLCHECK, BASH_SHFMT, JSON_JSONLINT, MARKDOWN_MARKDOWNLINT, REPOSITORY_BETTERLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY, SPELL_LYCHEE, YAML_YAMLLINT
 
-Project-specific (`.mega-linter.yml`): DOCKERFILE_HADOLINT, PYTHON_PYLINT
+Project-specific (`.mega-linter.yml`): DOCKERFILE_HADOLINT
+
+Python: ruff with `pyproject.toml` (extends `ruff-base.toml`). MegaLinter doesn't run it until repo-operator moves this repo to `megalinter-python`, so run `ruff check` and `ruff format --check` yourself.
 
 ## MegaLinter Flavor Factory
 

@@ -1,9 +1,10 @@
 """Individual scanner implementations."""
+
 import logging
 import re
 import unicodedata
 from dataclasses import dataclass
-from typing import Optional
+
 import torch
 from transformers import Pipeline, pipeline
 
@@ -14,14 +15,16 @@ logger = logging.getLogger(__name__)
 # Cf = Unicode format chars (zero-width, directional overrides, etc.)
 # Cc (control chars) intentionally excluded — it includes \n \r \t
 _INVISIBLE_CATEGORIES = frozenset({"Cf"})
-_INVISIBLE_CODEPOINTS = frozenset({
-    0x00AD,  # soft hyphen
-    0x200B,  # zero-width space
-    0x200C,  # zero-width non-joiner
-    0x200D,  # zero-width joiner
-    0x2060,  # word joiner
-    0xFEFF,  # zero-width no-break space / BOM
-})
+_INVISIBLE_CODEPOINTS = frozenset(
+    {
+        0x00AD,  # soft hyphen
+        0x200B,  # zero-width space
+        0x200C,  # zero-width non-joiner
+        0x200D,  # zero-width joiner
+        0x2060,  # word joiner
+        0xFEFF,  # zero-width no-break space / BOM
+    }
+)
 
 
 def _resolve_device() -> int:
@@ -44,7 +47,7 @@ class ScanResult:
     scanner: str
     is_safe: bool
     score: float
-    reason: Optional[str] = None
+    reason: str | None = None
 
 
 class PromptInjectionScanner:
@@ -63,11 +66,11 @@ class PromptInjectionScanner:
         """
         self._model = kwargs.get("model", "") or config.DEFAULT_MODEL
         self._injection_label = kwargs.get("injection_label", "") or config.DEFAULT_INJECTION_LABEL
-        threshold = kwargs.get("threshold", None)
+        threshold = kwargs.get("threshold")
         self._threshold = config.DEFAULT_THRESHOLD if threshold is None else threshold
         self._match_type = kwargs.get("match_type", "full")
         self._model_max_length = kwargs.get("model_max_length", 512)
-        self._pipe: Optional[Pipeline] = None
+        self._pipe: Pipeline | None = None
         self._injection_label_missing_warned = False
 
     def load(self):
@@ -86,9 +89,7 @@ class PromptInjectionScanner:
         )
         known_labels = self._known_labels()
         if known_labels and self._injection_label not in known_labels:
-            raise RuntimeError(
-                f"injection_label {self._injection_label!r} not in model labels: {known_labels}"
-            )
+            raise RuntimeError(f"injection_label {self._injection_label!r} not in model labels: {known_labels}")
         if not known_labels:
             # Some models populate only one of label2id/id2label, or neither
             # (e.g. generic LABEL_0/LABEL_1). Can't validate up front; the
@@ -122,8 +123,7 @@ class PromptInjectionScanner:
             # once so the silent pass-through is observable at runtime.
             logger.warning(
                 "injection_label not in model output; scanner fails open (scores 0.0)",
-                extra={"injection_label": self._injection_label,
-                       "model_labels": sorted(scores.keys())},
+                extra={"injection_label": self._injection_label, "model_labels": sorted(scores.keys())},
             )
             self._injection_label_missing_warned = True
         return scores.get(self._injection_label, 0.0)
@@ -152,9 +152,7 @@ class PromptInjectionScanner:
             scanner="PromptInjection",
             is_safe=is_safe,
             score=round(injection_score, 4),
-            reason=None if is_safe else (
-                f"injection score {injection_score:.4f} >= {self._threshold}"
-            ),
+            reason=None if is_safe else (f"injection score {injection_score:.4f} >= {self._threshold}"),
         )
 
 
@@ -163,7 +161,7 @@ class RegexScanner:
 
     def __init__(
         self,
-        patterns: Optional[list] = None,
+        patterns: list | None = None,
         is_blocked: bool = True,
         match_type: str = "search",
         redact: bool = False,
@@ -232,9 +230,7 @@ class InvisibleTextScanner:
             ScanResult with is_safe=False if invisible characters are found.
         """
         found = [
-            ch for ch in text
-            if ord(ch) in _INVISIBLE_CODEPOINTS
-            or unicodedata.category(ch) in _INVISIBLE_CATEGORIES
+            ch for ch in text if ord(ch) in _INVISIBLE_CODEPOINTS or unicodedata.category(ch) in _INVISIBLE_CATEGORIES
         ]
         if found:
             codepoints = ", ".join(f"U+{ord(c):04X}" for c in set(found))

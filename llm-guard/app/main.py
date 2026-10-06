@@ -1,8 +1,8 @@
 """FastAPI service: LiteLLM guardrail and llm-guard-api compatible endpoints."""
+
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI
@@ -48,6 +48,7 @@ def readyz():
 
 # --- LiteLLM guardrail format ---
 
+
 class _StructuredMsg(BaseModel):
     """A single message in a structured conversation."""
 
@@ -60,11 +61,7 @@ class _StructuredMsg(BaseModel):
         if isinstance(c, str):
             return c
         if isinstance(c, list):
-            return "\n".join(
-                str(p.get("text", ""))
-                for p in c
-                if isinstance(p, dict) and p.get("type") == "text"
-            )
+            return "\n".join(str(p.get("text", "")) for p in c if isinstance(p, dict) and p.get("type") == "text")
         return str(c)
 
 
@@ -79,10 +76,10 @@ class LiteLLMRequest(BaseModel):
 
     model_config = {"extra": "ignore"}
 
-    texts: Optional[list[str]] = None
-    structured_messages: Optional[list[_StructuredMsg]] = None
-    litellm_call_id: Optional[str] = None
-    litellm_trace_id: Optional[str] = None
+    texts: list[str] | None = None
+    structured_messages: list[_StructuredMsg] | None = None
+    litellm_call_id: str | None = None
+    litellm_trace_id: str | None = None
 
 
 def _extract_prompt(req: LiteLLMRequest) -> str:
@@ -93,7 +90,7 @@ def _extract_prompt(req: LiteLLMRequest) -> str:
     return "\n".join(parts)
 
 
-def _safe_id(value: Optional[str]) -> str:
+def _safe_id(value: str | None) -> str:
     """Strip newlines to prevent log injection; treat None as empty."""
     return (value or "").replace("\n", " ").replace("\r", " ")
 
@@ -133,6 +130,7 @@ async def litellm_guardrail(req: LiteLLMRequest):
 
 
 # --- llm-guard-api compat format ---
+
 
 class ScanPromptRequest(BaseModel):
     """Request body for llm-guard-api compatible endpoints."""

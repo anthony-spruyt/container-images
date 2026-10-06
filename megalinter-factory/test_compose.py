@@ -15,9 +15,7 @@ def write_factory(tmp_path: Path, base: dict, languages: dict[str, dict]) -> Pat
     (tmp_path / "base.yaml").write_text(yaml.safe_dump(base), encoding="utf-8")
     (tmp_path / "languages").mkdir()
     for name, definition in languages.items():
-        (tmp_path / "languages" / f"{name}.yaml").write_text(
-            yaml.safe_dump(definition), encoding="utf-8"
-        )
+        (tmp_path / "languages" / f"{name}.yaml").write_text(yaml.safe_dump(definition), encoding="utf-8")
     return tmp_path
 
 
@@ -90,9 +88,7 @@ def test_flavor_specific_linters_are_kept_and_deduplicated(factory: Path) -> Non
 
 def test_language_can_include_another_language_once(factory: Path) -> None:
     """typescript pulls in javascript; listing both still installs javascript once."""
-    flavor = compose_flavor(
-        {"name": "ts", "languages": ["typescript", "javascript"]}, factory
-    )
+    flavor = compose_flavor({"name": "ts", "languages": ["typescript", "javascript"]}, factory)
 
     assert flavor["custom_linters"] == [
         "ACTION_ACTIONLINT",
@@ -122,9 +118,7 @@ def test_dockerfile_fragments_render_with_their_own_fields_in_order(factory: Pat
     )
 
     assert flavor["extra_dockerfile"] == (
-        "COPY --from=golang:1 /go /go\n"
-        "ENV PYTHON_DEFAULT_STYLE=ruff\n"
-        "ARG TOOL_VERSION=1.2.3"
+        "COPY --from=golang:1 /go /go\nENV PYTHON_DEFAULT_STYLE=ruff\nARG TOOL_VERSION=1.2.3"
     )
 
 
@@ -148,7 +142,7 @@ def test_test_checks_concatenate_languages_then_flavor(factory: Path) -> None:
         factory,
     )
 
-    assert [l["name"] for l in flavor["extra_test_linters"]] == ["go", "biome"]
+    assert [linter["name"] for linter in flavor["extra_test_linters"]] == ["go", "biome"]
     assert [e["name"] for e in flavor["extra_test_env_vars"]] == [
         "GOTOOLCHAIN",
         "PYTHON_DEFAULT_STYLE",
@@ -210,9 +204,7 @@ def test_language_change_affects_only_flavors_using_it(repo: Path) -> None:
 
 def test_included_language_change_reaches_including_flavors(repo: Path) -> None:
     """typescript includes javascript, so a javascript change rebuilds xfg."""
-    assert flavors_affected(["megalinter-factory/languages/javascript.yaml"], repo) == [
-        "megalinter-xfg"
-    ]
+    assert flavors_affected(["megalinter-factory/languages/javascript.yaml"], repo) == ["megalinter-xfg"]
 
 
 def test_base_change_affects_every_flavor(repo: Path) -> None:
@@ -249,7 +241,7 @@ def test_included_language_fragment_renders_before_the_including_one(tmp_path: P
 
 def test_dict_custom_linter_is_rejected_with_a_clear_error(factory: Path) -> None:
     """Per-linter overrides are not supported; say so instead of failing inside a set."""
-    with pytest.raises(ValueError, match="custom_linters.*linter keys"):
+    with pytest.raises(ValueError, match=r"custom_linters.*linter keys"):
         compose_flavor(
             {"name": "x", "custom_linters": [{"linter_key": "GO_LINT", "version_command": "x"}]},
             factory,
@@ -258,42 +250,66 @@ def test_dict_custom_linter_is_rejected_with_a_clear_error(factory: Path) -> Non
 
 def test_languages_given_as_a_string_is_rejected(factory: Path) -> None:
     """`languages: go` would otherwise iterate its characters."""
-    with pytest.raises(ValueError, match="languages.*list"):
+    with pytest.raises(ValueError, match=r"languages.*list"):
         compose_flavor({"name": "go", "languages": "go"}, factory)
 
 
 def test_language_entry_picking_a_tool_is_rejected(factory: Path) -> None:
     """A language is its one linter set; `- python: pylint` must not select another."""
-    with pytest.raises(ValueError, match="languages.*list of names"):
+    with pytest.raises(ValueError, match=r"languages.*list of names"):
         compose_flavor({"name": "x", "languages": [{"python": "pylint"}]}, factory)
 
 
 EXPECTED_LINTERS = {
     "megalinter-chromance": [
-        "ACTION_ACTIONLINT", "CPP_CLANG_FORMAT", "CPP_CPPCHECK", "CPP_CPPLINT",
-        "MARKDOWN_MARKDOWNLINT", "SPELL_LYCHEE",
+        "ACTION_ACTIONLINT",
+        "CPP_CLANG_FORMAT",
+        "CPP_CPPCHECK",
+        "CPP_CPPLINT",
+        "MARKDOWN_MARKDOWNLINT",
+        "SPELL_LYCHEE",
     ],
     "megalinter-container-images": [
-        "ACTION_ACTIONLINT", "MARKDOWN_MARKDOWNLINT", "PYTHON_RUFF", "PYTHON_RUFF_FORMAT",
+        "ACTION_ACTIONLINT",
+        "MARKDOWN_MARKDOWNLINT",
+        "PYTHON_RUFF",
+        "PYTHON_RUFF_FORMAT",
         "SPELL_LYCHEE",
     ],
     "megalinter-go": [
-        "ACTION_ACTIONLINT", "GO_GOLANGCI_LINT", "MARKDOWN_MARKDOWNLINT", "SPELL_LYCHEE",
+        "ACTION_ACTIONLINT",
+        "GO_GOLANGCI_LINT",
+        "MARKDOWN_MARKDOWNLINT",
+        "SPELL_LYCHEE",
     ],
     "megalinter-python": [
-        "ACTION_ACTIONLINT", "MARKDOWN_MARKDOWNLINT", "PYTHON_RUFF", "PYTHON_RUFF_FORMAT",
+        "ACTION_ACTIONLINT",
+        "MARKDOWN_MARKDOWNLINT",
+        "PYTHON_RUFF",
+        "PYTHON_RUFF_FORMAT",
         "SPELL_LYCHEE",
     ],
     "megalinter-spruyt-labs": [
-        "ACTION_ACTIONLINT", "MARKDOWN_MARKDOWNLINT", "SPELL_LYCHEE", "TERRAFORM_TFLINT",
+        "ACTION_ACTIONLINT",
+        "MARKDOWN_MARKDOWNLINT",
+        "SPELL_LYCHEE",
+        "TERRAFORM_TFLINT",
     ],
     "megalinter-sungather": [
-        "ACTION_ACTIONLINT", "MARKDOWN_MARKDOWNLINT", "PYTHON_RUFF", "PYTHON_RUFF_FORMAT",
+        "ACTION_ACTIONLINT",
+        "MARKDOWN_MARKDOWNLINT",
+        "PYTHON_RUFF",
+        "PYTHON_RUFF_FORMAT",
         "SPELL_LYCHEE",
     ],
     "megalinter-xfg": [
-        "ACTION_ACTIONLINT", "JAVASCRIPT_ES", "JAVASCRIPT_PRETTIER", "MARKDOWN_MARKDOWNLINT",
-        "SPELL_LYCHEE", "TYPESCRIPT_ES", "TYPESCRIPT_PRETTIER",
+        "ACTION_ACTIONLINT",
+        "JAVASCRIPT_ES",
+        "JAVASCRIPT_PRETTIER",
+        "MARKDOWN_MARKDOWNLINT",
+        "SPELL_LYCHEE",
+        "TYPESCRIPT_ES",
+        "TYPESCRIPT_PRETTIER",
     ],
 }
 

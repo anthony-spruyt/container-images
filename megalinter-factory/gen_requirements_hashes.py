@@ -52,13 +52,7 @@ def wheel_hashes(name: str, version: str) -> list[str]:
     with urllib.request.urlopen(url, timeout=30) as response:
         release = json.load(response)
 
-    digests = sorted(
-        {
-            item["digests"]["sha256"]
-            for item in release["urls"]
-            if is_supported_wheel(item["filename"])
-        }
-    )
+    digests = sorted({item["digests"]["sha256"] for item in release["urls"] if is_supported_wheel(item["filename"])})
     if not digests:
         raise SystemExit(f"No supported wheels found for {name} {version}")
     return digests
