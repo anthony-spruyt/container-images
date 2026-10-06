@@ -6,8 +6,8 @@ constants below are only fallback defaults used when a scanner omits the
 corresponding param. Only operational settings (bind address, config path)
 are read from the environment.
 """
-import os
 
+import os
 
 # --- Scanner fallback defaults (overridden per-scanner in CONFIG_FILE) ---
 DEFAULT_MODEL = "protectai/deberta-v3-base-prompt-injection-v2"

@@ -74,8 +74,7 @@ def get_linter_display_name(linter_key: str, version_command: str | None = None)
     2. Last part of linter_key after underscore (e.g., "hadolint" from "DOCKERFILE_HADOLINT")
     """
     if version_command:
-        first_word = version_command.split()[0]
-        return first_word
+        return version_command.split()[0]
 
     parts = linter_key.split("_")
     if len(parts) > 1:
@@ -94,9 +93,7 @@ def unique_by_package(linters: list[dict]) -> list[dict]:
     return unique
 
 
-def resolve_linters(
-    flavor: dict, megalinter_data: dict
-) -> tuple[list[str], list[dict], list[dict]]:
+def resolve_linters(flavor: dict, megalinter_data: dict) -> tuple[list[str], list[dict], list[dict]]:
     """
     Resolve all linters for a flavor.
 
@@ -187,7 +184,7 @@ def derive_upstream_fields(flavor: dict) -> dict:
         flavor["upstream_digest"] = parsed["digest"]
         repo_name = parsed["repository"].split("/")[-1]
         if repo_name.startswith("megalinter-"):
-            flavor["base_flavor"] = repo_name[len("megalinter-"):]
+            flavor["base_flavor"] = repo_name[len("megalinter-") :]
         elif "base_flavor" not in flavor:
             flavor["base_flavor"] = "ci_light"
     else:
@@ -196,7 +193,7 @@ def derive_upstream_fields(flavor: dict) -> dict:
     return flavor
 
 
-def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disable=too-many-locals
+def generate_files(flavor_dir: Path, factory_dir: Path) -> None:
     """Generate Dockerfile and test.sh from flavor.yaml."""
     flavor_yaml_path = flavor_dir / "flavor.yaml"
     templates_dir = factory_dir / "templates"
@@ -209,18 +206,16 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disa
 
     all_linters, base_linters, custom_linters = resolve_linters(flavor, megalinter_data)
 
-    docker_binary_linters = [l for l in custom_linters if l["type"] == "docker_binary"]
-    npm_linters = [l for l in custom_linters if l["type"] == "npm"]
-    pip_linters = unique_by_package([l for l in custom_linters if l["type"] == "pip"])
-    go_linters = [l for l in custom_linters if l["type"] == "go"]
-    cargo_linters = [l for l in custom_linters if l["type"] == "cargo"]
-    gem_linters = [l for l in custom_linters if l["type"] == "gem"]
+    docker_binary_linters = [linter for linter in custom_linters if linter["type"] == "docker_binary"]
+    npm_linters = [linter for linter in custom_linters if linter["type"] == "npm"]
+    pip_linters = unique_by_package([linter for linter in custom_linters if linter["type"] == "pip"])
+    go_linters = [linter for linter in custom_linters if linter["type"] == "go"]
+    cargo_linters = [linter for linter in custom_linters if linter["type"] == "cargo"]
+    gem_linters = [linter for linter in custom_linters if linter["type"] == "gem"]
     # Script and dockerfile types both use raw dockerfile instructions
-    script_linters = [l for l in custom_linters if l["type"] in ("script", "dockerfile")]
+    script_linters = [linter for linter in custom_linters if linter["type"] in ("script", "dockerfile")]
 
-    all_apk_packages = sorted(set(
-        pkg for linter in custom_linters for pkg in linter.get("apk_packages", [])
-    ))
+    all_apk_packages = sorted({pkg for linter in custom_linters for pkg in linter.get("apk_packages", [])})
 
     npm_versioned_packages = {}  # package -> (linter_name, version)
     npm_unversioned_packages = set()
@@ -279,9 +274,7 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:  # pylint: disa
 
 def main() -> int:
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Generate MegaLinter flavor files from flavor.yaml"
-    )
+    parser = argparse.ArgumentParser(description="Generate MegaLinter flavor files from flavor.yaml")
     parser.add_argument(
         "flavor_dir",
         type=Path,
