@@ -87,7 +87,7 @@ It never creates a release. If the tag does not exist, cut a new version instead
 | `release-please-config.json`             | Per-image release type, component, and tag format |
 | `.release-please-manifest.json`          | Current version per image — the source of truth   |
 | `.github/workflows/release-please.yaml`  | Cuts releases and dispatches builds               |
-| `.github/workflows/_build-image.yaml`    | Reusable build/push/publish workflow              |
+| `.github/workflows/_build-image.yaml`    | Build prep, then repo-operator's build actions    |
 | `.github/workflows/rebuild-release.yaml` | Recovery for a tagged-but-unbuilt release         |
 
 Notable settings:
@@ -114,7 +114,7 @@ Leave it in place. It is not migration scaffolding, and removing it silently inf
 1. Add the directory to `packages` in `release-please-config.json`.
 2. Add its current version to `.release-please-manifest.json`.
 3. Add outputs and a build job to `.github/workflows/release-please.yaml`. Pass `tag-prefix: "v"` only if the package has `"include-v-in-tag": true`.
-4. Add a `sourceDirectory` rule to `.github/renovate-overrides.json5` so Renovate shows its release notes.
+4. Add a `sourceDirectory` rule so Renovate shows its release notes: in `.github/renovate-overrides.json5`, or for a `megalinter-*` flavor in repo-operator's `.github/renovate/package-rules.json5`, which every repo extends.
 
 ## Troubleshooting
 
@@ -124,6 +124,6 @@ Leave it in place. It is not migration scaffolding, and removing it silently inf
 
 **A release is stuck as a draft.** The build failed after tagging. Fix the cause, then re-drive the build — see [Rebuild Release](#rebuild-release).
 
-**Renovate shows no release notes for an own image.** The image needs a `sourceDirectory` package rule in `.github/renovate-overrides.json5` pointing at its directory.
+**Renovate shows no release notes for an own image.** The image needs a `sourceDirectory` package rule pointing at its directory, in `.github/renovate-overrides.json5` (or repo-operator's `.github/renovate/package-rules.json5` for a `megalinter-*` flavor).
 
 [rp]: https://github.com/googleapis/release-please
