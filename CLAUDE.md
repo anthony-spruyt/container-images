@@ -58,7 +58,7 @@ Old container images and releases are automatically cleaned up weekly:
 - GitHub releases and tags older than 4 weeks are deleted
 - 5 most recent versions always kept
 - Targets: every image registered in `release-please-config.json`
-- Workflow: `.github/workflows/container-retention.yaml`
+- Workflow: `.github/workflows/container-retention.yaml`, which calls repo-operator's `_container-retention.yaml` with this repo's `GITHUB_TOKEN`. Each package must give this repo the **Admin** role under its Actions access settings (images first pushed by this repo's CI have it)
 
 ## Commits
 
