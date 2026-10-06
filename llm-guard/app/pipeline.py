@@ -1,6 +1,6 @@
 """Scanner pipeline — loads from the CONFIG_FILE YAML (required)."""
+
 import logging
-from typing import Optional
 
 import yaml
 
@@ -76,7 +76,7 @@ class _Pipeline:
             scanner name to float score and blocked_reason is None if safe.
         """
         scores: dict = {}
-        blocked_reason: Optional[str] = None
+        blocked_reason: str | None = None
         all_safe = True
 
         for scanner in self._scanners:

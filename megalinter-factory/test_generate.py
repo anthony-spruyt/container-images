@@ -12,9 +12,7 @@ from generate import unique_by_package
 FACTORY_DIR = Path(__file__).parent
 
 
-def test_generate_files_composes_languages_into_outputs(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_generate_files_composes_languages_into_outputs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """A flavor listing a language gets its linters, Dockerfile fragment and test checks."""
     factory = tmp_path / "factory"
     shutil.copytree(FACTORY_DIR / "templates", factory / "templates")
@@ -60,7 +58,7 @@ def test_unique_by_package_drops_linters_sharing_a_package() -> None:
         {"name": "ruff", "package": "ruff"},
     ]
 
-    assert [l["package"] for l in unique_by_package(linters)] == ["ruff", "pylint"]
+    assert [linter["package"] for linter in unique_by_package(linters)] == ["ruff", "pylint"]
 
 
 def test_flavor_fragment_sees_fields_derived_from_upstream_image(
@@ -78,15 +76,11 @@ def test_flavor_fragment_sees_fields_derived_from_upstream_image(
             {
                 "name": "x",
                 "upstream_image": "ghcr.io/oxsecurity/megalinter-go:v10.1.0@sha256:abc",
-                "extra_dockerfile": (
-                    "LABEL base={{ flavor.base_flavor }} tag={{ flavor.upstream_tag }}\n"
-                ),
+                "extra_dockerfile": ("LABEL base={{ flavor.base_flavor }} tag={{ flavor.upstream_tag }}\n"),
             }
         )
     )
-    monkeypatch.setattr(
-        generate, "get_megalinter_linters", lambda: {"linters": {}, "base_flavor_linters": {}}
-    )
+    monkeypatch.setattr(generate, "get_megalinter_linters", lambda: {"linters": {}, "base_flavor_linters": {}})
 
     generate.generate_files(flavor_dir, factory)
 
