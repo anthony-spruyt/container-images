@@ -38,6 +38,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Resolve image
         id: image
@@ -82,6 +83,12 @@ jobs:
             exit 1
           fi
 
+          # The image job builds the run's commit, so the run itself must start from the tag.
+          if [ "$GITHUB_REF" != "refs/tags/${TAG}" ]; then
+            echo "::error::Run this workflow from the tag, not ${GITHUB_REF}: gh workflow run rebuild-release.yaml --ref ${TAG} -f image=${IMAGE} -f version=${VERSION}"
+            exit 1
+          fi
+
           if ! DRAFT=$(gh release view "$TAG" --json isDraft --jq .isDraft); then
             echo "::error::No release found for ${TAG}."
             exit 1
@@ -92,9 +99,14 @@ jobs:
             exit 1
           fi
 
-          NEWEST=$(gh release list --limit 200 --json tagName,isDraft \
-            --jq '.[] | select(.isDraft == false) | .tagName' \
-            | sed -n "s|^${IMAGE}-${TAG_PREFIX}||p" | sort -V | tail -n 1)
+          if ! PUBLISHED=$(gh release list --limit 200 --json tagName,isDraft \
+            --jq '.[] | select(.isDraft == false) | .tagName'); then
+            echo "::error::Could not list releases to check for a newer ${IMAGE} version."
+            exit 1
+          fi
+          # The digit anchor keeps llm-guard from matching llm-guard-cuda tags.
+          NEWEST=$(printf '%s\n' "$PUBLISHED" \
+            | sed -n "s|^${IMAGE}-${TAG_PREFIX}\([0-9]\)|\1|p" | sort -V | tail -n 1)
 
           if [ -n "$NEWEST" ] && [ "$(printf '%s\n%s\n' "$NEWEST" "$VERSION" | sort -V | tail -n 1)" != "$VERSION" ]; then
             echo "::error::${IMAGE} ${NEWEST} is already published, so rebuilding ${VERSION} would move the latest and major.minor tags backwards. Cut a new version instead."

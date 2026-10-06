@@ -130,7 +130,7 @@ curl -X POST \
   -d '{"ref":"main","inputs":{"image":"chrony"}}'
 ```
 
-To republish a release whose build failed after tagging, use the `Rebuild Release` workflow instead.
+To republish a release whose build failed after tagging, dispatch the `Rebuild Release` workflow from the release tag instead (see [docs/releases.md](docs/releases.md#rebuild-release)).
 
 ## Automatic Version Updates
 
