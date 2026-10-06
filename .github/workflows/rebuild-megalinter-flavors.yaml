@@ -56,8 +56,10 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           if [ "$EVENT_NAME" = "push" ]; then
-            # Modified only: a newly added definition changes no flavor until its flavor.yaml lists it
-            DIFF=$(git diff --name-only --diff-filter=M "$BEFORE" "$SHA")
+            # Modified only: a newly added definition changes no flavor until its flavor.yaml lists it.
+            # Stamps the push already wrote (a breaking removal releases its own flavors) are skipped.
+            DIFF=$(git diff --name-only --diff-filter=M "$BEFORE" "$SHA"
+              git diff --name-only "$BEFORE" "$SHA" -- 'megalinter-*/.rebuild-stamp')
             mapfile -t CHANGED <<< "$DIFF"
             pip install -q --require-hashes --only-binary :all: \
               -r megalinter-factory/requirements.txt

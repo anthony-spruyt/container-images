@@ -53,14 +53,24 @@ It runs:
 
 - **Weekly**, stamping every flavor with today's date.
 - **On a push to `main` that modifies `megalinter-factory/base.yaml` or `megalinter-factory/languages/*.yaml`**, stamping only the flavors that compose the changed file, with `<date>-<sha>`.
-  The factory is not a release-please package, so a language or toolchain change (such as Renovate moving `go_image`) releases flavors only through this PR. Newly added definitions stamp nothing until a flavor lists them.
+  The factory is not a release-please package, so a language or toolchain change (such as Renovate moving `go_image`) releases flavors only through this PR. Newly added definitions stamp nothing until a flavor lists them, and flavors whose stamp the push already changed are skipped.
 
 Runs are serialized. If a refresh PR is still open, the new run stamps its flavors as well and closes it as superseded, so two refresh PRs never edit the same stamp.
 
 A factory code change that alters generated output releases nothing by itself; include a commit that touches the affected flavor directories. A `build:` commit to a flavor directory releases nothing either, since `build` has no changelog section — use it for changes that leave the generated image unchanged.
 
-A change that removes or replaces a linter breaks consumers that enable it, but the refresh stamps it as a `chore` patch. Release it from the change itself: touch each affected flavor directory (its `.rebuild-stamp` will do) in the same PR, keep every other flavor directory out of it, and title the PR `<type>(<scope>)!: <what consumers must change>`.
+A change that removes or replaces a linter breaks consumers that enable it, so it must release the affected flavors as a major from the change itself, not as a refresh `chore` patch.
+Change each affected flavor's `.rebuild-stamp` in the same PR, keep every other flavor directory out of it, and title the PR `<type>(<scope>)!: <what consumers must change>`. The refresh then skips the flavors the PR stamped.
 A squash merge here takes its subject from the commit when the PR has only one, otherwise from the PR title, and its body from the commit messages, never the PR body. So put the `!` in that subject (the commit's own for a one-commit PR), or a `BREAKING CHANGE:` footer in a commit message.
+
+### Removal guard
+
+The `Guard Linter Removals` check (`.github/workflows/removal-guard.yaml`) enforces this on every PR. `megalinter-factory/removal_guard.py` composes every flavor on `main` and on the PR. If a flavor present on both sides loses a linter, the check fails unless:
+
+- the squash subject has `!`, or a commit has a `BREAKING CHANGE:` footer, and
+- the PR changes the `.rebuild-stamp` of every flavor that loses a linter and touches no other flavor directory. The stamp, not just any file, is what makes the refresh skip the flavor.
+
+It compares composed linter sets (base, languages and `custom_linters`), not upstream image changes. New and deleted flavors are not removals. The check also runs when the PR is edited, outside the rest of CI, so dropping the `!` from the title after a green run fails it again.
 
 ## Variant images
 
