@@ -19,9 +19,22 @@ Git tags keep the format this repo already used, so existing tags round-trip and
 2. `Release Please` runs on `main` and opens (or updates) a single release PR, labelled `autorelease: pending`, covering every image with pending changes.
 3. Mergify auto-merges the release PR once `summary / Check Results` passes.
 4. Merging creates a git tag and a **draft** GitHub release per image in the PR.
-5. The same workflow run builds each image from its tag, pushes it to GHCR, attests provenance, and publishes that image's release with the ref and digest appended. Build jobs key off per-component outputs, so one PR still yields one tag, release, and build per image.
+5. The same workflow run builds each image from the commit the run started from, pushes it to GHCR, attests provenance, and publishes that image's release with the ref and digest appended. Build jobs key off per-component outputs, so one PR still yields one tag, release, and build per image.
 
 If step 5 fails, the release stays a draft and no image is published. Recover with [Rebuild Release](#rebuild-release).
+
+### The build is always the tag's commit
+
+The image job checks out the commit its run started from (`github.sha`), never the tag by name, and refuses to build unless the release tag points at that commit. The provenance attestation always names the run's commit and no input overrides it, so building any other commit would sign the wrong source. The `org.opencontainers.image.revision` label comes from the checked-out commit (`docker/metadata-action` `context: git`), so it matches too. release-please tags the release PR's merge commit, which is the commit its run starts from, so on the normal path the check passes.
+
+A push to `main` while a `Release Please` run is still pending makes GitHub cancel that run. If the cancelled run was the release PR's merge, the next run's release-please creates the release for the earlier merge commit, and its image job refuses: the run fails, the release stays a draft, and the error prints the recovery command, `gh workflow run rebuild-release.yaml --ref <tag> -f image=<image> -f version=<version>`.
+
+The image job checks the release before building and fails closed:
+
+- release lookup fails (missing tag, API error, token that can't see drafts): the job fails and the release stays a draft
+- release is a draft: build, push, attest, publish
+- release is already published: skip the build and leave the release unchanged, so an overlapping rebuild can't push again or append a second image section
+- any other answer: the job fails
 
 ## Version bumps
 
@@ -78,15 +91,22 @@ It compares composed linter sets (base, languages and `custom_linters`), not ups
 
 ## Rebuild Release
 
-For a release that was tagged but whose build failed, try `gh run rerun <run-id> --failed` first. It re-runs the build job against the same tag and is the cheapest fix.
+For a release that was tagged but whose build failed, try `gh run rerun <run-id> --failed` first. A re-run keeps the original run's commit, so it is the cheapest fix whenever that commit is the tag. It can't fix a run that refused because the tag is a different commit; use Rebuild Release for that.
 
 `Rebuild Release` (`.github/workflows/rebuild-release.yaml`) covers what a re-run cannot: runs older than 30 days, runs that hit GitHub's 50 re-run cap, and full re-runs — release-please does not re-emit `release_created` on a second pass, so the build job is skipped.
 
-Dispatch it with the image directory name and the version (no leading `v`). The `v`-or-not prefix is read from `include-v-in-tag` in `release-please-config.json`, so an image needs no registration here beyond being a release-please package. It refuses to run unless all three hold:
+Dispatch it **from the tag**, with the image directory name and the version (no leading `v`):
+
+```bash
+gh workflow run rebuild-release.yaml --ref <image>-<version-tag> -f image=<image> -f version=<version>
+```
+
+For example, `--ref chrony-5.0.4 -f image=chrony -f version=5.0.4`, or `--ref megalinter-spruyt-labs-v3.0.0 -f image=megalinter-spruyt-labs -f version=3.0.0`. Starting from the tag makes the run's commit, and so the attestation, the tag's commit. The `v`-or-not prefix is read from `include-v-in-tag` in `release-please-config.json`, so an image needs no registration here beyond being a release-please package. It refuses to run unless all of these hold:
 
 - the git tag exists
+- the run was started from that tag
 - the release is still a draft
-- no newer version of that image is already published
+- no newer version of that image is already published (a failed release lookup or listing also refuses)
 
 It never creates a release. If the tag does not exist, cut a new version instead.
 
