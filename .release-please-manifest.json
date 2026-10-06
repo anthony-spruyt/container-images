@@ -8,12 +8,15 @@
   "happy-server": "1.0.3",
   "llm-guard": "1.0.43",
   "llm-guard-cuda": "1.0.15",
+  "megalinter-base": "0.0.0",
   "megalinter-chromance": "1.1.1",
   "megalinter-container-images": "12.0.0",
+  "megalinter-cpp": "0.0.0",
   "megalinter-go": "2.0.0",
   "megalinter-python": "1.0.0",
   "megalinter-spruyt-labs": "3.0.0",
   "megalinter-sungather": "3.0.0",
+  "megalinter-typescript": "0.0.0",
   "megalinter-xfg": "2.0.4",
   "ssh-key-rotation": "2.0.10"
 }

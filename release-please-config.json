@@ -102,6 +102,14 @@
       "include-component-in-tag": true,
       "include-v-in-tag": false
     },
+    "megalinter-base": {
+      "release-type": "simple",
+      "component": "megalinter-base",
+      "tag-separator": "-",
+      "include-component-in-tag": true,
+      "include-v-in-tag": false,
+      "initial-version": "1.0.0"
+    },
     "megalinter-chromance": {
       "release-type": "simple",
       "component": "megalinter-chromance",
@@ -115,6 +123,14 @@
       "tag-separator": "-",
       "include-component-in-tag": true,
       "include-v-in-tag": true
+    },
+    "megalinter-cpp": {
+      "release-type": "simple",
+      "component": "megalinter-cpp",
+      "tag-separator": "-",
+      "include-component-in-tag": true,
+      "include-v-in-tag": false,
+      "initial-version": "1.0.0"
     },
     "megalinter-go": {
       "release-type": "simple",
@@ -145,6 +161,14 @@
       "tag-separator": "-",
       "include-component-in-tag": true,
       "include-v-in-tag": false
+    },
+    "megalinter-typescript": {
+      "release-type": "simple",
+      "component": "megalinter-typescript",
+      "tag-separator": "-",
+      "include-component-in-tag": true,
+      "include-v-in-tag": false,
+      "initial-version": "1.0.0"
     },
     "megalinter-xfg": {
       "release-type": "simple",

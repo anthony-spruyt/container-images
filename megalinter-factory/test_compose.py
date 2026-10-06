@@ -269,6 +269,7 @@ def test_language_entry_picking_a_tool_is_rejected(factory: Path) -> None:
 
 
 EXPECTED_LINTERS = {
+    "megalinter-base": ["ACTION_ACTIONLINT", "MARKDOWN_MARKDOWNLINT", "SPELL_LYCHEE"],
     "megalinter-chromance": [
         "ACTION_ACTIONLINT", "CPP_CLANG_FORMAT", "CPP_CPPCHECK", "CPP_CPPLINT",
         "MARKDOWN_MARKDOWNLINT", "SPELL_LYCHEE",
@@ -276,6 +277,10 @@ EXPECTED_LINTERS = {
     "megalinter-container-images": [
         "ACTION_ACTIONLINT", "MARKDOWN_MARKDOWNLINT", "PYTHON_RUFF", "PYTHON_RUFF_FORMAT",
         "SPELL_LYCHEE",
+    ],
+    "megalinter-cpp": [
+        "ACTION_ACTIONLINT", "CPP_CLANG_FORMAT", "CPP_CPPCHECK", "CPP_CPPLINT",
+        "MARKDOWN_MARKDOWNLINT", "SPELL_LYCHEE",
     ],
     "megalinter-go": [
         "ACTION_ACTIONLINT", "GO_GOLANGCI_LINT", "MARKDOWN_MARKDOWNLINT", "SPELL_LYCHEE",
@@ -290,6 +295,10 @@ EXPECTED_LINTERS = {
     "megalinter-sungather": [
         "ACTION_ACTIONLINT", "MARKDOWN_MARKDOWNLINT", "PYTHON_RUFF", "PYTHON_RUFF_FORMAT",
         "SPELL_LYCHEE",
+    ],
+    "megalinter-typescript": [
+        "ACTION_ACTIONLINT", "JAVASCRIPT_ES", "JAVASCRIPT_PRETTIER", "MARKDOWN_MARKDOWNLINT",
+        "SPELL_LYCHEE", "TYPESCRIPT_ES", "TYPESCRIPT_PRETTIER",
     ],
     "megalinter-xfg": [
         "ACTION_ACTIONLINT", "JAVASCRIPT_ES", "JAVASCRIPT_PRETTIER", "MARKDOWN_MARKDOWNLINT",
