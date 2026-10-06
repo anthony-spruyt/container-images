@@ -12,33 +12,35 @@ on:
         type: boolean
         default: true
 
+permissions: {}
+
 jobs:
-  cleanup-containers:
+  collect-packages:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      list: ${{ steps.packages.outputs.list }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      # The retention token is account-wide, so name every package explicitly
-      # rather than globbing - a wildcard would reach images owned by other
-      # repositories.
       - name: Collect packages
         id: packages
         run: |
           echo "list=$(jq -r '.packages | keys | join(",")' release-please-config.json)" >> "$GITHUB_OUTPUT"
 
-      - uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
-        with:
-          token: ${{ secrets.CONTAINER_RETENTION_TOKEN }}
-          package: ${{ steps.packages.outputs.list }}
-          expand-packages: true
-          older-than: 4 weeks
-          keep-n-tagged: 5
-          delete-ghost-images: true
-          delete-partial-images: true
-          dry-run: ${{ inputs.dry_run || 'false' }}
+  cleanup-containers:
+    needs: collect-packages
+    permissions:
+      packages: write
+    uses: anthony-spruyt/repo-operator/.github/workflows/_container-retention.yaml@main
+    with:
+      packages: ${{ needs.collect-packages.outputs.list }}
+      # Schedule stays dry until one real dispatch under GITHUB_TOKEN has been checked
+      dry-run: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run }}
 
   cleanup-releases:
     runs-on: ubuntu-latest
