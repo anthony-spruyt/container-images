@@ -70,7 +70,7 @@ Base (`.mega-linter-base.yml`): ACTION_ACTIONLINT, BASH_SHELLCHECK, BASH_SHFMT, 
 
 Project-specific (`.mega-linter.yml`): DOCKERFILE_HADOLINT
 
-Python: ruff with `pyproject.toml` (extends `ruff-base.toml`). MegaLinter doesn't run it until repo-operator moves this repo to `megalinter-python`, so run `ruff check` and `ruff format --check` yourself.
+Python: ruff with `pyproject.toml` (extends `ruff-base.toml`), run by MegaLinter as `PYTHON_RUFF` and `PYTHON_RUFF_FORMAT` (this repo lints with `megalinter-python`).
 
 ## MegaLinter Flavor Factory
 
