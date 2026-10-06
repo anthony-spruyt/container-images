@@ -70,8 +70,10 @@ def check(
             "one-commit PR), or add a BREAKING CHANGE: footer, then re-run this job"
         )
     touched = touched_flavors(changed_files, head_root)
-    if missing := ", ".join(sorted(set(removed) - touched)):
-        errors.append(f"Touch every flavor that loses a linter, e.g. its .rebuild-stamp: {missing}")
+    # The refresh skips only flavors whose stamp the push changed
+    stamped = {name for name in touched if f"{name}/.rebuild-stamp" in changed_files}
+    if missing := ", ".join(sorted(set(removed) - stamped)):
+        errors.append(f"Change the .rebuild-stamp of every flavor that loses a linter: {missing}")
     if extra := ", ".join(sorted(touched - set(removed))):
         errors.append(f"Leave out flavors that lose no linter, or they go major too: {extra}")
     return errors

@@ -126,7 +126,14 @@ def test_removal_missing_an_affected_stamp_fails(base: Path) -> None:
     """An affected flavor left untouched would get the removal only as a later chore patch."""
     errors = check(REMOVED, BREAKING, TWO_COMMITS, STAMPS[:1], base)
 
-    assert errors == [f"Touch every flavor that loses a linter, e.g. its .rebuild-stamp: {PYTHON}"]
+    assert errors == [f"Change the .rebuild-stamp of every flavor that loses a linter: {PYTHON}"]
+
+
+def test_removal_touching_an_affected_flavor_but_not_its_stamp_fails(base: Path) -> None:
+    """The refresh skips a flavor only when its stamp changed, so another file is not enough."""
+    errors = check(REMOVED, BREAKING, TWO_COMMITS, [STAMPS[0], f"{PYTHON}/README.md"], base)
+
+    assert errors == [f"Change the .rebuild-stamp of every flavor that loses a linter: {PYTHON}"]
 
 
 def test_removal_touching_an_unaffected_flavor_fails(base: Path) -> None:
