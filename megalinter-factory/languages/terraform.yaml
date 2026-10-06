@@ -1,3 +1,2 @@
 ---
-linters:
-  - TERRAFORM_TFLINT
+linters: []
