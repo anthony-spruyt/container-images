@@ -54,7 +54,7 @@ CI never pushes. Every publish goes through release-please — see [docs/release
 
 Old container images and releases are automatically cleaned up weekly:
 
-- Images older than 4 weeks are deleted
+- Images older than 4 weeks are deleted (the weekly image run is a dry run for now; real deletes come from a manual dispatch with `dry_run=false`)
 - GitHub releases and tags older than 4 weeks are deleted
 - 5 most recent versions always kept
 - Targets: every image registered in `release-please-config.json`

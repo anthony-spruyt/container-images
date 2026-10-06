@@ -39,7 +39,8 @@ jobs:
     uses: anthony-spruyt/repo-operator/.github/workflows/_container-retention.yaml@main
     with:
       packages: ${{ needs.collect-packages.outputs.list }}
-      dry-run: ${{ inputs.dry_run || false }}
+      # Schedule stays dry until one real dispatch under GITHUB_TOKEN has been checked
+      dry-run: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run }}
 
   cleanup-releases:
     runs-on: ubuntu-latest
