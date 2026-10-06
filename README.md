@@ -39,26 +39,22 @@ build_context: llm-guard
 
 ## Adding a Custom MegaLinter Flavor
 
-Custom MegaLinter flavors extend official flavors with additional linters. The `megalinter-factory/` directory contains tooling to generate flavor files from a simple configuration.
+Custom MegaLinter flavors extend official flavors with additional linters. They are named by the languages they lint (`megalinter-go`, `megalinter-go-python`). Each language's linters and toolchain are defined once in `megalinter-factory/languages/<language>.yaml`, and a flavor lists the languages it combines.
 
 ### Using Claude Code
 
-The `/create-megalinter-flavor` command writes the `flavor.yaml` for you:
+The `/create-megalinter-flavor` command takes the languages, joined by `-`, and writes the `flavor.yaml` for you:
 
 ```bash
-# With specific linters
-/create-megalinter-flavor my-ci ACTION_ACTIONLINT,MARKDOWN_MARKDOWNLINT,BASH_SHELLCHECK
-
-# Interactive mode (prompts for linter selection)
-/create-megalinter-flavor my-ci
+/create-megalinter-flavor go-python
 ```
 
 The command will:
 
 1. Validate the flavor name and check for conflicts
-2. Look up linter configurations from the catalog
-3. Pick the base flavor that needs the fewest extra installs
-4. Generate `megalinter-<name>/flavor.yaml` with Renovate annotations
+2. Reuse each language's definition in `megalinter-factory/languages/`, creating any that are missing
+3. Generate `megalinter-<name>/flavor.yaml` with Renovate annotations
+4. Register the flavor with release-please and Renovate
 
 ### Manual Setup
 
@@ -68,20 +64,21 @@ The command will:
    mkdir megalinter-<name>/
    ```
 
-2. Create `flavor.yaml` with your configuration:
+2. Create `flavor.yaml` listing its languages:
 
    ```yaml
-   name: my-flavor
-   description: "MegaLinter for my use case"
+   name: go-python
+   description: "MegaLinter for Go and Python repositories"
 
    # renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-ci_light
    upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:v10.1.0@sha256:..."
 
-   custom_linters:
-     - ACTION_ACTIONLINT
-     - MARKDOWN_MARKDOWNLINT
-     - PYTHON_BANDIT
+   languages:
+     - go
+     - python
    ```
+
+   Linters needed by one flavor only can go in its `custom_linters`. Anything a second flavor would need belongs in a language definition.
 
 3. Commit `flavor.yaml` - CI generates Dockerfile and test.sh, then builds automatically
 
@@ -100,7 +97,7 @@ For the base image, Renovate tracks the upstream MegaLinter version:
 upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:v10.1.0@sha256:..."
 ```
 
-When Renovate creates a PR updating `flavor.yaml`, CI regenerates the Dockerfile and builds.
+When Renovate creates a PR updating `flavor.yaml`, CI regenerates the Dockerfile and builds. Toolchain pins in `megalinter-factory/languages/` are tracked the same way; once such a change merges, `Rebuild MegaLinter Flavors` opens a PR stamping just the flavors that use that language, which releases them.
 
 ### Local Development
 
@@ -119,7 +116,7 @@ CI builds but never pushes. Every publish goes through release-please — see [d
 
 ### Automatic
 
-Pushing changes to `Dockerfile`, `flavor.yaml`, `assets/`, `metadata.yaml`, or `.rebuild-stamp` builds the affected images. Changes to `megalinter-factory/` build all flavors. Publishing happens when the resulting release PR merges.
+Pushing changes to `Dockerfile`, `flavor.yaml`, `assets/`, `metadata.yaml`, or `.rebuild-stamp` builds the affected images. Changes to `megalinter-factory/` build all flavors but release none: the factory is not a release-please package. Publishing happens when the resulting release PR merges.
 
 ### Manual
 

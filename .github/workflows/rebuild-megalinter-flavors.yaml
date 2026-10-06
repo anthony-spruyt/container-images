@@ -2,17 +2,24 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/github-workflow.json
 name: Rebuild MegaLinter Flavors
 
-# Weekly refresh to pick up new linter versions from MegaLinter.
-# Linter versions are extracted dynamically at build time, so the flavors only
-# need a reason to rebuild — that reason is a stamp file per flavor. Bumping the
-# stamps in a PR lets release-please cut a patch release per flavor, which is
-# what actually triggers the builds.
+# Flavors only release when their directory changes; see docs/releases.md
 on:
   schedule:
     - cron: "0 4 * * 0" # Weekly on Sunday at 4 AM UTC
+  push:
+    branches:
+      - main
+    paths:
+      - "megalinter-factory/base.yaml"
+      - "megalinter-factory/languages/**"
   workflow_dispatch: # Manual trigger
 
 permissions: {}
+
+# Runs read the open refresh PR to supersede it, so two must not overlap
+concurrency:
+  group: rebuild-megalinter-flavors
+  cancel-in-progress: false
 
 jobs:
   refresh:
@@ -26,9 +33,7 @@ jobs:
         with:
           egress-policy: audit
 
-      # Needs the app token, not GITHUB_TOKEN: a GITHUB_TOKEN pull request does
-      # not trigger the status checks that pr-rules requires, so it could never
-      # merge.
+      # App token: a GITHUB_TOKEN PR triggers no status checks, so it could never merge
       - name: Mint app token
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
@@ -40,21 +45,54 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
 
       - name: Find flavor directories
         id: find
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          # Find all directories containing flavor.yaml
-          FLAVORS=$(find . -maxdepth 2 -name 'flavor.yaml' -printf '%h\n' | \
-            sed 's|^\./||' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          if [ "$EVENT_NAME" = "push" ]; then
+            # Modified only: a newly added definition changes no flavor until its flavor.yaml lists it
+            DIFF=$(git diff --name-only --diff-filter=M "$BEFORE" "$SHA")
+            mapfile -t CHANGED <<< "$DIFF"
+            pip install -q --require-hashes --only-binary :all: \
+              -r megalinter-factory/requirements.txt
+            FOUND=$(python megalinter-factory/compose.py "${CHANGED[@]}")
+            echo "suffix=-${SHA::7}" >> "$GITHUB_OUTPUT"
+            echo "message=chore(megalinter): rebuild flavors for updated language definitions" >> "$GITHUB_OUTPUT"
+          else
+            FOUND=$(find . -maxdepth 2 -name 'flavor.yaml' -printf '%h\n' | sed 's|^\./||')
+            echo "suffix=" >> "$GITHUB_OUTPUT"
+            echo "message=chore(megalinter): weekly linter version refresh" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ -z "$FOUND" ]; then
+            echo "flavors=[]" >> "$GITHUB_OUTPUT"
+            echo "superseded=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # An open refresh PR stamps the same lines; fold its flavors in and supersede it
+          OPEN=$(gh pr list --state open --base main --json number,headRefName,files \
+            --jq '[.[] | select(.headRefName | startswith("chore/megalinter-refresh-"))]')
+          SUPERSEDED=$(jq -r '[.[].number] | join(" ")' <<< "$OPEN")
+          CARRIED=$(jq -r '.[].files[].path | select(test("^megalinter-[^/]+/\\.rebuild-stamp$")) | split("/")[0]' <<< "$OPEN")
+          echo "superseded=$SUPERSEDED" >> "$GITHUB_OUTPUT"
+
+          FLAVORS=$(printf '%s\n%s\n' "$FOUND" "$CARRIED" | jq -R -s -c 'split("\n") | map(select(length > 0)) | unique')
           echo "Found flavors: $FLAVORS"
           echo "flavors=$FLAVORS" >> "$GITHUB_OUTPUT"
 
       - name: Stamp each flavor
         env:
           FLAVORS: ${{ steps.find.outputs.flavors }}
+          SUFFIX: ${{ steps.find.outputs.suffix }}
         run: |
-          STAMP=$(date -u +%Y-%m-%d)
+          STAMP="$(date -u +%Y-%m-%d)${SUFFIX}"
           echo "$FLAVORS" | jq -r '.[]' | while read -r flavor; do
             echo "$STAMP" > "${flavor}/.rebuild-stamp"
             echo "Stamped $flavor with $STAMP"
@@ -63,6 +101,9 @@ jobs:
       - name: Open pull request
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SUFFIX: ${{ steps.find.outputs.suffix }}
+          MESSAGE: ${{ steps.find.outputs.message }}
+          SUPERSEDED: ${{ steps.find.outputs.superseded }}
         run: |
           # Not `git diff`: a flavor whose stamp does not exist yet is untracked,
           # and an untracked file is invisible to both `git diff` and `git commit -a`.
@@ -71,16 +112,20 @@ jobs:
             exit 0
           fi
 
-          BRANCH="chore/megalinter-refresh-$(date -u +%Y%m%d)"
+          BRANCH="chore/megalinter-refresh-$(date -u +%Y%m%d)${SUFFIX}"
           git config user.name "repo-operator-release-bot[bot]"
           git config user.email "repo-operator-release-bot[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
           git add -A
-          git commit -qm "chore(megalinter): weekly linter version refresh"
+          git commit -qm "$MESSAGE"
           git push -q origin "$BRANCH"
 
-          gh pr create \
-            --title "chore(megalinter): weekly linter version refresh" \
+          URL=$(gh pr create \
+            --title "$MESSAGE" \
             --body "Bumps each flavor's rebuild stamp so release-please cuts a patch release and the images rebuild against the current linter versions." \
             --base main \
-            --head "$BRANCH"
+            --head "$BRANCH")
+
+          for number in $SUPERSEDED; do
+            gh pr close "$number" --delete-branch --comment "Superseded by $URL, which stamps these flavors too."
+          done

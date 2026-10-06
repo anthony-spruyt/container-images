@@ -72,34 +72,44 @@ Project-specific (`.mega-linter.yml`): DOCKERFILE_HADOLINT, PYTHON_PYLINT
 
 ## MegaLinter Flavor Factory
 
-Create custom MegaLinter flavors by defining a `flavor.yaml` configuration. CI generates Dockerfile at build time.
+Flavors are named by the languages they lint and shared by every repo with that mix (`megalinter-go`, `megalinter-python`, `megalinter-go-python`). CI generates the Dockerfile at build time.
+
+Each language's linters and toolchain are defined once in `megalinter-factory/languages/<language>.yaml`. `megalinter-factory/base.yaml` holds the linters every flavor gets on top of its upstream base. A flavor lists the languages it combines; never copy a language's linters into a flavor.
 
 ### Creating a New MegaLinter Flavor
 
-1. Create directory: `megalinter-<name>/`
-2. Create `flavor.yaml` - just list the linter keys you want:
+Only build a flavor when a repo needs that language mix.
+
+1. Create directory: `megalinter-<languages>/`, languages joined by `-`
+2. Create `flavor.yaml` listing the languages:
 
 ```yaml
-name: my-flavor
-description: "Custom MegaLinter for my use case"
+---
+name: go-python
+description: "MegaLinter for Go and Python repositories"
 
 # renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-ci_light
 upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:v10.1.0@sha256:..."
 
-# Just list linter keys - versions extracted from MegaLinter automatically
-custom_linters:
-  - ACTION_ACTIONLINT
-  - SPELL_LYCHEE
-  - MARKDOWN_MARKDOWNLINT
+languages:
+  - go
+  - python
 ```
 
-3. Commit and push - CI generates all files and builds automatically
+3. Register it with release-please (see the `create-megalinter-flavor` skill), commit and push
+
+A missing language fails the build. Add one as `languages/<language>.yaml` with `linters` (MegaLinter keys) and, where needed, `extra_dockerfile`, `extra_test_linters`, `extra_test_env_vars`, and `languages` to include another language. Fragments reference their own fields as `{{ language.<field> }}`. A language file is named after a language, never a tool, and holds that language's one linter set. A flavor may still set `custom_linters` and the `extra_*` fields for something only it needs; these reference `{{ flavor.<field> }}`.
 
 ### Version Updates
 
 - **Base image**: Renovate tracks via `# renovate:` annotation in `flavor.yaml`
+- **Toolchains and language pins**: Renovate tracks the `# renovate:` annotations in `languages/*.yaml`
 - **Linter versions**: Extracted from MegaLinter at build time
 - **Weekly rebuild**: Scheduled workflow rebuilds all flavors to pick up new versions
+
+### Releases
+
+Every flavor directory is a release-please package, and `megalinter-factory/` sits outside all of them, so factory and language commits release nothing by themselves. When `base.yaml` or a language definition changes on `main`, `Rebuild MegaLinter Flavors` stamps `.rebuild-stamp` in each flavor that composes it, and that PR releases them. A factory code change that alters generated output needs a commit touching the affected flavor directories. Details in [docs/releases.md](docs/releases.md#megalinter-flavor-refresh).
 
 ### Local Development
 
@@ -118,6 +128,8 @@ their own `PLUGINS` list must include any baked-in plugin paths alongside their 
 ### Factory Files
 
 - `megalinter-factory/generate.py` - Generator script
+- `megalinter-factory/compose.py` - Merges base, languages and flavor extras; lists the flavors a changed definition affects
+- `megalinter-factory/base.yaml`, `megalinter-factory/languages/` - Linter sets
 - `megalinter-factory/megalinter_extractor.py` - Extracts linter info from MegaLinter
 - `megalinter-factory/templates/` - Jinja2 templates
 
