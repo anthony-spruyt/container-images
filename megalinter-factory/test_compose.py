@@ -188,7 +188,7 @@ def fixture_repo(factory: Path) -> Path:
     for part in ("base.yaml", "languages"):
         (factory / part).rename(root / "megalinter-factory" / part)
     write_flavor(root, "go", ["go"])
-    write_flavor(root, "xfg", ["typescript"])
+    write_flavor(root, "typescript", ["typescript"])
     write_flavor(root, "go-python", ["go", "python"])
     write_flavor(root, "plain", [])
     return root
@@ -203,8 +203,8 @@ def test_language_change_affects_only_flavors_using_it(repo: Path) -> None:
 
 
 def test_included_language_change_reaches_including_flavors(repo: Path) -> None:
-    """typescript includes javascript, so a javascript change rebuilds xfg."""
-    assert flavors_affected(["megalinter-factory/languages/javascript.yaml"], repo) == ["megalinter-xfg"]
+    """typescript includes javascript, so a javascript change rebuilds the typescript flavor."""
+    assert flavors_affected(["megalinter-factory/languages/javascript.yaml"], repo) == ["megalinter-typescript"]
 
 
 def test_base_change_affects_every_flavor(repo: Path) -> None:
@@ -213,7 +213,7 @@ def test_base_change_affects_every_flavor(repo: Path) -> None:
         "megalinter-go",
         "megalinter-go-python",
         "megalinter-plain",
-        "megalinter-xfg",
+        "megalinter-typescript",
     ]
 
 
@@ -262,21 +262,6 @@ def test_language_entry_picking_a_tool_is_rejected(factory: Path) -> None:
 
 EXPECTED_LINTERS = {
     "megalinter-base": ["ACTION_ACTIONLINT", "MARKDOWN_MARKDOWNLINT", "SPELL_LYCHEE"],
-    "megalinter-chromance": [
-        "ACTION_ACTIONLINT",
-        "CPP_CLANG_FORMAT",
-        "CPP_CPPCHECK",
-        "CPP_CPPLINT",
-        "MARKDOWN_MARKDOWNLINT",
-        "SPELL_LYCHEE",
-    ],
-    "megalinter-container-images": [
-        "ACTION_ACTIONLINT",
-        "MARKDOWN_MARKDOWNLINT",
-        "PYTHON_RUFF",
-        "PYTHON_RUFF_FORMAT",
-        "SPELL_LYCHEE",
-    ],
     "megalinter-cpp": [
         "ACTION_ACTIONLINT",
         "CPP_CLANG_FORMAT",
@@ -304,23 +289,7 @@ EXPECTED_LINTERS = {
         "SPELL_LYCHEE",
         "TERRAFORM_TFLINT",
     ],
-    "megalinter-sungather": [
-        "ACTION_ACTIONLINT",
-        "MARKDOWN_MARKDOWNLINT",
-        "PYTHON_RUFF",
-        "PYTHON_RUFF_FORMAT",
-        "SPELL_LYCHEE",
-    ],
     "megalinter-typescript": [
-        "ACTION_ACTIONLINT",
-        "JAVASCRIPT_ES",
-        "JAVASCRIPT_PRETTIER",
-        "MARKDOWN_MARKDOWNLINT",
-        "SPELL_LYCHEE",
-        "TYPESCRIPT_ES",
-        "TYPESCRIPT_PRETTIER",
-    ],
-    "megalinter-xfg": [
         "ACTION_ACTIONLINT",
         "JAVASCRIPT_ES",
         "JAVASCRIPT_PRETTIER",

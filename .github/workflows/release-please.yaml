@@ -50,12 +50,6 @@ jobs:
       megalinter-base-released: ${{ steps.release.outputs['megalinter-base--release_created'] }}
       megalinter-base-version: ${{ steps.release.outputs['megalinter-base--version'] }}
       megalinter-base-tag: ${{ steps.release.outputs['megalinter-base--tag_name'] }}
-      megalinter-chromance-released: ${{ steps.release.outputs['megalinter-chromance--release_created'] }}
-      megalinter-chromance-version: ${{ steps.release.outputs['megalinter-chromance--version'] }}
-      megalinter-chromance-tag: ${{ steps.release.outputs['megalinter-chromance--tag_name'] }}
-      megalinter-container-images-released: ${{ steps.release.outputs['megalinter-container-images--release_created'] }}
-      megalinter-container-images-version: ${{ steps.release.outputs['megalinter-container-images--version'] }}
-      megalinter-container-images-tag: ${{ steps.release.outputs['megalinter-container-images--tag_name'] }}
       megalinter-cpp-released: ${{ steps.release.outputs['megalinter-cpp--release_created'] }}
       megalinter-cpp-version: ${{ steps.release.outputs['megalinter-cpp--version'] }}
       megalinter-cpp-tag: ${{ steps.release.outputs['megalinter-cpp--tag_name'] }}
@@ -68,15 +62,9 @@ jobs:
       megalinter-spruyt-labs-released: ${{ steps.release.outputs['megalinter-spruyt-labs--release_created'] }}
       megalinter-spruyt-labs-version: ${{ steps.release.outputs['megalinter-spruyt-labs--version'] }}
       megalinter-spruyt-labs-tag: ${{ steps.release.outputs['megalinter-spruyt-labs--tag_name'] }}
-      megalinter-sungather-released: ${{ steps.release.outputs['megalinter-sungather--release_created'] }}
-      megalinter-sungather-version: ${{ steps.release.outputs['megalinter-sungather--version'] }}
-      megalinter-sungather-tag: ${{ steps.release.outputs['megalinter-sungather--tag_name'] }}
       megalinter-typescript-released: ${{ steps.release.outputs['megalinter-typescript--release_created'] }}
       megalinter-typescript-version: ${{ steps.release.outputs['megalinter-typescript--version'] }}
       megalinter-typescript-tag: ${{ steps.release.outputs['megalinter-typescript--tag_name'] }}
-      megalinter-xfg-released: ${{ steps.release.outputs['megalinter-xfg--release_created'] }}
-      megalinter-xfg-version: ${{ steps.release.outputs['megalinter-xfg--version'] }}
-      megalinter-xfg-tag: ${{ steps.release.outputs['megalinter-xfg--tag_name'] }}
       ssh-key-rotation-released: ${{ steps.release.outputs['ssh-key-rotation--release_created'] }}
       ssh-key-rotation-version: ${{ steps.release.outputs['ssh-key-rotation--version'] }}
       ssh-key-rotation-tag: ${{ steps.release.outputs['ssh-key-rotation--tag_name'] }}
@@ -283,43 +271,6 @@ jobs:
       version: ${{ needs.release-please.outputs.megalinter-base-version }}
       tag-name: ${{ needs.release-please.outputs.megalinter-base-tag }}
 
-  megalinter-chromance:
-    name: megalinter-chromance
-    needs: release-please
-    if: needs.release-please.outputs.megalinter-chromance-released == 'true'
-    permissions:
-      contents: write
-      packages: write
-      id-token: write
-      attestations: write
-      security-events: write
-    uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
-    with:
-      image: megalinter-chromance
-      push: true
-      version: ${{ needs.release-please.outputs.megalinter-chromance-version }}
-      tag-name: ${{ needs.release-please.outputs.megalinter-chromance-tag }}
-
-  megalinter-container-images:
-    name: megalinter-container-images
-    needs: release-please
-    if: needs.release-please.outputs.megalinter-container-images-released == 'true'
-    permissions:
-      contents: write
-      packages: write
-      id-token: write
-      attestations: write
-      security-events: write
-    uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
-    with:
-      image: megalinter-container-images
-      push: true
-      version: ${{ needs.release-please.outputs.megalinter-container-images-version }}
-      tag-name: ${{ needs.release-please.outputs.megalinter-container-images-tag }}
-      tag-prefix: "v"
-
   megalinter-cpp:
     name: megalinter-cpp
     needs: release-please
@@ -393,24 +344,6 @@ jobs:
       tag-name: ${{ needs.release-please.outputs.megalinter-spruyt-labs-tag }}
       tag-prefix: "v"
 
-  megalinter-sungather:
-    name: megalinter-sungather
-    needs: release-please
-    if: needs.release-please.outputs.megalinter-sungather-released == 'true'
-    permissions:
-      contents: write
-      packages: write
-      id-token: write
-      attestations: write
-      security-events: write
-    uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
-    with:
-      image: megalinter-sungather
-      push: true
-      version: ${{ needs.release-please.outputs.megalinter-sungather-version }}
-      tag-name: ${{ needs.release-please.outputs.megalinter-sungather-tag }}
-
   megalinter-typescript:
     name: megalinter-typescript
     needs: release-please
@@ -428,25 +361,6 @@ jobs:
       push: true
       version: ${{ needs.release-please.outputs.megalinter-typescript-version }}
       tag-name: ${{ needs.release-please.outputs.megalinter-typescript-tag }}
-
-  megalinter-xfg:
-    name: megalinter-xfg
-    needs: release-please
-    if: needs.release-please.outputs.megalinter-xfg-released == 'true'
-    permissions:
-      contents: write
-      packages: write
-      id-token: write
-      attestations: write
-      security-events: write
-    uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
-    with:
-      image: megalinter-xfg
-      push: true
-      version: ${{ needs.release-please.outputs.megalinter-xfg-version }}
-      tag-name: ${{ needs.release-please.outputs.megalinter-xfg-tag }}
-      tag-prefix: "v"
 
   ssh-key-rotation:
     name: ssh-key-rotation
