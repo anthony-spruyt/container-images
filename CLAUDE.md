@@ -98,7 +98,7 @@ languages:
 
 3. Register it with release-please (see the `create-megalinter-flavor` skill), commit and push
 
-A missing language fails the build. Add one as `languages/<language>.yaml` with `linters` (MegaLinter keys) and, where needed, `extra_dockerfile`, `extra_test_linters`, `extra_test_env_vars`, and `languages` to include another language. Fragments reference their own fields as `{{ language.<field> }}`. A language that needs an alternative linter set (Python repos still on pylint instead of ruff) defines it under `options:` in the same file, and a flavor picks it with `- python: pylint`; an option replaces the default entirely. Language names are always languages, never tools. A flavor may still set `custom_linters` and the `extra_*` fields for something only it needs; these reference `{{ flavor.<field> }}`.
+A missing language fails the build. Add one as `languages/<language>.yaml` with `linters` (MegaLinter keys) and, where needed, `extra_dockerfile`, `extra_test_linters`, `extra_test_env_vars`, and `languages` to include another language. Fragments reference their own fields as `{{ language.<field> }}`. A language file is named after a language, never a tool, and holds that language's one linter set. A flavor may still set `custom_linters` and the `extra_*` fields for something only it needs; these reference `{{ flavor.<field> }}`.
 
 ### Version Updates
 
