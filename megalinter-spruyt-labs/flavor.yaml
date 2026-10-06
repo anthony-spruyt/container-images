@@ -1,33 +1,15 @@
-# MegaLinter Flavor Factory Configuration
-# Source of truth for megalinter-spruyt-labs flavor
-#
-# To regenerate Dockerfile and test.sh:
-#   python megalinter-factory/generate.py megalinter-spruyt-labs/
-#
-# Linter versions are automatically extracted from MegaLinter at build time.
 ---
 name: spruyt-labs
 description: "MegaLinter for spruyt-labs - Go, Terraform, TypeScript, and infrastructure repositories"
 
-# Upstream MegaLinter base image (Renovate tracks this)
 # renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-go
 upstream_image: "ghcr.io/oxsecurity/megalinter-go:v10.1.0@sha256:42e091a4bcbe9141fe420c2520ed7addf75ae60a0c9d42e3df1278eef1c90a88"
 
-# Additional linters not in base flavor
-# Just list linter keys - versions come from MegaLinter automatically
-#
-# Note: The following requested linters are already in the go base:
-#   BASH_SHELLCHECK, BASH_SHFMT, JSON_JSONLINT, YAML_YAMLLINT,
-#   REPOSITORY_BETTERLEAKS, REPOSITORY_SECRETLINT, REPOSITORY_TRIVY,
-#   GO_GOLANGCI_LINT, GO_REVIVE
-custom_linters:
-  - ACTION_ACTIONLINT
-  - MARKDOWN_MARKDOWNLINT
-  - PYTHON_PYLINT
-  - SPELL_LYCHEE
-  - TERRAFORM_TFLINT
+languages:
+  - pylint
+  - terraform
 
-# Biome plugin - not in MegaLinter upstream, bundled as custom plugin descriptor
+# Biome is not in MegaLinter upstream; its descriptor ships in mega-linter-plugin-biome/
 # renovate: datasource=npm depName=@biomejs/biome
 biome_version: "2.5.14"
 
