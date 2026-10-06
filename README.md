@@ -43,22 +43,18 @@ Custom MegaLinter flavors extend official flavors with additional linters. They 
 
 ### Using Claude Code
 
-The `/create-megalinter-flavor` command writes the `flavor.yaml` for you:
+The `/create-megalinter-flavor` command takes the languages, joined by `-`, and writes the `flavor.yaml` for you:
 
 ```bash
-# With specific linters
-/create-megalinter-flavor my-ci ACTION_ACTIONLINT,MARKDOWN_MARKDOWNLINT,BASH_SHELLCHECK
-
-# Interactive mode (prompts for linter selection)
-/create-megalinter-flavor my-ci
+/create-megalinter-flavor go-python
 ```
 
 The command will:
 
 1. Validate the flavor name and check for conflicts
-2. Look up linter configurations from the catalog
-3. Pick the base flavor that needs the fewest extra installs
-4. Generate `megalinter-<name>/flavor.yaml` with Renovate annotations
+2. Reuse each language's definition in `megalinter-factory/languages/`, creating any that are missing
+3. Generate `megalinter-<name>/flavor.yaml` with Renovate annotations
+4. Register the flavor with release-please and Renovate
 
 ### Manual Setup
 

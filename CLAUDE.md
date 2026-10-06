@@ -109,7 +109,7 @@ A missing language fails the build. Add one as `languages/<language>.yaml` with 
 
 ### Releases
 
-Every flavor directory is a release-please package, and `megalinter-factory/` sits outside all of them, so factory and language commits release nothing by themselves. When `base.yaml` or a language definition changes on `main`, `Rebuild MegaLinter Flavors` stamps `.rebuild-stamp` in each flavor that composes it, and that PR releases them. A factory code change that alters generated output needs a commit touching the affected flavor directories.
+Every flavor directory is a release-please package, and `megalinter-factory/` sits outside all of them, so factory and language commits release nothing by themselves. When `base.yaml` or a language definition changes on `main`, `Rebuild MegaLinter Flavors` stamps `.rebuild-stamp` in each flavor that composes it, and that PR releases them. A factory code change that alters generated output needs a commit touching the affected flavor directories. Details in [docs/releases.md](docs/releases.md#megalinter-flavor-refresh).
 
 ### Local Development
 

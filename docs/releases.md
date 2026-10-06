@@ -45,9 +45,18 @@ Release-As: 2.0.0
 
 On a PR, changed images build via `_build-image.yaml` with `push: false`. Nothing is pushed and no release is touched. `<image>/test.sh` runs against the locally loaded image if it exists.
 
-## Weekly MegaLinter flavor refresh
+## MegaLinter flavor refresh
 
-Flavor linter versions are resolved at build time, so a flavor only needs a reason to rebuild. `Rebuild MegaLinter Flavors` runs weekly and writes today's date to `megalinter-<name>/.rebuild-stamp`, then opens one PR. Mergify merges it, release-please cuts a `chore` patch release per flavor, and the images rebuild.
+Flavor linter versions are resolved at build time, so a flavor only needs a reason to rebuild. `Rebuild MegaLinter Flavors` gives it one by writing `megalinter-<name>/.rebuild-stamp` and opening one PR. Mergify merges it, release-please cuts a `chore` patch release per stamped flavor, and the images rebuild.
+
+It runs:
+
+- **Weekly**, stamping every flavor with today's date.
+- **On a push to `main` that modifies `megalinter-factory/base.yaml` or `megalinter-factory/languages/*.yaml`**, stamping only the flavors that compose the changed file, with `<date>-<sha>`. The factory is not a release-please package, so a language or toolchain change (such as Renovate moving `go_image`) releases flavors only through this PR. Newly added definitions stamp nothing until a flavor lists them.
+
+Runs are serialized. If a refresh PR is still open, the new run stamps its flavors as well and closes it as superseded, so two refresh PRs never edit the same stamp.
+
+A factory code change that alters generated output releases nothing by itself; include a commit that touches the affected flavor directories. A `build:` commit to a flavor directory releases nothing either, since `build` has no changelog section — use it for changes that leave the generated image unchanged.
 
 ## Variant images
 

@@ -2,13 +2,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/github-workflow.json
 name: Rebuild MegaLinter Flavors
 
-# Weekly refresh to pick up new linter versions from MegaLinter.
-# Linter versions are extracted dynamically at build time, so the flavors only
-# need a reason to rebuild — that reason is a stamp file per flavor. Bumping the
-# stamps in a PR lets release-please cut a patch release per flavor, which is
-# what actually triggers the builds.
-# Language definitions sit outside every release-please package, so a change to
-# one stamps just the flavors that compose it.
+# Flavors only release when their directory changes; see docs/releases.md
 on:
   schedule:
     - cron: "0 4 * * 0" # Weekly on Sunday at 4 AM UTC
@@ -22,6 +16,11 @@ on:
 
 permissions: {}
 
+# Runs read the open refresh PR to supersede it, so two must not overlap
+concurrency:
+  group: rebuild-megalinter-flavors
+  cancel-in-progress: false
+
 jobs:
   refresh:
     name: Open refresh pull request
@@ -34,9 +33,7 @@ jobs:
         with:
           egress-policy: audit
 
-      # Needs the app token, not GITHUB_TOKEN: a GITHUB_TOKEN pull request does
-      # not trigger the status checks that pr-rules requires, so it could never
-      # merge.
+      # App token: a GITHUB_TOKEN PR triggers no status checks, so it could never merge
       - name: Mint app token
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
@@ -56,10 +53,12 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           BEFORE: ${{ github.event.before }}
           SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           if [ "$EVENT_NAME" = "push" ]; then
             # Modified only: a newly added definition changes no flavor until its flavor.yaml lists it
-            mapfile -t CHANGED < <(git diff --name-only --diff-filter=M "$BEFORE" "$SHA")
+            DIFF=$(git diff --name-only --diff-filter=M "$BEFORE" "$SHA")
+            mapfile -t CHANGED <<< "$DIFF"
             pip install -q --require-hashes --only-binary :all: \
               -r megalinter-factory/requirements.txt
             FOUND=$(python megalinter-factory/compose.py "${CHANGED[@]}")
@@ -70,7 +69,21 @@ jobs:
             echo "suffix=" >> "$GITHUB_OUTPUT"
             echo "message=chore(megalinter): weekly linter version refresh" >> "$GITHUB_OUTPUT"
           fi
-          FLAVORS=$(printf '%s\n' "$FOUND" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+
+          if [ -z "$FOUND" ]; then
+            echo "flavors=[]" >> "$GITHUB_OUTPUT"
+            echo "superseded=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # An open refresh PR stamps the same lines; fold its flavors in and supersede it
+          OPEN=$(gh pr list --state open --base main --json number,headRefName,files \
+            --jq '[.[] | select(.headRefName | startswith("chore/megalinter-refresh-"))]')
+          SUPERSEDED=$(jq -r '[.[].number] | join(" ")' <<< "$OPEN")
+          CARRIED=$(jq -r '.[].files[].path | select(test("^megalinter-[^/]+/\\.rebuild-stamp$")) | split("/")[0]' <<< "$OPEN")
+          echo "superseded=$SUPERSEDED" >> "$GITHUB_OUTPUT"
+
+          FLAVORS=$(printf '%s\n%s\n' "$FOUND" "$CARRIED" | jq -R -s -c 'split("\n") | map(select(length > 0)) | unique')
           echo "Found flavors: $FLAVORS"
           echo "flavors=$FLAVORS" >> "$GITHUB_OUTPUT"
 
@@ -90,6 +103,7 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           SUFFIX: ${{ steps.find.outputs.suffix }}
           MESSAGE: ${{ steps.find.outputs.message }}
+          SUPERSEDED: ${{ steps.find.outputs.superseded }}
         run: |
           # Not `git diff`: a flavor whose stamp does not exist yet is untracked,
           # and an untracked file is invisible to both `git diff` and `git commit -a`.
@@ -106,8 +120,12 @@ jobs:
           git commit -qm "$MESSAGE"
           git push -q origin "$BRANCH"
 
-          gh pr create \
+          URL=$(gh pr create \
             --title "$MESSAGE" \
             --body "Bumps each flavor's rebuild stamp so release-please cuts a patch release and the images rebuild against the current linter versions." \
             --base main \
-            --head "$BRANCH"
+            --head "$BRANCH")
+
+          for number in $SUPERSEDED; do
+            gh pr close "$number" --delete-branch --comment "Superseded by $URL, which stamps these flavors too."
+          done
