@@ -53,6 +53,12 @@ jobs:
       megalinter-container-images-released: ${{ steps.release.outputs['megalinter-container-images--release_created'] }}
       megalinter-container-images-version: ${{ steps.release.outputs['megalinter-container-images--version'] }}
       megalinter-container-images-tag: ${{ steps.release.outputs['megalinter-container-images--tag_name'] }}
+      megalinter-go-released: ${{ steps.release.outputs['megalinter-go--release_created'] }}
+      megalinter-go-version: ${{ steps.release.outputs['megalinter-go--version'] }}
+      megalinter-go-tag: ${{ steps.release.outputs['megalinter-go--tag_name'] }}
+      megalinter-python-released: ${{ steps.release.outputs['megalinter-python--release_created'] }}
+      megalinter-python-version: ${{ steps.release.outputs['megalinter-python--version'] }}
+      megalinter-python-tag: ${{ steps.release.outputs['megalinter-python--tag_name'] }}
       megalinter-spruyt-labs-released: ${{ steps.release.outputs['megalinter-spruyt-labs--release_created'] }}
       megalinter-spruyt-labs-version: ${{ steps.release.outputs['megalinter-spruyt-labs--version'] }}
       megalinter-spruyt-labs-tag: ${{ steps.release.outputs['megalinter-spruyt-labs--tag_name'] }}
@@ -286,6 +292,42 @@ jobs:
       version: ${{ needs.release-please.outputs.megalinter-container-images-version }}
       tag-name: ${{ needs.release-please.outputs.megalinter-container-images-tag }}
       tag-prefix: "v"
+
+  megalinter-go:
+    name: megalinter-go
+    needs: release-please
+    if: needs.release-please.outputs.megalinter-go-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: megalinter-go
+      push: true
+      version: ${{ needs.release-please.outputs.megalinter-go-version }}
+      tag-name: ${{ needs.release-please.outputs.megalinter-go-tag }}
+
+  megalinter-python:
+    name: megalinter-python
+    needs: release-please
+    if: needs.release-please.outputs.megalinter-python-released == 'true'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      security-events: write
+    uses: ./.github/workflows/_build-image.yaml
+    secrets: inherit
+    with:
+      image: megalinter-python
+      push: true
+      version: ${{ needs.release-please.outputs.megalinter-python-version }}
+      tag-name: ${{ needs.release-please.outputs.megalinter-python-tag }}
 
   megalinter-spruyt-labs:
     name: megalinter-spruyt-labs

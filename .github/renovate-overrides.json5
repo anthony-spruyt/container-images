@@ -84,6 +84,18 @@
       "sourceDirectory": "megalinter-container-images",
     },
     {
+      "description": "Release notes for own images: megalinter-go",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-go"],
+      "sourceDirectory": "megalinter-go",
+    },
+    {
+      "description": "Release notes for own images: megalinter-python",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-python"],
+      "sourceDirectory": "megalinter-python",
+    },
+    {
       "description": "Release notes for own images: megalinter-spruyt-labs",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-spruyt-labs"],

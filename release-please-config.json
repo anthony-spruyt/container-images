@@ -116,6 +116,22 @@
       "include-component-in-tag": true,
       "include-v-in-tag": true
     },
+    "megalinter-go": {
+      "release-type": "simple",
+      "component": "megalinter-go",
+      "tag-separator": "-",
+      "include-component-in-tag": true,
+      "include-v-in-tag": false,
+      "initial-version": "1.0.0"
+    },
+    "megalinter-python": {
+      "release-type": "simple",
+      "component": "megalinter-python",
+      "tag-separator": "-",
+      "include-component-in-tag": true,
+      "include-v-in-tag": false,
+      "initial-version": "1.0.0"
+    },
     "megalinter-spruyt-labs": {
       "release-type": "simple",
       "component": "megalinter-spruyt-labs",
