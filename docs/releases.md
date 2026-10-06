@@ -8,7 +8,7 @@ A release tags `<image>-<version>` and pushes the docker tags `<version>`, `<maj
 
 ```text
 chrony-5.0.4                    -> 5.0.4, 5.0, latest
-megalinter-xfg-v1.0.47          -> v1.0.47, v1.0, latest
+megalinter-spruyt-labs-v3.0.0   -> v3.0.0, v3.0, latest
 ```
 
 Git tags keep the format this repo already used, so existing tags round-trip and release-please finds them as version anchors. Some images carry a `v` before the version and some do not; that inconsistency is preserved deliberately because downstream repos pin the docker tags. Whether a given image takes the `v` is set by `include-v-in-tag` in `release-please-config.json`.
