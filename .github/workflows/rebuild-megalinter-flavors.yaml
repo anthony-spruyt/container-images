@@ -7,9 +7,17 @@ name: Rebuild MegaLinter Flavors
 # need a reason to rebuild — that reason is a stamp file per flavor. Bumping the
 # stamps in a PR lets release-please cut a patch release per flavor, which is
 # what actually triggers the builds.
+# Language definitions sit outside every release-please package, so a change to
+# one stamps just the flavors that compose it.
 on:
   schedule:
     - cron: "0 4 * * 0" # Weekly on Sunday at 4 AM UTC
+  push:
+    branches:
+      - main
+    paths:
+      - "megalinter-factory/base.yaml"
+      - "megalinter-factory/languages/**"
   workflow_dispatch: # Manual trigger
 
 permissions: {}
@@ -40,21 +48,38 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
 
       - name: Find flavor directories
         id: find
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
         run: |
-          # Find all directories containing flavor.yaml
-          FLAVORS=$(find . -maxdepth 2 -name 'flavor.yaml' -printf '%h\n' | \
-            sed 's|^\./||' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          if [ "$EVENT_NAME" = "push" ]; then
+            # Modified only: a newly added definition changes no flavor until its flavor.yaml lists it
+            mapfile -t CHANGED < <(git diff --name-only --diff-filter=M "$BEFORE" "$SHA")
+            pip install -q --require-hashes --only-binary :all: \
+              -r megalinter-factory/requirements.txt
+            FOUND=$(python megalinter-factory/compose.py "${CHANGED[@]}")
+            echo "suffix=-${SHA::7}" >> "$GITHUB_OUTPUT"
+            echo "message=chore(megalinter): rebuild flavors for updated language definitions" >> "$GITHUB_OUTPUT"
+          else
+            FOUND=$(find . -maxdepth 2 -name 'flavor.yaml' -printf '%h\n' | sed 's|^\./||')
+            echo "suffix=" >> "$GITHUB_OUTPUT"
+            echo "message=chore(megalinter): weekly linter version refresh" >> "$GITHUB_OUTPUT"
+          fi
+          FLAVORS=$(printf '%s\n' "$FOUND" | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "Found flavors: $FLAVORS"
           echo "flavors=$FLAVORS" >> "$GITHUB_OUTPUT"
 
       - name: Stamp each flavor
         env:
           FLAVORS: ${{ steps.find.outputs.flavors }}
+          SUFFIX: ${{ steps.find.outputs.suffix }}
         run: |
-          STAMP=$(date -u +%Y-%m-%d)
+          STAMP="$(date -u +%Y-%m-%d)${SUFFIX}"
           echo "$FLAVORS" | jq -r '.[]' | while read -r flavor; do
             echo "$STAMP" > "${flavor}/.rebuild-stamp"
             echo "Stamped $flavor with $STAMP"
@@ -63,6 +88,8 @@ jobs:
       - name: Open pull request
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SUFFIX: ${{ steps.find.outputs.suffix }}
+          MESSAGE: ${{ steps.find.outputs.message }}
         run: |
           # Not `git diff`: a flavor whose stamp does not exist yet is untracked,
           # and an untracked file is invisible to both `git diff` and `git commit -a`.
@@ -71,16 +98,16 @@ jobs:
             exit 0
           fi
 
-          BRANCH="chore/megalinter-refresh-$(date -u +%Y%m%d)"
+          BRANCH="chore/megalinter-refresh-$(date -u +%Y%m%d)${SUFFIX}"
           git config user.name "repo-operator-release-bot[bot]"
           git config user.email "repo-operator-release-bot[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
           git add -A
-          git commit -qm "chore(megalinter): weekly linter version refresh"
+          git commit -qm "$MESSAGE"
           git push -q origin "$BRANCH"
 
           gh pr create \
-            --title "chore(megalinter): weekly linter version refresh" \
+            --title "$MESSAGE" \
             --body "Bumps each flavor's rebuild stamp so release-please cuts a patch release and the images rebuild against the current linter versions." \
             --base main \
             --head "$BRANCH"
