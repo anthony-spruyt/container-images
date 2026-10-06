@@ -20,7 +20,7 @@ on:
         type: string
         default: ""
       tag-name:
-        description: "Git tag release-please created (e.g., llm-guard-cuda/v1.0.7). Required when push is true."
+        description: "Git tag release-please created (e.g., llm-guard-cuda-1.0.16). Required when push is true."
         required: false
         type: string
         default: ""
@@ -116,9 +116,7 @@ jobs:
         env:
           IMAGE_NAME: ${{ inputs.image }}
         run: |
-          # Optional build_context: build against another image's directory
-          # using this image's own Dockerfile (variant images sharing sources).
-          # metadata.yaml is optional and only variant images carry one.
+          # Variant images set build_context to reuse another image's sources with their own Dockerfile.
           BUILD_CONTEXT=""
           if [ -f "$IMAGE_NAME/metadata.yaml" ]; then
             BUILD_CONTEXT=$(yq -r '.build_context // ""' "$IMAGE_NAME/metadata.yaml")
