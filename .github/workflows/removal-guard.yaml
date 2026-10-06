@@ -44,7 +44,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.head_ref }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
+          # Queue PRs carry Mergify's title and merge commits; the queued PR was checked itself
+          if [[ "$HEAD_REF" == mergify/merge-queue/* && "$PR_AUTHOR" == "mergify[bot]" ]]; then
+            echo "::notice::Mergify merge-queue PR, checked on the queued PR"
+            exit 0
+          fi
           pip install -q --require-hashes --only-binary :all: \
             -r megalinter-factory/requirements.txt
           # Read live, not from the event: a re-run of an older run must see the current title
