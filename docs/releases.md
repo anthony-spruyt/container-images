@@ -59,7 +59,8 @@ Runs are serialized. If a refresh PR is still open, the new run stamps its flavo
 
 A factory code change that alters generated output releases nothing by itself; include a commit that touches the affected flavor directories. A `build:` commit to a flavor directory releases nothing either, since `build` has no changelog section — use it for changes that leave the generated image unchanged.
 
-A change that removes or replaces a linter breaks consumers that enable it, so it must release the affected flavors as a major from the change itself, not as a refresh `chore` patch. Touch each affected flavor directory (its `.rebuild-stamp` will do) in the same PR, keep every other flavor directory out of it, and title the PR `<type>(<scope>)!: <what consumers must change>`. The refresh then skips the flavors the PR stamped.
+A change that removes or replaces a linter breaks consumers that enable it, so it must release the affected flavors as a major from the change itself, not as a refresh `chore` patch.
+Touch each affected flavor directory (its `.rebuild-stamp` will do) in the same PR, keep every other flavor directory out of it, and title the PR `<type>(<scope>)!: <what consumers must change>`. The refresh then skips the flavors the PR stamped.
 A squash merge here takes its subject from the commit when the PR has only one, otherwise from the PR title, and its body from the commit messages, never the PR body. So put the `!` in that subject (the commit's own for a one-commit PR), or a `BREAKING CHANGE:` footer in a commit message.
 
 ### Removal guard
