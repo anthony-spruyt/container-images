@@ -78,48 +78,6 @@
       "sourceDirectory": "llm-guard-cuda",
     },
     {
-      "description": "Release notes for own images: megalinter-chromance",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-chromance"],
-      "sourceDirectory": "megalinter-chromance",
-    },
-    {
-      "description": "Release notes for own images: megalinter-container-images",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-container-images"],
-      "sourceDirectory": "megalinter-container-images",
-    },
-    {
-      "description": "Release notes for own images: megalinter-go",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-go"],
-      "sourceDirectory": "megalinter-go",
-    },
-    {
-      "description": "Release notes for own images: megalinter-python",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-python"],
-      "sourceDirectory": "megalinter-python",
-    },
-    {
-      "description": "Release notes for own images: megalinter-spruyt-labs",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-spruyt-labs"],
-      "sourceDirectory": "megalinter-spruyt-labs",
-    },
-    {
-      "description": "Release notes for own images: megalinter-sungather",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-sungather"],
-      "sourceDirectory": "megalinter-sungather",
-    },
-    {
-      "description": "Release notes for own images: megalinter-xfg",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/anthony-spruyt/megalinter-xfg"],
-      "sourceDirectory": "megalinter-xfg",
-    },
-    {
       "description": "Release notes for own images: ssh-key-rotation",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["ghcr.io/anthony-spruyt/ssh-key-rotation"],
