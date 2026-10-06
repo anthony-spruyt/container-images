@@ -10,7 +10,7 @@ on:
         required: true
         type: string
       push:
-        description: "Publish the image and the release. Off for pull request checks."
+        description: "Publish the image and the release. Off for pull request checks. The caller must grant contents, packages, id-token and attestations write."
         required: false
         type: boolean
         default: false
@@ -29,10 +29,14 @@ on:
         required: false
         type: string
         default: ""
+    secrets:
+      DOCKERHUB_TOKEN:
+        description: "Docker Hub token. Pass it only when push is true."
+        required: false
     outputs:
       digest:
-        description: "Image digest"
-        value: ${{ jobs.build.outputs.digest }}
+        description: "Image digest (empty unless push is true)"
+        value: ${{ jobs.publish.outputs.digest }}
 
 concurrency:
   group: build-${{ inputs.image }}-${{ inputs.version || github.ref }}
@@ -40,14 +44,47 @@ concurrency:
 
 jobs:
   build:
-    name: ${{ inputs.push && 'Build and publish' || 'Build' }}
+    name: Build
+    if: ${{ !inputs.push }}
     timeout-minutes: 30
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Publish the draft release
-      packages: write # Push to GHCR
-      id-token: write # OIDC for attestations
-      attestations: write # Build provenance
+      contents: read
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare build
+        id: prepare
+        uses: ./.github/actions/prepare-build
+        with:
+          image: ${{ inputs.image }}
+
+      - name: Build image
+        uses: anthony-spruyt/repo-operator/.github/actions/build-image@main
+        with:
+          image: ${{ inputs.image }}
+          context: ${{ steps.prepare.outputs.context }}
+          dockerfile: ${{ steps.prepare.outputs.dockerfile }}
+          version: ${{ inputs.version }}
+          tag-prefix: ${{ inputs.tag-prefix }}
+          extra-tags: type=sha,prefix=
+          dockerhub-namespace: aspruyt
+          test-command: ${{ steps.prepare.outputs.test-command }}
+
+  publish:
+    name: Build and publish
+    if: inputs.push
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    # No permissions block on purpose: requesting write here fails read-only PR callers at startup, even though the job is skipped.
     outputs:
       digest: ${{ steps.build.outputs.digest }}
     steps:
@@ -64,7 +101,6 @@ jobs:
 
       - name: Verify the tag is the commit being built
         id: verify
-        if: inputs.push
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -102,102 +138,33 @@ jobs:
             exit 1
           fi
 
-      - name: Free up disk space
+
+      - name: Prepare build
+        id: prepare
         if: steps.verify.outputs.published != 'true'
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
-          sudo apt-get clean
-          docker system prune -af
-          df -h
+        uses: ./.github/actions/prepare-build
+        with:
+          image: ${{ inputs.image }}
 
-      - name: Prepare build context
-        id: context
-        if: steps.verify.outputs.published != 'true'
-        env:
-          IMAGE_NAME: ${{ inputs.image }}
-        run: |
-          # Variant images set build_context to reuse another image's sources with their own Dockerfile.
-          BUILD_CONTEXT=""
-          if [ -f "$IMAGE_NAME/metadata.yaml" ]; then
-            BUILD_CONTEXT=$(yq -r '.build_context // ""' "$IMAGE_NAME/metadata.yaml")
-          fi
-          if [ -n "$BUILD_CONTEXT" ]; then
-            if ! echo "$BUILD_CONTEXT" | grep -qE '^[a-zA-Z0-9_-]+$'; then
-              echo "::error::Invalid build_context format in $IMAGE_NAME/metadata.yaml: $BUILD_CONTEXT"
-              exit 1
-            fi
-            if [ ! -d "$BUILD_CONTEXT" ]; then
-              echo "::error::build_context directory does not exist: $BUILD_CONTEXT"
-              exit 1
-            fi
-            echo "::notice::Building $IMAGE_NAME from context $BUILD_CONTEXT"
-            echo "path=$BUILD_CONTEXT" >> "$GITHUB_OUTPUT"
-            echo "dockerfile=$IMAGE_NAME/Dockerfile" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          echo "path=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
-          echo "dockerfile=$IMAGE_NAME/Dockerfile" >> "$GITHUB_OUTPUT"
-
-      - name: Generate flavor files
-        if: steps.verify.outputs.published != 'true'
-        env:
-          IMAGE_NAME: ${{ inputs.image }}
-        run: |
-          if [ -f "$IMAGE_NAME/flavor.yaml" ]; then
-            echo "::notice::Found flavor.yaml, generating Dockerfile and test.sh"
-            # --require-hashes pins the exact wheels; --only-binary blocks
-            # setup.py execution from source distributions
-            pip install -q --require-hashes --only-binary :all: \
-              -r megalinter-factory/requirements.txt
-            python megalinter-factory/generate.py "$IMAGE_NAME"
-          fi
-
-      - name: Verify Dockerfile exists
-        if: steps.verify.outputs.published != 'true'
-        env:
-          DOCKERFILE: ${{ steps.context.outputs.dockerfile }}
-        run: |
-          if [ ! -f "$DOCKERFILE" ]; then
-            echo "::error::No Dockerfile found at $DOCKERFILE"
-            exit 1
-          fi
-
-      - name: Resolve test command
-        id: test
-        if: steps.verify.outputs.published != 'true'
-        env:
-          IMAGE_NAME: ${{ inputs.image }}
-        run: |
-          if ! echo "$IMAGE_NAME" | grep -qE '^[a-zA-Z0-9_-]+$'; then
-            echo "::error::Invalid image name: $IMAGE_NAME"
-            exit 1
-          fi
-          if [ -f "$IMAGE_NAME/test.sh" ]; then
-            echo "command=bash ./$IMAGE_NAME/test.sh \"\$IMAGE_REF\"" >> "$GITHUB_OUTPUT"
-          else
-            echo "No test script found at $IMAGE_NAME/test.sh, skipping"
-          fi
-
-      - name: Build image
+      - name: Build and push image
         id: build
         if: steps.verify.outputs.published != 'true'
         uses: anthony-spruyt/repo-operator/.github/actions/build-image@main
         with:
           image: ${{ inputs.image }}
-          context: ${{ steps.context.outputs.path }}
-          dockerfile: ${{ steps.context.outputs.dockerfile }}
-          push: ${{ inputs.push }}
+          context: ${{ steps.prepare.outputs.context }}
+          dockerfile: ${{ steps.prepare.outputs.dockerfile }}
+          push: "true"
           version: ${{ inputs.version }}
           tag-prefix: ${{ inputs.tag-prefix }}
           extra-tags: type=sha,prefix=
           dockerhub-namespace: aspruyt
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
-          test-command: ${{ steps.test.outputs.command }}
+          test-command: ${{ steps.prepare.outputs.test-command }}
 
       # Must stay last: on failure the release stays a draft, so a published release always has an image.
       - name: Publish release
-        if: inputs.push && steps.verify.outputs.published != 'true'
+        if: steps.verify.outputs.published != 'true'
         uses: anthony-spruyt/repo-operator/.github/actions/publish-release@main
         with:
           tag: ${{ inputs.tag-name }}
