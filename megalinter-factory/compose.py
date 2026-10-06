@@ -29,9 +29,7 @@ def _string_list(owner: str, field: str, value: object) -> list[str]:
     if value is None:
         return []
     if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
-        raise ValueError(
-            f"{owner}: {field} must be a list of names (linter keys or languages), got {value!r}"
-        )
+        raise ValueError(f"{owner}: {field} must be a list of names (linter keys or languages), got {value!r}")
     return value
 
 
@@ -77,9 +75,7 @@ def compose_flavor(flavor: dict, factory_dir: Path) -> dict:
     """
     name = flavor.get("name", "flavor")
     base = _load(factory_dir / "base.yaml")
-    languages = resolve_languages(
-        _string_list(name, "languages", flavor.get("languages")), factory_dir / "languages"
-    )
+    languages = resolve_languages(_string_list(name, "languages", flavor.get("languages")), factory_dir / "languages")
 
     linters = set(_string_list("base.yaml", "linters", base.get("linters")))
     fragments = []

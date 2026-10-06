@@ -69,9 +69,7 @@ def clone_megalinter(cache_dir: Path | None = None) -> Path:
     return ml_dir / "megalinter" / "descriptors"
 
 
-def parse_dockerfile_instructions(
-    dockerfile_lines: list[str], linter_key: str
-) -> dict[str, str | None]:
+def parse_dockerfile_instructions(dockerfile_lines: list[str], linter_key: str) -> dict[str, str | None]:
     """
     Parse ARG, FROM, COPY from dockerfile instructions for a specific linter.
 
@@ -90,9 +88,7 @@ def parse_dockerfile_instructions(
         "stage_name": None,
     }
 
-    # Collect all ARG definitions
     args = {}
-    # Track FROM stages
     stages = {}
 
     # Normalize linter key for matching (ACTION_ACTIONLINT -> actionlint)
@@ -104,8 +100,8 @@ def parse_dockerfile_instructions(
 
         # Handle multiline strings (from |- YAML)
         lines = line.strip().split("\n")
-        for single_line in lines:
-            single_line = single_line.strip()
+        for raw_line in lines:
+            single_line = raw_line.strip()
             if not single_line or single_line.startswith("#"):
                 continue
 
@@ -116,9 +112,7 @@ def parse_dockerfile_instructions(
                 args[arg_name] = arg_value
 
             # FROM rhysd/actionlint:${ACTION_ACTIONLINT_VERSION} AS actionlint
-            if match := re.match(
-                r"FROM\s+([^:\s]+):(\S+)\s+AS\s+([\w-]+)", single_line, re.IGNORECASE
-            ):
+            if match := re.match(r"FROM\s+([^:\s]+):(\S+)\s+AS\s+([\w-]+)", single_line, re.IGNORECASE):
                 stage_name = match.group(3).lower()
                 stages[stage_name] = {
                     "image": match.group(1),
@@ -126,18 +120,13 @@ def parse_dockerfile_instructions(
                 }
 
             # COPY --link --from=actionlint /usr/local/bin/actionlint /usr/bin/actionlint
-            if match := re.search(
-                r"COPY\s+.*--from=([\w-]+)\s+(\S+)\s+(\S+)", single_line, re.IGNORECASE
-            ):
+            if match := re.search(r"COPY\s+.*--from=([\w-]+)\s+(\S+)\s+(\S+)", single_line, re.IGNORECASE):
                 stage_name = match.group(1).lower()
-                # Match COPY that corresponds to this linter
-                if stage_name == linter_name_lower or linter_name_lower in stage_name:
-                    if result["binary_path"] is None:
-                        result["binary_path"] = match.group(2)
-                        result["target_path"] = match.group(3)
-                        result["stage_name"] = stage_name
+                if linter_name_lower in stage_name and result["binary_path"] is None:
+                    result["binary_path"] = match.group(2)
+                    result["target_path"] = match.group(3)
+                    result["stage_name"] = stage_name
 
-    # Find the matching stage for this linter
     matched_stage = None
     for stage_name, stage_info in stages.items():
         if stage_name == linter_name_lower or linter_name_lower in stage_name:
@@ -414,7 +403,6 @@ def build_linter_info(linter: dict, descriptor_id: str) -> dict:
         Linter info dict; its "type" is None when no install method was detected
     """
     linter_name_raw = linter.get("linter_name", "")
-    # Normalize: replace hyphens with underscores for consistency
     linter_name = linter_name_raw.upper().replace("-", "_")
     # 'name' is the actual key MegaLinter uses (e.g. JAVASCRIPT_ES); when absent
     # it is derived from the descriptor id and the linter name.
@@ -422,11 +410,7 @@ def build_linter_info(linter: dict, descriptor_id: str) -> dict:
 
     install = linter.get("install", {})
     version_arg = linter.get("cli_version_arg_name", "--version")
-    cli_name = (
-        linter.get("cli_executable")
-        or linter_name_raw
-        or linter_key.rsplit("_", maxsplit=1)[-1].lower()
-    )
+    cli_name = linter.get("cli_executable") or linter_name_raw or linter_key.rsplit("_", maxsplit=1)[-1].lower()
 
     linter_info = {
         "linter_key": linter_key,
@@ -490,9 +474,7 @@ def extract_base_flavor_linters(descriptors_dir: Path) -> dict[str, list[str]]:
     """
     manifest = json.loads((descriptors_dir / "all_flavors.json").read_text())
 
-    return {
-        flavor: sorted(info.get("linters", [])) for flavor, info in manifest.items()
-    }
+    return {flavor: sorted(info.get("linters", [])) for flavor, info in manifest.items()}
 
 
 def get_megalinter_linters(cache_dir: Path | None = None) -> dict:
@@ -514,7 +496,6 @@ def get_megalinter_linters(cache_dir: Path | None = None) -> dict:
 
 
 if __name__ == "__main__":
-    # Test the extractor
     print("Extracting linter info from MegaLinter...")
     data = get_megalinter_linters()
 
