@@ -346,3 +346,10 @@ def test_repository_flavor_composes_its_golden_linters(flavor_dir: str) -> None:
     flavor = yaml.safe_load(path.read_text(encoding="utf-8"))
 
     assert compose_flavor(flavor, FACTORY_DIR)["custom_linters"] == EXPECTED_LINTERS[flavor_dir]
+
+
+def test_flavor_the_change_already_stamped_is_skipped(repo: Path) -> None:
+    """A removal PR stamps its own flavors, so the refresh must not add a chore patch on top."""
+    changed = ["megalinter-factory/languages/go.yaml", "megalinter-go/.rebuild-stamp"]
+
+    assert flavors_affected(changed, repo) == ["megalinter-go-python"]
