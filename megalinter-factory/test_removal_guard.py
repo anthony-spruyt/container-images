@@ -1,5 +1,7 @@
 """Tests for the guard that keeps a linter removal from shipping as a patch."""
 
+import io
+import json
 from pathlib import Path
 
 import pytest
@@ -144,13 +146,14 @@ def test_factory_directory_is_not_a_flavor(base: Path) -> None:
 
 
 def run_main(base: Path, head: Path, title: str, commit: str, changed: list[str]) -> int:
-    """Write the files CI hands the CLI and run it."""
-    commits = head / "commits"
-    commits.write_text(f"{commit}\n\nbody\n\0", encoding="utf-8")
-    changed_file = head / "changed"
-    changed_file.write_text("".join(f"{path}\n" for path in changed), encoding="utf-8")
-    args = ["--base", str(base), "--head", str(head), "--title", title]
-    return main([*args, "--commits", str(commits), "--changed", str(changed_file)])
+    """Feed the CLI the JSON CI pipes in, raw git output included, and run it."""
+    payload = {
+        "title": title,
+        "commits": f"{commit}\n\nbody\n\0",
+        "changed": "".join(f"{path}\n" for path in changed),
+    }
+    stdin = io.StringIO(json.dumps(payload))
+    return main(["--base", str(base), "--head", str(head)], stdin)
 
 
 def test_main_fails_an_unmarked_removal(base: Path, tmp_path: Path, capsys) -> None:

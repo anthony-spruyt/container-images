@@ -91,11 +91,11 @@ jobs:
           git worktree add -q --detach "$RUNNER_TEMP/base" HEAD^1
           git log --format='%B%x00' HEAD^1..HEAD^2 > "$RUNNER_TEMP/commits"
           git diff --name-only HEAD^1 HEAD > "$RUNNER_TEMP/changed"
-          python megalinter-factory/removal_guard.py \
-            --base "$RUNNER_TEMP/base" \
-            --title "$TITLE" \
-            --commits "$RUNNER_TEMP/commits" \
-            --changed "$RUNNER_TEMP/changed"
+          jq -n --arg title "$TITLE" \
+            --rawfile commits "$RUNNER_TEMP/commits" \
+            --rawfile changed "$RUNNER_TEMP/changed" \
+            '{$title, $commits, $changed}' |
+            python megalinter-factory/removal_guard.py --base "$RUNNER_TEMP/base"
 
   detect-changes:
     name: Detect Changes

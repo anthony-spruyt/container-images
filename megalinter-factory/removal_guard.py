@@ -1,9 +1,11 @@
 """Fail a PR that drops a linter from a flavor unless it releases that flavor as breaking."""
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
+from typing import TextIO
 
 import yaml
 
@@ -75,22 +77,22 @@ def check(
     return errors
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Compare the flavors on a base checkout with head and report unmarked removals."""
+def main(argv: list[str] | None = None, stdin: TextIO | None = None) -> int:
+    """Compare the flavors on a base checkout with head and report unmarked removals.
+
+    stdin carries JSON: the PR title, NUL-separated commit messages and changed files, one a line.
+    """
     repo_root = Path(__file__).resolve().parent.parent
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", type=Path, required=True, help="checkout of the target branch")
     parser.add_argument("--head", type=Path, default=repo_root, help="checkout of the PR")
-    parser.add_argument("--title", required=True, help="current PR title")
-    parser.add_argument("--commits", type=Path, required=True, help="NUL-separated messages")
-    parser.add_argument("--changed", type=Path, required=True, help="changed files, one a line")
     args = parser.parse_args(argv)
 
-    commits = args.commits.read_text(encoding="utf-8").split("\0")
-    messages = [message.strip() for message in commits if message.strip()]
-    changed = [line for line in args.changed.read_text(encoding="utf-8").splitlines() if line]
+    pr = json.load(stdin or sys.stdin)
+    messages = [message.strip() for message in pr["commits"].split("\0") if message.strip()]
+    changed = [line for line in pr["changed"].splitlines() if line]
     removed = removed_linters(args.base, args.head)
-    errors = check(removed, args.title, messages, changed, args.head)
+    errors = check(removed, pr["title"], messages, changed, args.head)
 
     for error in errors:
         print(f"::error::{error}")
