@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.43](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.0.42...llm-guard-1.0.43) (2026-10-06)
+
+
+### Dependencies
+
+* **deps:** update container image python to 3.14-slim ([#2095](https://github.com/anthony-spruyt/container-images/issues/2095)) ([48b0a8d](https://github.com/anthony-spruyt/container-images/commit/48b0a8dfcedd58bbd018b0af30b1e855695d2a41))
+
 ## [1.0.42](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.0.41...llm-guard-1.0.42) (2026-10-04)
 
 

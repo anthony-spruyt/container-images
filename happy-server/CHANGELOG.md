@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.2...happy-server-1.0.3) (2026-10-06)
+
+
+### Dependencies
+
+* **deps:** update container image node to 24.21.0-trixie-slim ([#2089](https://github.com/anthony-spruyt/container-images/issues/2089)) ([5f49629](https://github.com/anthony-spruyt/container-images/commit/5f49629894ed7901d89f09f6e0ceb08aedc019e1))
+
 ## [1.0.2](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.1...happy-server-1.0.2) (2026-10-05)
 
 
