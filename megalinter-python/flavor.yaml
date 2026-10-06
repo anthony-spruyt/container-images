@@ -1,31 +1,9 @@
-# MegaLinter Flavor Factory Configuration
-# Source of truth for megalinter-python flavor
-#
-# To regenerate Dockerfile and test.sh:
-#   python megalinter-factory/generate.py megalinter-python/
-#
-# Linter versions are automatically extracted from MegaLinter at build time.
 ---
 name: python
 description: "MegaLinter for Python repositories"
 
-# Upstream MegaLinter base image (Renovate tracks this)
 # renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-ci_light
 upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:v10.1.0@sha256:e40b320afe3152cd0e856019ff9c74a827d179ed45512148e5790871c3d08259"
 
-# Additional linters not in base flavor
-# Just list linter keys - versions come from MegaLinter automatically
-custom_linters:
-  - ACTION_ACTIONLINT
-  - MARKDOWN_MARKDOWNLINT
-  - PYTHON_RUFF
-  - PYTHON_RUFF_FORMAT
-  - SPELL_LYCHEE
-
-# PYTHON_RUFF_FORMAT stays inactive unless this is ruff; black is not installed
-extra_dockerfile: |
-  ENV PYTHON_DEFAULT_STYLE=ruff
-
-extra_test_env_vars:
-  - name: PYTHON_DEFAULT_STYLE
-    contains: "ruff"
+languages:
+  - python
