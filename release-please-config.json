@@ -110,20 +110,6 @@
       "include-v-in-tag": false,
       "initial-version": "1.0.0"
     },
-    "megalinter-chromance": {
-      "release-type": "simple",
-      "component": "megalinter-chromance",
-      "tag-separator": "-",
-      "include-component-in-tag": true,
-      "include-v-in-tag": false
-    },
-    "megalinter-container-images": {
-      "release-type": "simple",
-      "component": "megalinter-container-images",
-      "tag-separator": "-",
-      "include-component-in-tag": true,
-      "include-v-in-tag": true
-    },
     "megalinter-cpp": {
       "release-type": "simple",
       "component": "megalinter-cpp",
@@ -155,13 +141,6 @@
       "include-component-in-tag": true,
       "include-v-in-tag": true
     },
-    "megalinter-sungather": {
-      "release-type": "simple",
-      "component": "megalinter-sungather",
-      "tag-separator": "-",
-      "include-component-in-tag": true,
-      "include-v-in-tag": false
-    },
     "megalinter-typescript": {
       "release-type": "simple",
       "component": "megalinter-typescript",
@@ -169,13 +148,6 @@
       "include-component-in-tag": true,
       "include-v-in-tag": false,
       "initial-version": "1.0.0"
-    },
-    "megalinter-xfg": {
-      "release-type": "simple",
-      "component": "megalinter-xfg",
-      "tag-separator": "-",
-      "include-component-in-tag": true,
-      "include-v-in-tag": true
     },
     "ssh-key-rotation": {
       "release-type": "simple",
