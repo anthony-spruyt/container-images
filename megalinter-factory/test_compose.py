@@ -274,12 +274,14 @@ EXPECTED_LINTERS = {
     ],
     "megalinter-go": [
         "ACTION_ACTIONLINT",
+        "DOCKERFILE_HADOLINT",
         "GO_GOLANGCI_LINT",
         "MARKDOWN_MARKDOWNLINT",
         "SPELL_LYCHEE",
     ],
     "megalinter-python": [
         "ACTION_ACTIONLINT",
+        "DOCKERFILE_HADOLINT",
         "MARKDOWN_MARKDOWNLINT",
         "PYTHON_RUFF",
         "PYTHON_RUFF_FORMAT",
@@ -287,6 +289,7 @@ EXPECTED_LINTERS = {
     ],
     "megalinter-spruyt-labs": [
         "ACTION_ACTIONLINT",
+        "DOCKERFILE_HADOLINT",
         "MARKDOWN_MARKDOWNLINT",
         "SPELL_LYCHEE",
         "TERRAFORM_TFLINT",
