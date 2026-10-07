@@ -1,0 +1,105 @@
+---
+name: Prepare Build
+description: >-
+  Free runner disk, resolve the build context and Dockerfile, generate flavor
+  files, and resolve the image's test command. The caller must check out the
+  repo first.
+inputs:
+  image:
+    description: Image name (directory)
+    required: true
+outputs:
+  context:
+    description: Build context path
+    value: ${{ steps.context.outputs.path }}
+  dockerfile:
+    description: Dockerfile path
+    value: ${{ steps.context.outputs.dockerfile }}
+  test-command:
+    description: Test command for the build-image action, empty when the image has no test.sh
+    value: ${{ steps.test.outputs.command }}
+runs:
+  using: composite
+  steps:
+    - name: Validate image name
+      shell: bash
+      env:
+        IMAGE_NAME: ${{ inputs.image }}
+      run: |
+        if ! echo "$IMAGE_NAME" | grep -qE '^[a-zA-Z0-9_-]+$'; then
+          echo "::error::Invalid image name: $IMAGE_NAME"
+          exit 1
+        fi
+
+    - name: Free up disk space
+      shell: bash
+      run: |
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+        sudo apt-get clean
+        docker system prune -af
+        df -h
+
+    - name: Prepare build context
+      id: context
+      shell: bash
+      env:
+        IMAGE_NAME: ${{ inputs.image }}
+      run: |
+        # Variant images set build_context to reuse another image's sources with their own Dockerfile.
+        BUILD_CONTEXT=""
+        if [ -f "$IMAGE_NAME/metadata.yaml" ]; then
+          BUILD_CONTEXT=$(yq -r '.build_context // ""' "$IMAGE_NAME/metadata.yaml")
+        fi
+        if [ -n "$BUILD_CONTEXT" ]; then
+          if ! echo "$BUILD_CONTEXT" | grep -qE '^[a-zA-Z0-9_-]+$'; then
+            echo "::error::Invalid build_context format in $IMAGE_NAME/metadata.yaml: $BUILD_CONTEXT"
+            exit 1
+          fi
+          if [ ! -d "$BUILD_CONTEXT" ]; then
+            echo "::error::build_context directory does not exist: $BUILD_CONTEXT"
+            exit 1
+          fi
+          echo "::notice::Building $IMAGE_NAME from context $BUILD_CONTEXT"
+          echo "path=$BUILD_CONTEXT" >> "$GITHUB_OUTPUT"
+          echo "dockerfile=$IMAGE_NAME/Dockerfile" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        echo "path=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+        echo "dockerfile=$IMAGE_NAME/Dockerfile" >> "$GITHUB_OUTPUT"
+
+    - name: Generate flavor files
+      shell: bash
+      env:
+        IMAGE_NAME: ${{ inputs.image }}
+      run: |
+        if [ -f "$IMAGE_NAME/flavor.yaml" ]; then
+          echo "::notice::Found flavor.yaml, generating Dockerfile and test.sh"
+          # --require-hashes pins the exact wheels; --only-binary blocks
+          # setup.py execution from source distributions
+          pip install -q --require-hashes --only-binary :all: \
+            -r megalinter-factory/requirements.txt
+          python megalinter-factory/generate.py "$IMAGE_NAME"
+        fi
+
+    - name: Verify Dockerfile exists
+      shell: bash
+      env:
+        DOCKERFILE: ${{ steps.context.outputs.dockerfile }}
+      run: |
+        if [ ! -f "$DOCKERFILE" ]; then
+          echo "::error::No Dockerfile found at $DOCKERFILE"
+          exit 1
+        fi
+
+    - name: Resolve test command
+      id: test
+      shell: bash
+      env:
+        IMAGE_NAME: ${{ inputs.image }}
+      run: |
+        if [ -f "$IMAGE_NAME/test.sh" ]; then
+          echo "command=bash ./$IMAGE_NAME/test.sh \"\$IMAGE_REF\"" >> "$GITHUB_OUTPUT"
+        else
+          echo "No test script found at $IMAGE_NAME/test.sh, skipping"
+        fi
