@@ -11,7 +11,7 @@ languages:
 
 # Biome is not in MegaLinter upstream; its descriptor ships in mega-linter-plugin-biome/
 # renovate: datasource=npm depName=@biomejs/biome
-biome_version: "2.5.14"
+biome_version: "2.5.15"
 
 extra_dockerfile: |
   ARG BIOME_VERSION={{ flavor.biome_version }}
