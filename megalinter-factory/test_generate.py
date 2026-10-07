@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 import generate
-from generate import unique_by_package
+from generate import resolve_linters, unique_by_package
 
 FACTORY_DIR = Path(__file__).parent
 
@@ -85,3 +85,92 @@ def test_flavor_fragment_sees_fields_derived_from_upstream_image(
     generate.generate_files(flavor_dir, factory)
 
     assert "LABEL base=go tag=v10.1.0\n" in (flavor_dir / "Dockerfile").read_text()
+
+
+def test_resolve_linters_describes_base_and_custom_linters() -> None:
+    """Base linters get test info; custom linters get the install fields for their type."""
+    megalinter_data = {
+        "linters": {
+            "BASE_ONE": {"version_command": "one --version"},
+            "BIN_LINT": {
+                "type": "docker_binary",
+                "version": "1.2",
+                "version_command": "bin -v",
+                "binary_path": "/src",
+                "target_path": "/dst",
+                "source_image": "org/bin",
+                "apk_packages": ["libc"],
+            },
+            "NPM_LINT": {"type": "npm", "package": "lint-a", "version": "3"},
+            "NPM_MULTI": {"type": "npm", "package": "a", "npm_packages": ["a", "b"]},
+            "PIP_LINT": {"type": "pip", "package": "ruff", "version": "0.1", "description": "d"},
+            "SCRIPT_LINT": {"type": "script", "dockerfile": ["RUN x"]},
+            "APK_LINT": {"type": "apk", "apk_packages": ["tool"]},
+        },
+        "base_flavor_linters": {"go": ["BASE_ONE", "BASE_NO_INFO", "PIP_LINT"]},
+    }
+    flavor = {
+        "base_flavor": "go",
+        "custom_linters": ["BIN_LINT", "NPM_LINT", "NPM_MULTI", "PIP_LINT", "SCRIPT_LINT", "APK_LINT"],
+    }
+
+    all_linters, base, custom = resolve_linters(flavor, megalinter_data)
+
+    assert all_linters == [
+        "BASE_ONE",
+        "BASE_NO_INFO",
+        "PIP_LINT",
+        "BIN_LINT",
+        "NPM_LINT",
+        "NPM_MULTI",
+        "SCRIPT_LINT",
+        "APK_LINT",
+    ]
+    assert base[1] == {"linter_key": "BASE_NO_INFO", "name": "info", "version_command": "info --version"}
+    assert base[0]["name"] == "one"
+    by_key = {linter["linter_key"]: linter for linter in custom}
+    assert by_key["BIN_LINT"] == {
+        "linter_key": "BIN_LINT",
+        "name": "bin",
+        "type": "docker_binary",
+        "version": "1.2",
+        "version_command": "bin -v",
+        "description": "",
+        "binary_path": "/src",
+        "target_path": "/dst",
+        "source_image": "org/bin",
+        "digest": "",
+        "image": "org/bin:1.2",
+        "apk_packages": ["libc"],
+    }
+    assert by_key["NPM_LINT"]["npm_packages"] == ["lint-a"]
+    assert by_key["NPM_MULTI"]["npm_packages"] == ["a", "b"]
+    assert by_key["PIP_LINT"]["package"] == "ruff"
+    assert by_key["PIP_LINT"]["description"] == "d"
+    assert "npm_packages" not in by_key["PIP_LINT"]
+    assert by_key["SCRIPT_LINT"]["dockerfile"] == ["RUN x"]
+    assert by_key["SCRIPT_LINT"]["apk_packages"] == []
+    assert by_key["APK_LINT"]["name"] == "lint"
+    assert "package" not in by_key["APK_LINT"]
+
+
+def test_resolve_linters_defaults_to_ci_light() -> None:
+    """A flavor without base_flavor takes the ci_light base list."""
+    data = {"linters": {}, "base_flavor_linters": {"ci_light": ["A_B"]}}
+
+    assert resolve_linters({}, data)[0] == ["A_B"]
+
+
+def test_resolve_linters_docker_binary_without_version_has_no_image() -> None:
+    """The image reference needs both a source image and a version."""
+    data = {"linters": {"BIN_LINT": {"type": "docker_binary", "source_image": "org/bin"}}, "base_flavor_linters": {}}
+
+    custom = resolve_linters({"custom_linters": ["BIN_LINT"]}, data)[2]
+
+    assert "image" not in custom[0]
+
+
+def test_resolve_linters_rejects_an_unknown_custom_linter() -> None:
+    """A custom linter MegaLinter does not know would silently drop out of the image."""
+    with pytest.raises(ValueError, match="MISSING_LINT not found"):
+        resolve_linters({"custom_linters": ["MISSING_LINT"]}, {"linters": {}, "base_flavor_linters": {}})
