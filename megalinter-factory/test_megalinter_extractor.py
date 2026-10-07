@@ -11,6 +11,7 @@ from megalinter_extractor import (
     extract_linter_info,
     has_download_install_run,
     parse_dockerfile_instructions,
+    strip_npm_version,
 )
 
 SHARED_PRETTIER = """---
@@ -290,3 +291,19 @@ def test_dockerfile_copy_parse_is_linear_on_long_lines() -> None:
 
     assert result["binary_path"] is None
     assert time.perf_counter() - started < 0.5
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("prettier@${NPM_PRETTIER_VERSION}", "prettier"),
+        ("@scope/pkg@${NPM_PKG_VERSION}", "@scope/pkg"),
+        ("@scope/pkg@1.2.3", "@scope/pkg"),
+        ("@scope/pkg", "@scope/pkg"),
+        ("pkg@1.2.3", "pkg"),
+        ("pkg", "pkg"),
+    ],
+)
+def test_strip_npm_version_keeps_the_scope(raw: str, expected: str) -> None:
+    """The version goes, but a scoped package keeps its leading @."""
+    assert strip_npm_version(raw) == expected

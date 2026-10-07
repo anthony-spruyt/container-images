@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 import generate
-from generate import resolve_linters, unique_by_package
+from generate import flavor_dir_error, resolve_linters, unique_by_package
 
 FACTORY_DIR = Path(__file__).parent
 
@@ -174,3 +174,26 @@ def test_resolve_linters_rejects_an_unknown_custom_linter() -> None:
     """A custom linter MegaLinter does not know would silently drop out of the image."""
     with pytest.raises(ValueError, match="MISSING_LINT not found"):
         resolve_linters({"custom_linters": ["MISSING_LINT"]}, {"linters": {}, "base_flavor_linters": {}})
+
+
+def test_flavor_dir_error_rejects_a_missing_directory(tmp_path: Path) -> None:
+    """A path that is not a directory cannot hold a flavor."""
+    assert flavor_dir_error(tmp_path / "absent") == f"{tmp_path / 'absent'} is not a directory"
+
+
+def test_flavor_dir_error_rejects_a_directory_without_flavor_yaml(tmp_path: Path) -> None:
+    """A flavor directory needs a flavor.yaml."""
+    assert flavor_dir_error(tmp_path) == f"{tmp_path / 'flavor.yaml'} not found"
+
+
+def test_flavor_dir_error_accepts_a_flavor_directory(tmp_path: Path) -> None:
+    """A directory with flavor.yaml passes."""
+    (tmp_path / "flavor.yaml").write_text("name: x\n")
+    assert flavor_dir_error(tmp_path) is None
+
+
+def test_main_fails_without_flavor_yaml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys) -> None:
+    """main reports the flavor directory problem and exits non-zero."""
+    monkeypatch.setattr("sys.argv", ["generate.py", str(tmp_path)])
+    assert generate.main() == 1
+    assert "flavor.yaml not found" in capsys.readouterr().err
