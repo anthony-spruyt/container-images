@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.2](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.3.1...devcontainer-common-2.3.2) (2026-10-07)
+
+
+### Dependencies
+
+* **deps:** update dependency cli/cli to v2.102.0 ([#2164](https://github.com/anthony-spruyt/container-images/issues/2164)) ([cc8f378](https://github.com/anthony-spruyt/container-images/commit/cc8f3787b8dc0fd07605d2a6d8d0d7ef1a8142a7))
+
 ## [2.3.1](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.3.0...devcontainer-common-2.3.1) (2026-10-06)
 
 

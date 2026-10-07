@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.107](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.0.106...claude-agent-read-1.0.107) (2026-10-07)
+
+
+### Dependencies
+
+* **deps:** update dependency cli/cli to v2.102.0 ([#2164](https://github.com/anthony-spruyt/container-images/issues/2164)) ([cc8f378](https://github.com/anthony-spruyt/container-images/commit/cc8f3787b8dc0fd07605d2a6d8d0d7ef1a8142a7))
+
 ## [1.0.106](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.0.105...claude-agent-read-1.0.106) (2026-10-06)
 
 
