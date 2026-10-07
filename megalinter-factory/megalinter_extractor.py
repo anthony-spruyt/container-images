@@ -217,14 +217,9 @@ def find_version_arg(dockerfile: list, prefix: str) -> str | None:
 
 def strip_npm_version(raw_package: str) -> str:
     """Strip the version suffix from an npm package spec, keeping any @scope/."""
-    if "@${" in raw_package:
-        return raw_package.split("@${")[0]
     # Scoped package like @scope/pkg@version - the leading @ is part of the name
-    if raw_package.startswith("@") and raw_package.count("@") == 2:
-        return raw_package.rsplit("@", 1)[0]
-    if "@" in raw_package:
-        return raw_package.split("@")[0]
-    return raw_package
+    scope = "@" if raw_package.startswith("@") else ""
+    return scope + raw_package.removeprefix("@").split("@")[0]
 
 
 def strip_pip_version(raw_package: str) -> str:
