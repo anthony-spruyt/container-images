@@ -232,9 +232,8 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:
         for i, pkg in enumerate(packages):
             if i == 0:
                 npm_versioned_packages[pkg] = (linter["name"], linter["version"])
-            else:
-                if pkg not in npm_versioned_packages:
-                    npm_unversioned_packages.add(pkg)
+            elif pkg not in npm_versioned_packages:
+                npm_unversioned_packages.add(pkg)
     npm_unversioned_packages -= set(npm_versioned_packages.keys())
 
     env = Environment(
@@ -280,6 +279,16 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:
     print(f"    - Custom: {len(custom_linters)}")
 
 
+def flavor_dir_error(flavor_dir: Path) -> str | None:
+    """Return why flavor_dir is not a usable flavor directory, or None if it is."""
+    if not flavor_dir.is_dir():
+        return f"{flavor_dir} is not a directory"
+    flavor_yaml = flavor_dir / "flavor.yaml"
+    if not flavor_yaml.exists():
+        return f"{flavor_yaml} not found"
+    return None
+
+
 def main() -> int:
     """Main entry point."""
     parser = argparse.ArgumentParser(description="Generate MegaLinter flavor files from flavor.yaml")
@@ -293,13 +302,8 @@ def main() -> int:
     flavor_dir = args.flavor_dir.resolve()
     factory_dir = Path(__file__).parent.resolve()
 
-    if not flavor_dir.is_dir():
-        print(f"Error: {flavor_dir} is not a directory", file=sys.stderr)
-        return 1
-
-    flavor_yaml = flavor_dir / "flavor.yaml"
-    if not flavor_yaml.exists():
-        print(f"Error: {flavor_yaml} not found", file=sys.stderr)
+    if error := flavor_dir_error(flavor_dir):
+        print(f"Error: {error}", file=sys.stderr)
         return 1
 
     try:

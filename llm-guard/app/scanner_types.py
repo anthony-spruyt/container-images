@@ -205,14 +205,13 @@ class RegexScanner:
                         score=1.0,
                         reason=f"matched blocked pattern: {pat.pattern!r}",
                     )
-            else:
-                if not matched:
-                    return ScanResult(
-                        scanner="Regex",
-                        is_safe=False,
-                        score=1.0,
-                        reason=f"did not match required pattern: {pat.pattern!r}",
-                    )
+            elif not matched:
+                return ScanResult(
+                    scanner="Regex",
+                    is_safe=False,
+                    score=1.0,
+                    reason=f"did not match required pattern: {pat.pattern!r}",
+                )
         return ScanResult(scanner="Regex", is_safe=True, score=0.0)
 
 
