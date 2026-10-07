@@ -58,7 +58,7 @@ Old container images and releases are automatically cleaned up weekly:
 - The weekly run deletes for real; a manual dispatch is a dry run unless `dry_run=false`
 - GitHub releases and tags older than 4 weeks are deleted
 - 5 most recent versions always kept; draft releases neither count toward the 5 nor get deleted
-- The release half aborts before deleting anything if more than 50 releases are planned for deletion (`max_deletions` input on dispatch, 0-999999); the cap counts releases, and each deleted release also removes its tag. It exists because the garbo App bypasses the tag-deletion ruleset
+- The release half aborts before deleting anything if more than 50 releases (`max_deletions` on dispatch, 0-999999) are planned for deletion; each deleted release also removes its tag. It exists because the garbo App bypasses the tag-deletion ruleset
 - Runs never overlap (`concurrency` group, no cancel-in-progress)
 - Targets: every image registered in `release-please-config.json`
 - Workflow: `.github/workflows/container-retention.yaml`, which calls repo-operator's `_container-retention.yaml` with this repo's `GITHUB_TOKEN`. Each package must give this repo the **Admin** role under its Actions access settings (images first pushed by this repo's CI have it)

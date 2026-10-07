@@ -80,7 +80,7 @@ jobs:
           # Empty on schedule, where workflow_dispatch inputs don't exist
           MAX_DELETIONS=${MAX_DELETIONS:-50}
 
-          # Bounded so [ -gt ] below can't overflow and silently skip the cap
+          # Bounded: [ -gt ] errors on huge values, and inside an if that skips the cap
           if ! [[ "$MAX_DELETIONS" =~ ^[0-9]{1,6}$ ]]; then
             echo "::error::MAX_DELETIONS must be an integer from 0 to 999999, got '$MAX_DELETIONS'"
             exit 1
@@ -147,10 +147,10 @@ jobs:
 
           PLANNED=$(wc -l <"$PLAN")
           if [ "$PLANNED" -gt "$MAX_DELETIONS" ]; then
-            echo "::error::Aborting: $PLANNED releases/tags planned for deletion exceeds the cap of $MAX_DELETIONS. Nothing was deleted. If the plan above is intended, dispatch with a higher max_deletions."
+            echo "::error::Aborting: $PLANNED releases planned for deletion exceeds the cap of $MAX_DELETIONS. Nothing was deleted. If the plan above is intended, dispatch with a higher max_deletions."
             exit 1
           fi
-          echo "$PLANNED releases/tags planned for deletion (cap: $MAX_DELETIONS)"
+          echo "$PLANNED releases planned for deletion (cap: $MAX_DELETIONS)"
 
           while read -r TAG CREATED; do
             if [ "$DRY_RUN" = "true" ]; then
