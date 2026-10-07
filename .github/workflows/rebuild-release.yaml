@@ -122,7 +122,8 @@ jobs:
       id-token: write
       attestations: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: ${{ inputs.image }}
       push: true
