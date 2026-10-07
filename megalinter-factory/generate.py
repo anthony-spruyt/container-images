@@ -93,6 +93,68 @@ def unique_by_package(linters: list[dict]) -> list[dict]:
     return unique
 
 
+def describe_base_linter(key: str, extracted_linters: dict) -> dict:
+    """Describe a linter the upstream base image already ships, for the test script."""
+    linter_info = extracted_linters.get(key, {})
+    version_cmd = linter_info.get("version_command", f"{key.split('_')[-1].lower()} --version")
+    return {
+        "linter_key": key,
+        "name": get_linter_display_name(key, version_cmd),
+        "version_command": version_cmd,
+    }
+
+
+def _install_fields(extracted: dict, linter_type: str | None, version: str | None) -> dict:
+    """Return the install fields the Dockerfile template needs for this linter type."""
+    if linter_type == "docker_binary":
+        fields = {
+            "binary_path": extracted.get("binary_path"),
+            "target_path": extracted.get("target_path"),
+            "source_image": extracted.get("source_image"),
+            "digest": "",
+        }
+        if fields["source_image"] and version:
+            fields["image"] = f"{fields['source_image']}:{version}"
+        return fields
+
+    if linter_type in ("npm", "pip", "go", "cargo"):
+        package = extracted.get("package")
+        fields = {"package": package}
+        if linter_type == "npm":
+            fields["npm_packages"] = extracted.get("npm_packages", [package])
+        return fields
+
+    if linter_type == "script":
+        return {"dockerfile": extracted.get("dockerfile", [])}
+
+    return {}
+
+
+def resolve_custom_linter(linter_key: str, extracted_linters: dict) -> dict:
+    """Describe a linter the flavor installs on top of its upstream base image."""
+    extracted = extracted_linters.get(linter_key, {})
+    if not extracted:
+        raise ValueError(
+            f"Linter {linter_key} not found in MegaLinter descriptors. "
+            "Shipping the image without it would silently drop a linter - "
+            "remove it from custom_linters or fix the key."
+        )
+
+    version_cmd = extracted.get("version_command")
+    linter_type = extracted.get("type")
+    version = extracted.get("version")
+    return {
+        "linter_key": linter_key,
+        "name": get_linter_display_name(linter_key, version_cmd),
+        "type": linter_type,
+        "version": version,
+        "version_command": version_cmd,
+        "description": extracted.get("description", ""),
+        **_install_fields(extracted, linter_type, version),
+        "apk_packages": extracted.get("apk_packages", []),
+    }
+
+
 def resolve_linters(flavor: dict, megalinter_data: dict) -> tuple[list[str], list[dict], list[dict]]:
     """
     Resolve all linters for a flavor.
@@ -108,64 +170,10 @@ def resolve_linters(flavor: dict, megalinter_data: dict) -> tuple[list[str], lis
     """
     base_flavor = flavor.get("base_flavor", "ci_light")
     extracted_linters = megalinter_data.get("linters", {})
-    base_flavor_linters = megalinter_data.get("base_flavor_linters", {})
+    base_linter_keys = megalinter_data.get("base_flavor_linters", {}).get(base_flavor, [])
 
-    base_linter_keys = base_flavor_linters.get(base_flavor, [])
-
-    base_linters = []
-    for key in base_linter_keys:
-        linter_info = extracted_linters.get(key, {})
-        version_cmd = linter_info.get("version_command", f"{key.split('_')[-1].lower()} --version")
-        display_name = get_linter_display_name(key, version_cmd)
-        base_linters.append(
-            {
-                "linter_key": key,
-                "name": display_name,
-                "version_command": version_cmd,
-            }
-        )
-
-    custom_linters = []
-    for linter_key in flavor.get("custom_linters", []):
-        extracted = extracted_linters.get(linter_key, {})
-
-        if not extracted:
-            raise ValueError(
-                f"Linter {linter_key} not found in MegaLinter descriptors. "
-                "Shipping the image without it would silently drop a linter - "
-                "remove it from custom_linters or fix the key."
-            )
-
-        version_cmd = extracted.get("version_command")
-
-        resolved = {
-            "linter_key": linter_key,
-            "name": get_linter_display_name(linter_key, version_cmd),
-            "type": extracted.get("type"),
-            "version": extracted.get("version"),
-            "version_command": version_cmd,
-            "description": extracted.get("description", ""),
-        }
-
-        if resolved["type"] == "docker_binary":
-            resolved["binary_path"] = extracted.get("binary_path")
-            resolved["target_path"] = extracted.get("target_path")
-            resolved["source_image"] = extracted.get("source_image")
-            resolved["digest"] = ""
-            if resolved["source_image"] and resolved["version"]:
-                resolved["image"] = f"{resolved['source_image']}:{resolved['version']}"
-
-        elif resolved["type"] in ("npm", "pip", "go", "cargo"):
-            resolved["package"] = extracted.get("package")
-            if resolved["type"] == "npm":
-                resolved["npm_packages"] = extracted.get("npm_packages", [resolved["package"]])
-
-        elif resolved["type"] == "script":
-            resolved["dockerfile"] = extracted.get("dockerfile", [])
-
-        resolved["apk_packages"] = extracted.get("apk_packages", [])
-
-        custom_linters.append(resolved)
+    base_linters = [describe_base_linter(key, extracted_linters) for key in base_linter_keys]
+    custom_linters = [resolve_custom_linter(key, extracted_linters) for key in flavor.get("custom_linters", [])]
 
     all_linters = base_linter_keys.copy()
     for linter in custom_linters:

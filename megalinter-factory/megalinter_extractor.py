@@ -69,6 +69,77 @@ def clone_megalinter(cache_dir: Path | None = None) -> Path:
     return ml_dir / "megalinter" / "descriptors"
 
 
+_ARG = re.compile(r"ARG\s+(\w+)=(.+)")
+_FROM_STAGE = re.compile(r"FROM\s+([^:\s]+):(\S+)\s+AS\s+([\w-]+)", re.IGNORECASE)
+# One \s, not \s+: \s+ followed by .* backtracks quadratically on long lines
+_COPY_FROM = re.compile(r"COPY\s.*--from=([\w-]+)\s+(\S+)\s+(\S+)", re.IGNORECASE)
+_VERSION_VAR = re.compile(r"\$\{?(\w+)\}?")
+
+
+def _instruction_lines(dockerfile_lines: list[str]):
+    """Yield each non-blank, non-comment line, splitting multiline (|-) entries."""
+    for entry in dockerfile_lines:
+        if not entry:
+            continue
+        for raw_line in entry.strip().split("\n"):
+            line = raw_line.strip()
+            if line and not line.startswith("#"):
+                yield line
+
+
+def _scan_instructions(dockerfile_lines: list[str], linter_name: str) -> tuple[dict, dict, dict]:
+    """Collect ARG values, named FROM stages, and the first COPY out of the linter's stage."""
+    args = {}
+    stages = {}
+    copy = {"binary_path": None, "target_path": None, "stage_name": None}
+
+    for line in _instruction_lines(dockerfile_lines):
+        # ARG ACTION_ACTIONLINT_VERSION=1.7.10
+        if match := _ARG.match(line):
+            args[match.group(1)] = match.group(2).strip()
+
+        # FROM rhysd/actionlint:${ACTION_ACTIONLINT_VERSION} AS actionlint
+        if match := _FROM_STAGE.match(line):
+            stages[match.group(3).lower()] = {"image": match.group(1), "version_ref": match.group(2)}
+
+        # COPY --link --from=actionlint /usr/local/bin/actionlint /usr/bin/actionlint
+        if copy["binary_path"] is None and (match := _COPY_FROM.search(line)):
+            stage_name = match.group(1).lower()
+            if linter_name in stage_name:
+                copy = {"binary_path": match.group(2), "target_path": match.group(3), "stage_name": stage_name}
+
+    return args, stages, copy
+
+
+def _match_stage(stages: dict, linter_name: str) -> tuple[str | None, dict | None]:
+    """Return the first stage whose name contains the linter name."""
+    for stage_name, stage_info in stages.items():
+        if linter_name in stage_name:
+            return stage_name, stage_info
+    return None, None
+
+
+def _resolve_version_ref(version_ref: str, args: dict) -> str | None:
+    """Substitute the ARG a stage tag references, keeping any prefix such as "v"."""
+    var_match = _VERSION_VAR.search(version_ref)
+    if not var_match:
+        return version_ref
+
+    var_name = var_match.group(1)
+    if var_name not in args:
+        return None
+    return re.sub(r"\$\{?" + re.escape(var_name) + r"\}?", args[var_name], version_ref)
+
+
+def _linter_version_arg(args: dict, linter_key: str) -> str | None:
+    """Return the value of an ARG like ACTION_ACTIONLINT_VERSION or BASH_SHELLCHECK_VERSION."""
+    key = linter_key.replace("-", "_")
+    for arg_name, arg_value in args.items():
+        if key in arg_name and "_VERSION" in arg_name:
+            return arg_value
+    return None
+
+
 def parse_dockerfile_instructions(dockerfile_lines: list[str], linter_key: str) -> dict[str, str | None]:
     """
     Parse ARG, FROM, COPY from dockerfile instructions for a specific linter.
@@ -78,84 +149,21 @@ def parse_dockerfile_instructions(dockerfile_lines: list[str], linter_key: str) 
         linter_key: The linter key to match (e.g., ACTION_ACTIONLINT)
 
     Returns:
-        Dictionary with version, image, binary_path, target_path
+        Dictionary with version, image, binary_path, target_path, stage_name
     """
-    result: dict[str, str | None] = {
-        "version": None,
-        "image": None,
-        "binary_path": None,
-        "target_path": None,
-        "stage_name": None,
-    }
+    # ACTION_ACTIONLINT -> actionlint
+    linter_name = linter_key.split("_")[-1].lower().replace("-", "")
+    args, stages, copy = _scan_instructions(dockerfile_lines, linter_name)
+    result: dict[str, str | None] = {"version": None, "image": None, **copy}
 
-    args = {}
-    stages = {}
+    stage_name, stage = _match_stage(stages, linter_name)
+    if stage is not None:
+        result["stage_name"] = stage_name
+        result["image"] = stage["image"]
+        result["version"] = _resolve_version_ref(stage["version_ref"], args)
 
-    # Normalize linter key for matching (ACTION_ACTIONLINT -> actionlint)
-    linter_name_lower = linter_key.split("_")[-1].lower().replace("-", "")
-
-    for line in dockerfile_lines:
-        if not line:
-            continue
-
-        # Handle multiline strings (from |- YAML)
-        lines = line.strip().split("\n")
-        for raw_line in lines:
-            single_line = raw_line.strip()
-            if not single_line or single_line.startswith("#"):
-                continue
-
-            # ARG ACTION_ACTIONLINT_VERSION=1.7.10
-            if match := re.match(r"ARG\s+(\w+)=(.+)", single_line):
-                arg_name = match.group(1)
-                arg_value = match.group(2).strip()
-                args[arg_name] = arg_value
-
-            # FROM rhysd/actionlint:${ACTION_ACTIONLINT_VERSION} AS actionlint
-            if match := re.match(r"FROM\s+([^:\s]+):(\S+)\s+AS\s+([\w-]+)", single_line, re.IGNORECASE):
-                stage_name = match.group(3).lower()
-                stages[stage_name] = {
-                    "image": match.group(1),
-                    "version_ref": match.group(2),
-                }
-
-            # COPY --link --from=actionlint /usr/local/bin/actionlint /usr/bin/actionlint
-            if match := re.search(r"COPY\s+.*--from=([\w-]+)\s+(\S+)\s+(\S+)", single_line, re.IGNORECASE):
-                stage_name = match.group(1).lower()
-                if linter_name_lower in stage_name and result["binary_path"] is None:
-                    result["binary_path"] = match.group(2)
-                    result["target_path"] = match.group(3)
-                    result["stage_name"] = stage_name
-
-    matched_stage = None
-    for stage_name, stage_info in stages.items():
-        if stage_name == linter_name_lower or linter_name_lower in stage_name:
-            matched_stage = stage_info
-            result["stage_name"] = stage_name
-            break
-
-    if matched_stage:
-        result["image"] = matched_stage["image"]
-        version_ref = matched_stage["version_ref"]
-        # Resolve version variable, preserving any prefix (e.g., "v" before ${VAR})
-        if var_match := re.search(r"\$\{?(\w+)\}?", version_ref):
-            var_name = var_match.group(1)
-            if var_name in args:
-                result["version"] = re.sub(
-                    r"\$\{?" + re.escape(var_name) + r"\}?",
-                    args[var_name],
-                    version_ref,
-                )
-        else:
-            result["version"] = version_ref
-
-    # If no stage matched, try to find version from linter-specific ARG
     if result["version"] is None:
-        for arg_name, arg_value in args.items():
-            # Match ARG like ACTION_ACTIONLINT_VERSION or BASH_SHELLCHECK_VERSION
-            if linter_key.replace("-", "_") in arg_name and "_VERSION" in arg_name:
-                result["version"] = arg_value
-                break
+        result["version"] = _linter_version_arg(args, linter_key)
 
     return result
 

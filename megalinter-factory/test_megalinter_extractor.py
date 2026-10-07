@@ -1,6 +1,7 @@
 """Tests for megalinter_extractor descriptor parsing."""
 
 import json
+import time
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,7 @@ from megalinter_extractor import (
     extract_base_flavor_linters,
     extract_linter_info,
     has_download_install_run,
+    parse_dockerfile_instructions,
 )
 
 SHARED_PRETTIER = """---
@@ -199,3 +201,92 @@ def test_unknown_flavor_is_absent(descriptors_dir: Path) -> None:
     flavors = extract_base_flavor_linters(descriptors_dir)
 
     assert flavors.get("rust", []) == []
+
+
+def test_dockerfile_stage_gives_image_version_and_binary() -> None:
+    """A FROM stage named after the linter supplies the image, and COPY supplies the paths."""
+    lines = [
+        "ARG ACTION_ACTIONLINT_VERSION=1.7.10",
+        "FROM rhysd/actionlint:${ACTION_ACTIONLINT_VERSION} AS actionlint",
+        "COPY --link --from=actionlint /usr/local/bin/actionlint /usr/bin/actionlint",
+    ]
+
+    assert parse_dockerfile_instructions(lines, "ACTION_ACTIONLINT") == {
+        "version": "1.7.10",
+        "image": "rhysd/actionlint",
+        "binary_path": "/usr/local/bin/actionlint",
+        "target_path": "/usr/bin/actionlint",
+        "stage_name": "actionlint",
+    }
+
+
+def test_dockerfile_version_keeps_the_prefix_around_the_variable() -> None:
+    """A tag such as v${VAR} resolves to v<value>, not <value>."""
+    lines = ["ARG X_TOOL_VERSION=2.0.1\nFROM org/tool:v${X_TOOL_VERSION} as tool-build"]
+
+    result = parse_dockerfile_instructions(lines, "X_TOOL")
+
+    assert result["version"] == "v2.0.1"
+    assert result["stage_name"] == "tool-build"
+
+
+def test_dockerfile_literal_tag_is_the_version() -> None:
+    """A stage tag with no variable is used as is."""
+    result = parse_dockerfile_instructions(["from org/tool:3.4 AS tool"], "X_TOOL")
+
+    assert result["version"] == "3.4"
+    assert result["image"] == "org/tool"
+
+
+def test_dockerfile_unknown_variable_falls_back_to_the_linter_arg() -> None:
+    """An undefined tag variable leaves the stage version unresolved, so the linter ARG is used."""
+    lines = [
+        "ARG X_TOOL_VERSION=9.9",
+        "FROM org/tool:${UNDEFINED} AS tool",
+    ]
+
+    assert parse_dockerfile_instructions(lines, "X_TOOL")["version"] == "9.9"
+
+
+def test_dockerfile_without_a_stage_takes_the_linter_version_arg() -> None:
+    """With no matching stage, the version comes from an ARG named after the linter key."""
+    lines = [
+        "ARG OTHER_LINT_VERSION=1.0",
+        "ARG BASH_SHELL-CHECK_THING=x",
+        "ARG BASH_SHELL_CHECK_VERSION=0.10.0",
+    ]
+
+    result = parse_dockerfile_instructions(lines, "BASH_SHELL-CHECK")
+
+    assert result["version"] == "0.10.0"
+    assert result["image"] is None
+    assert result["stage_name"] is None
+
+
+def test_dockerfile_skips_comments_blanks_and_other_stages() -> None:
+    """Comments, empty entries and COPYs from unrelated stages are ignored; the first match wins."""
+    lines = [
+        "",
+        "# COPY --from=tool /commented /out",
+        "COPY --from=builder /usr/bin/other /usr/bin/other",
+        "COPY --link --from=tool /first /usr/bin/first\n\nCOPY --from=tool /second /usr/bin/second",
+    ]
+
+    result = parse_dockerfile_instructions(lines, "X_TOOL")
+
+    assert result["binary_path"] == "/first"
+    assert result["target_path"] == "/usr/bin/first"
+    assert result["stage_name"] == "tool"
+    assert result["image"] is None
+    assert result["version"] is None
+
+
+def test_dockerfile_copy_parse_is_linear_on_long_lines() -> None:
+    """A long COPY line that never completes a --from= must not backtrack quadratically."""
+    line = "COPY" + " " * 40000 + "x"
+
+    started = time.perf_counter()
+    result = parse_dockerfile_instructions([line], "X_TOOL")
+
+    assert result["binary_path"] is None
+    assert time.perf_counter() - started < 0.5
