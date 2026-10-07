@@ -12,7 +12,7 @@ on:
         type: boolean
         default: true
       max_deletions:
-        description: "Abort before deleting anything if more releases/tags than this are planned for deletion."
+        description: "Abort before deleting anything if more releases than this (0-999999) are planned for deletion. Each deleted release also removes its tag."
         type: number
         default: 50
 
@@ -80,8 +80,9 @@ jobs:
           # Empty on schedule, where workflow_dispatch inputs don't exist
           MAX_DELETIONS=${MAX_DELETIONS:-50}
 
-          if ! [[ "$MAX_DELETIONS" =~ ^[0-9]+$ ]]; then
-            echo "::error::MAX_DELETIONS must be a non-negative integer, got '$MAX_DELETIONS'"
+          # Bounded so [ -gt ] below can't overflow and silently skip the cap
+          if ! [[ "$MAX_DELETIONS" =~ ^[0-9]{1,6}$ ]]; then
+            echo "::error::MAX_DELETIONS must be an integer from 0 to 999999, got '$MAX_DELETIONS'"
             exit 1
           fi
 
