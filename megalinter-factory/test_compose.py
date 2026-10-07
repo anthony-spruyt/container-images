@@ -268,6 +268,8 @@ EXPECTED_LINTERS = {
         "CPP_CPPCHECK",
         "CPP_CPPLINT",
         "MARKDOWN_MARKDOWNLINT",
+        "PYTHON_RUFF",
+        "PYTHON_RUFF_FORMAT",
         "SPELL_LYCHEE",
     ],
     "megalinter-go": [
