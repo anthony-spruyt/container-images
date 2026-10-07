@@ -58,6 +58,8 @@ Release-As: 2.0.0
 
 On a PR, changed images build via `_build-image.yaml` with `push: false`. Nothing is pushed and no release is touched. `<image>/test.sh` runs against the locally loaded image if it exists.
 
+That job runs PR code with sudo, so it gets `contents: read` and no secrets. Only the `publish` job, which runs when `push` is true, gets write scopes and `DOCKERHUB_TOKEN`. Callers pass that secret explicitly, never with `secrets: inherit`.
+
 ## MegaLinter flavor refresh
 
 Flavor linter versions are resolved at build time, so a flavor only needs a reason to rebuild. `Rebuild MegaLinter Flavors` gives it one by writing `megalinter-<name>/.rebuild-stamp` and opening one PR. Mergify merges it, release-please cuts a `chore` patch release per stamped flavor, and the images rebuild.
@@ -118,6 +120,7 @@ It never creates a release. If the tag does not exist, cut a new version instead
 | `.release-please-manifest.json`          | Current version per image — the source of truth   |
 | `.github/workflows/release-please.yaml`  | Cuts releases and dispatches builds               |
 | `.github/workflows/_build-image.yaml`    | Build prep, then repo-operator's build actions    |
+| `.github/actions/prepare-build/`         | Build context, flavor generation, test command    |
 | `.github/workflows/rebuild-release.yaml` | Recovery for a tagged-but-unbuilt release         |
 
 Notable settings:

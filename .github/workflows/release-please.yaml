@@ -100,9 +100,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: chrony
       push: true
@@ -118,9 +118,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: claude-agent-read
       push: true
@@ -136,9 +136,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: claude-agent-spruyt-labs
       push: true
@@ -154,9 +154,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: claude-agent-write
       push: true
@@ -172,9 +172,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: coder-gitops
       push: true
@@ -190,9 +190,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: devcontainer-common
       push: true
@@ -208,9 +208,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: happy-server
       push: true
@@ -226,9 +226,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: llm-guard
       push: true
@@ -244,9 +244,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: llm-guard-cuda
       push: true
@@ -262,9 +262,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: megalinter-base
       push: true
@@ -280,9 +280,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: megalinter-cpp
       push: true
@@ -298,9 +298,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: megalinter-go
       push: true
@@ -316,9 +316,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: megalinter-python
       push: true
@@ -334,9 +334,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: megalinter-spruyt-labs
       push: true
@@ -353,9 +353,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: megalinter-typescript
       push: true
@@ -371,9 +371,9 @@ jobs:
       packages: write
       id-token: write
       attestations: write
-      security-events: write
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     with:
       image: ssh-key-rotation
       push: true

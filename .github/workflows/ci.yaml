@@ -9,20 +9,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      # Image files
-      - "**/Dockerfile"
-      - "*/*.sh"
-      - "!.*/*.sh"
-      - "**/metadata.yaml"
-      - "**/flavor.yaml"
-      - "**/assets/**"
-      - "**/app/**"
-      - "**/.rebuild-stamp"
-      # MegaLinter factory (triggers all flavor rebuilds)
-      - "megalinter-factory/**"
-      - ".github/workflows/_build-image.yaml"
-      - "test-images/**"
   workflow_dispatch:
     inputs:
       image:
@@ -30,19 +16,12 @@ on:
         required: true
         type: string
 
+# Per commit on main, so a queued push is never superseded and left unlinted
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name == 'push' && github.sha || github.ref }}
   cancel-in-progress: false
 
-permissions:
-  actions: write
-  attestations: write
-  contents: write
-  id-token: write
-  packages: write
-  pull-requests: write
-  security-events: "write"
-  statuses: write
+permissions: {}
 
 env:
   REGISTRY: ghcr.io
@@ -50,15 +29,19 @@ env:
 
 jobs:
   lint:
-    if: github.event_name != 'push'
+    permissions:
+      actions: write
+      contents: read
+      security-events: write
     uses: "anthony-spruyt/repo-operator/.github/workflows/_lint.yaml@main"
-    secrets: "inherit"
 
   factory-tests:
     name: MegaLinter Factory Tests
     needs: detect-changes
     if: needs.detect-changes.outputs.factory == 'true' || needs.detect-changes.outputs.flavor-config == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -80,6 +63,8 @@ jobs:
   detect-changes:
     name: Detect Changes
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       images: ${{ steps.detect.outputs.images }}
       factory: ${{ steps.detect.outputs.factory }}
@@ -94,6 +79,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Detect changed images
         id: detect
@@ -171,10 +157,8 @@ jobs:
           echo "images=${CHANGED:-[]}" >> "$GITHUB_OUTPUT"
           echo "Changed images: ${CHANGED:-[]}"
 
-  # Build only, never push. release-please owns publishing.
-  # This job must declare the same permissions _build-image.yaml requests —
-  # a narrower set fails the whole workflow file at run creation, it does not
-  # downgrade.
+  # Build only, never push: release-please owns publishing, so this gets no secrets or write scopes.
+  # Grant at least what _build-image.yaml's jobs request; a narrower set fails the run at creation.
   build:
     name: Build ${{ matrix.image }}
     needs: [detect-changes, lint, factory-tests]
@@ -188,13 +172,8 @@ jobs:
       matrix:
         image: ${{ fromJson(needs.detect-changes.outputs.images) }}
     permissions:
-      contents: write
-      packages: write
-      id-token: write
-      attestations: write
-      security-events: write
+      contents: read
     uses: ./.github/workflows/_build-image.yaml
-    secrets: inherit
     with:
       image: ${{ matrix.image }}
       push: false
@@ -209,4 +188,7 @@ jobs:
       - lint
       - build
     if: "always()"
+    permissions:
+      actions: read
+      contents: read
     uses: "anthony-spruyt/repo-operator/.github/workflows/_summary.yaml@main"
