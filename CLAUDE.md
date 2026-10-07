@@ -57,7 +57,9 @@ Old container images and releases are automatically cleaned up weekly:
 - Images older than 4 weeks are deleted
 - The weekly run deletes for real; a manual dispatch is a dry run unless `dry_run=false`
 - GitHub releases and tags older than 4 weeks are deleted
-- 5 most recent versions always kept
+- 5 most recent versions always kept; draft releases neither count toward the 5 nor get deleted
+- The release half aborts before deleting anything if more than 50 releases/tags are planned for deletion (`max_deletions` input on dispatch), because the garbo App bypasses the tag-deletion ruleset
+- Runs never overlap (`concurrency` group, no cancel-in-progress)
 - Targets: every image registered in `release-please-config.json`
 - Workflow: `.github/workflows/container-retention.yaml`, which calls repo-operator's `_container-retention.yaml` with this repo's `GITHUB_TOKEN`. Each package must give this repo the **Admin** role under its Actions access settings (images first pushed by this repo's CI have it)
 
@@ -101,7 +103,8 @@ languages:
 
 3. Register it with release-please (see the `create-megalinter-flavor` skill), commit and push
 
-A missing language fails the build. Add one as `languages/<language>.yaml` with `linters` (MegaLinter keys) and, where needed, `extra_dockerfile`, `extra_test_linters`, `extra_test_env_vars`, and `languages` to include another language. Fragments reference their own fields as `{{ language.<field> }}`. A language file is named after a language, never a tool, and holds that language's one linter set. A flavor may still set `custom_linters` and the `extra_*` fields for something only it needs; these reference `{{ flavor.<field> }}`.
+A missing language fails the build. Add one as `languages/<language>.yaml` with `linters` (MegaLinter keys) and, where needed, `extra_dockerfile`, `extra_test_linters`, `extra_test_env_vars`, and `languages` to include another language. Fragments reference their own fields as `{{ language.<field> }}`. A language file is named after a language, never a tool, and holds that language's one linter
+set. A flavor may still set `custom_linters` and the `extra_*` fields for something only it needs; these reference `{{ flavor.<field> }}`.
 
 ### Version Updates
 
@@ -112,7 +115,8 @@ A missing language fails the build. Add one as `languages/<language>.yaml` with 
 
 ### Releases
 
-Every flavor directory is a release-please package, and `megalinter-factory/` sits outside all of them, so factory and language commits release nothing by themselves. When `base.yaml` or a language definition changes on `main`, `Rebuild MegaLinter Flavors` stamps `.rebuild-stamp` in each flavor that composes it, and that PR releases them. A factory code change that alters generated output needs a commit touching the affected flavor directories. Details in [docs/releases.md](docs/releases.md#megalinter-flavor-refresh).
+Every flavor directory is a release-please package, and `megalinter-factory/` sits outside all of them, so factory and language commits release nothing by themselves. When `base.yaml` or a language definition changes on `main`, `Rebuild MegaLinter Flavors` stamps `.rebuild-stamp` in each flavor that composes it, and that PR releases them. A factory code change that alters generated output needs a
+commit touching the affected flavor directories. Details in [docs/releases.md](docs/releases.md#megalinter-flavor-refresh).
 
 ### Local Development
 
