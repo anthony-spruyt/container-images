@@ -1,0 +1,4 @@
+---
+# Upstream bases already ship hadolint; listing it makes test.sh check it and the removal guard protect it
+linters:
+  - DOCKERFILE_HADOLINT

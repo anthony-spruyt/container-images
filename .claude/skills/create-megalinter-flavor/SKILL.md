@@ -55,7 +55,7 @@ Split the name on `-` into languages (a language file name may itself contain `-
 
 `megalinter-factory/base.yaml` already gives every flavor ACTION_ACTIONLINT, MARKDOWN_MARKDOWNLINT and SPELL_LYCHEE; do not repeat them.
 
-**Important**: Some linters are already included in the `ci_light` base flavor. The extractor output shows `ci_light has N linters` - these DON'T need to be in a language's `linters`.
+**Important**: Some linters are already included in the `ci_light` base flavor. The extractor output shows `ci_light has N linters` - these DON'T need to be in a language's `linters`. The exception is a language that consists of such a linter, like `docker` (DOCKERFILE_HADOLINT). Listing it means `test.sh` checks the linter and the removal guard protects it, at the cost of one redundant binary copy.
 
 Linters already in `ci_light` as of MegaLinter v10.1.0 (23 total) — the extractor output is authoritative if it disagrees:
 
