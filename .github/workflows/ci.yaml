@@ -1,194 +1,27 @@
----
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/github-workflow.json
-name: CI
+# See https://github.com/anthony-spruyt/repo-operator/blob/main/src/templates/.github/workflows/ci.yaml for template comments
 
+name: "CI"
 on:
   pull_request:
     branches:
-      - main
+      - "main"
   push:
     branches:
-      - main
-  workflow_dispatch:
-    inputs:
-      image:
-        description: "Image to build (directory name, e.g., 'chrony')"
-        required: true
-        type: string
-
-# Per commit on main, so a queued push is never superseded and left unlinted
-concurrency:
-  group: ci-${{ github.event_name == 'push' && github.sha || github.ref }}
-  cancel-in-progress: false
-
+      - "main"
 permissions: {}
-
-env:
-  REGISTRY: ghcr.io
-  OWNER: ${{ github.repository_owner }}
-
 jobs:
   lint:
     permissions:
-      actions: read
-      contents: read
-      security-events: write
-    uses: "anthony-spruyt/repo-operator/.github/workflows/_lint.yaml@7bf816527b748801f0ac22002211ecdd00c2f64c" # main
-
-  factory-tests:
-    name: MegaLinter Factory Tests
-    needs: detect-changes
-    if: needs.detect-changes.outputs.factory == 'true' || needs.detect-changes.outputs.flavor-config == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
-
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Run tests
-        run: |
-          pip install -q --require-hashes --only-binary :all: \
-            -r megalinter-factory/requirements.txt \
-            -r megalinter-factory/requirements-test.txt
-          python -m pytest megalinter-factory/ -q
-
-  detect-changes:
-    name: Detect Changes
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    outputs:
-      images: ${{ steps.detect.outputs.images }}
-      factory: ${{ steps.detect.outputs.factory }}
-      flavor-config: ${{ steps.detect.outputs.flavor-config }}
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
-
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Detect changed images
-        id: detect
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          INPUT_IMAGE: ${{ inputs.image }}
-        run: |
-          # Variant images build from another image's directory via
-          # build_context in metadata.yaml and may have no sources of their
-          # own, so a change to the source directory must fan out to them.
-          add_build_context_dependents() {
-            local changed="$1"
-            local dependents=""
-            for metadata in */metadata.yaml; do
-              local ctx dir
-              [ -f "$metadata" ] || continue
-              ctx=$(yq -r '.build_context // ""' "$metadata")
-              [ -n "$ctx" ] || continue
-              dir="${metadata%/metadata.yaml}"
-              if echo "$changed" | grep -qxF "$ctx"; then
-                dependents="${dependents}${dir}"$'\n'
-              fi
-            done
-            printf '%s\n%s' "$changed" "$dependents" | sort -u | grep -v '^$' || true
-          }
-
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            if ! echo "$INPUT_IMAGE" | grep -qE '^[a-zA-Z0-9_-]+$'; then
-              echo "::error::Invalid image name format"
-              exit 1
-            fi
-            if [ ! -d "$INPUT_IMAGE" ]; then
-              echo "::error::Image directory does not exist: $INPUT_IMAGE"
-              exit 1
-            fi
-            {
-              echo "images=[\"$INPUT_IMAGE\"]"
-              echo "factory=false"
-              echo "flavor-config=false"
-            } >> "$GITHUB_OUTPUT"
-            echo "Manual dispatch for image: $INPUT_IMAGE"
-            exit 0
-          fi
-
-          if [ "$EVENT_NAME" = "pull_request" ]; then
-            DIFF_FILES=$(git diff --name-only origin/main...HEAD)
-          else
-            DIFF_FILES=$(git diff --name-only HEAD~1 HEAD)
-          fi
-
-          DIRECT_CHANGES=$(echo "$DIFF_FILES" | \
-            grep -E '^[a-zA-Z0-9_-]+/(Dockerfile|[^/]+\.sh$|assets/|app/|metadata\.yaml|flavor\.yaml|\.rebuild-stamp)' | \
-            cut -d'/' -f1 | sort -u | \
-            while read -r img; do if [ -d "$img" ]; then echo "$img"; fi; done)
-          DIRECT_CHANGES=$(add_build_context_dependents "$DIRECT_CHANGES" | \
-            while read -r img; do if [ -f "$img/Dockerfile" ] || [ -f "$img/flavor.yaml" ]; then echo "$img"; fi; done)
-
-          if echo "$DIFF_FILES" | grep -qE '^megalinter-[a-zA-Z0-9_-]+/flavor\.yaml$'; then
-            echo "flavor-config=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "flavor-config=false" >> "$GITHUB_OUTPUT"
-          fi
-
-          if echo "$DIFF_FILES" | grep -qE '^megalinter-factory/'; then
-            echo "MegaLinter factory changed - adding all flavors to build"
-            echo "factory=true" >> "$GITHUB_OUTPUT"
-            FLAVOR_DIRS=$(find . -maxdepth 2 -name 'flavor.yaml' -printf '%h\n' | sed 's|^\./||')
-            ALL_IMAGES=$(printf '%s\n%s' "$DIRECT_CHANGES" "$FLAVOR_DIRS" | sort -u | grep -v '^$')
-          else
-            echo "factory=false" >> "$GITHUB_OUTPUT"
-            ALL_IMAGES="$DIRECT_CHANGES"
-          fi
-
-          CHANGED=$(echo "$ALL_IMAGES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
-          echo "images=${CHANGED:-[]}" >> "$GITHUB_OUTPUT"
-          echo "Changed images: ${CHANGED:-[]}"
-
-  # Build only, never push: release-please owns publishing, so this gets no secrets or write scopes.
-  # Grant at least what _build-image.yaml's jobs request; a narrower set fails the run at creation.
-  build:
-    name: Build ${{ matrix.image }}
-    needs: [detect-changes, lint, factory-tests]
-    if: |
-      always() &&
-      needs.detect-changes.outputs.images != '[]' &&
-      (needs.factory-tests.result == 'success' || needs.factory-tests.result == 'skipped') &&
-      (needs.lint.result == 'success' || needs.lint.result == 'skipped')
-    strategy:
-      fail-fast: false
-      matrix:
-        image: ${{ fromJson(needs.detect-changes.outputs.images) }}
-    permissions:
-      contents: read
-    uses: ./.github/workflows/_build-image.yaml
-    with:
-      image: ${{ matrix.image }}
-      push: false
-      version: ""
-      tag-name: ""
-
-  # Summary job for branch protection - add jobs to 'needs' array
+      actions: "read"
+      contents: "read"
+      security-events: "write"
+    uses: "anthony-spruyt/repo-operator/.github/workflows/_lint.yaml@8e7d66f8fd86d59d9b65b28d567844821bea019e"
   summary:
     needs:
-      - detect-changes
-      - factory-tests
-      - lint
-      - build
+      - "lint"
     if: "always()"
     permissions:
-      actions: read
-      contents: read
-    uses: "anthony-spruyt/repo-operator/.github/workflows/_summary.yaml@7bf816527b748801f0ac22002211ecdd00c2f64c" # main
+      actions: "read"
+      contents: "read"
+    uses: "anthony-spruyt/repo-operator/.github/workflows/_summary.yaml@8e7d66f8fd86d59d9b65b28d567844821bea019e"

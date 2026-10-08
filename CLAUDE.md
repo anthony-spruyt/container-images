@@ -46,9 +46,11 @@ Create `<image-name>/.trivyignore` for per-image vulnerability/secret ignores (p
 
 CI never pushes. Every publish goes through release-please — see [docs/releases.md](docs/releases.md).
 
+`ci.yaml` is synced from repo-operator and only lints. Change detection, factory tests and image builds live in `ci-repo.yaml`, which has its own required check, `repo-summary / Check Results`.
+
 - **Pull requests**: CI runs on all PRs to main; change detection picks images with modified Dockerfile/top-level `*.sh`/assets/metadata.yaml/flavor.yaml/.rebuild-stamp. PR builds get a read-only token and no secrets, since `test.sh` runs PR code with sudo
 - **Push to main**: Lints every push (including xfg sync commits that skip PRs) and builds changed images without pushing (megalinter-factory changes rebuild every flavor)
-- **workflow_dispatch**: Manual trigger with an `image` input, for an on-demand build with no push
+- **workflow_dispatch**: Manual `ci-repo.yaml` trigger with an `image` input, for an on-demand build with no push
 
 ## Container Retention
 

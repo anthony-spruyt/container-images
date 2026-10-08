@@ -126,7 +126,7 @@ Trigger a build with no push via workflow_dispatch:
 curl -X POST \
   -H "Authorization: token $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github.v3+json" \
-  https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/ci.yaml/dispatches \
+  https://api.github.com/repos/anthony-spruyt/container-images/actions/workflows/ci-repo.yaml/dispatches \
   -d '{"ref":"main","inputs":{"image":"chrony"}}'
 ```
 
