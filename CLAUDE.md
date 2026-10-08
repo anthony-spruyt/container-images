@@ -20,7 +20,7 @@ Versions are owned by release-please. See [docs/releases.md](docs/releases.md).
 1. Create `<image-name>/Dockerfile`.
 2. Register the image in `release-please-config.json` and `.release-please-manifest.json`.
 3. Add its outputs and build job to `.github/workflows/release-please.yaml`.
-4. Add a `sourceDirectory` rule to `.github/renovate-overrides.json5` so Renovate shows its release notes. `megalinter-*` flavors get theirs in repo-operator's `.github/renovate/package-rules.json5` instead.
+4. Add a `sourceDirectory` rule to `renovate-overrides.json5` so Renovate shows its release notes. `megalinter-*` flavors get theirs in repo-operator's `.github/renovate/package-rules.json5` instead.
 
 ### Variant of an existing image (`build_context`)
 
