@@ -68,7 +68,7 @@ jobs:
           image: ${{ inputs.image }}
 
       - name: Build image
-        uses: anthony-spruyt/repo-operator/.github/actions/build-image@5cbe1a184d32fd631420e30e20b46a85b5aa244f # main
+        uses: anthony-spruyt/repo-operator/.github/actions/build-image@7bf816527b748801f0ac22002211ecdd00c2f64c # main
         with:
           image: ${{ inputs.image }}
           context: ${{ steps.prepare.outputs.context }}
@@ -149,7 +149,7 @@ jobs:
       - name: Build and push image
         id: build
         if: steps.verify.outputs.published != 'true'
-        uses: anthony-spruyt/repo-operator/.github/actions/build-image@5cbe1a184d32fd631420e30e20b46a85b5aa244f # main
+        uses: anthony-spruyt/repo-operator/.github/actions/build-image@7bf816527b748801f0ac22002211ecdd00c2f64c # main
         with:
           image: ${{ inputs.image }}
           context: ${{ steps.prepare.outputs.context }}
@@ -165,7 +165,7 @@ jobs:
       # Must stay last: on failure the release stays a draft, so a published release always has an image.
       - name: Publish release
         if: steps.verify.outputs.published != 'true'
-        uses: anthony-spruyt/repo-operator/.github/actions/publish-release@5cbe1a184d32fd631420e30e20b46a85b5aa244f # main
+        uses: anthony-spruyt/repo-operator/.github/actions/publish-release@7bf816527b748801f0ac22002211ecdd00c2f64c # main
         with:
           tag: ${{ inputs.tag-name }}
           image-ref: ${{ steps.build.outputs.image-ref }}
