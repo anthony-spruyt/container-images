@@ -5,7 +5,7 @@ linters:
 
 # Must be top-level: eslint plugins vendor globals nested, out of NODE_PATH reach
 # renovate: datasource=npm depName=globals
-globals_version: "17.12.0"
+globals_version: "17.13.0"
 
 extra_dockerfile: |
   ARG GLOBALS_VERSION={{ language.globals_version }}
