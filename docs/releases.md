@@ -147,7 +147,7 @@ Leave it in place. It is not migration scaffolding, and removing it silently inf
 1. Add the directory to `packages` in `release-please-config.json`.
 2. Add its current version to `.release-please-manifest.json`.
 3. Add outputs and a build job to `.github/workflows/release-please.yaml`. Pass `tag-prefix: "v"` only if the package has `"include-v-in-tag": true`.
-4. Add a `sourceDirectory` rule so Renovate shows its release notes: in `.github/renovate-overrides.json5`, or for a `megalinter-*` flavor in repo-operator's `.github/renovate/package-rules.json5`, which every repo extends.
+4. Add a `sourceDirectory` rule so Renovate shows its release notes: in `renovate-overrides.json5`, or for a `megalinter-*` flavor in repo-operator's `.github/renovate/package-rules.json5`, which every repo extends.
 
 ## Troubleshooting
 
@@ -157,6 +157,6 @@ Leave it in place. It is not migration scaffolding, and removing it silently inf
 
 **A release is stuck as a draft.** The build failed after tagging. Fix the cause, then re-drive the build — see [Rebuild Release](#rebuild-release).
 
-**Renovate shows no release notes for an own image.** The image needs a `sourceDirectory` package rule pointing at its directory, in `.github/renovate-overrides.json5` (or repo-operator's `.github/renovate/package-rules.json5` for a `megalinter-*` flavor).
+**Renovate shows no release notes for an own image.** The image needs a `sourceDirectory` package rule pointing at its directory, in `renovate-overrides.json5` (or repo-operator's `.github/renovate/package-rules.json5` for a `megalinter-*` flavor).
 
 [rp]: https://github.com/googleapis/release-please
