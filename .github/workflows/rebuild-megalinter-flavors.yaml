@@ -12,7 +12,7 @@ on:
     paths:
       - "megalinter-factory/base.yaml"
       - "megalinter-factory/languages/**"
-  workflow_dispatch: # Manual trigger
+  workflow_dispatch:
 
 permissions: {}
 
@@ -44,7 +44,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Find flavor directories
@@ -115,12 +115,20 @@ jobs:
           fi
 
           BRANCH="chore/megalinter-refresh-$(date -u +%Y%m%d)${SUFFIX}"
-          git config user.name "repo-operator-release-bot[bot]"
-          git config user.email "repo-operator-release-bot[bot]@users.noreply.github.com"
-          git checkout -b "$BRANCH"
+          BASE=$(git rev-parse HEAD)
           git add -A
-          git commit -qm "$MESSAGE"
-          git push -q origin "$BRANCH"
+          ENTRIES=$(git diff --cached --name-only | while read -r path; do
+            jq -n --arg path "$path" --rawfile content "$path" \
+              '{path: $path, mode: "100644", type: "blob", content: $content}'
+          done | jq -s -c .)
+          TREE=$(jq -n --arg base "$(git rev-parse 'HEAD^{tree}')" --argjson tree "$ENTRIES" \
+            '{base_tree: $base, tree: $tree}' |
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/trees" --input - --jq .sha)
+          # GitHub signs an API commit as the app only when no author or committer is passed
+          COMMIT=$(gh api "repos/$GITHUB_REPOSITORY/git/commits" \
+            -f message="$MESSAGE" -f tree="$TREE" -f "parents[]=$BASE" --jq .sha)
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" \
+            -f ref="refs/heads/$BRANCH" -f sha="$COMMIT" --silent
 
           URL=$(gh pr create \
             --title "$MESSAGE" \
