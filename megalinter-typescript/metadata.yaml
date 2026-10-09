@@ -1,4 +1,5 @@
 ---
+free-disk: true
 watch:
   - megalinter-factory/
 prepare-command: >-
