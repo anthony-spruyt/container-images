@@ -1,132 +1,30 @@
----
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/github-workflow.json
-name: Rebuild Release
+# This file is automatically updated - do not modify directly
 
+name: "Rebuild Release"
 on:
   workflow_dispatch:
     inputs:
       image:
-        description: "Image to rebuild (directory name, e.g., 'chrony')"
-        required: true
-        type: string
+        description: "Image to rebuild; leave empty when the repo has one image"
+        required: false
+        type: "string"
+        default: ""
       version:
-        description: "Version to rebuild, without a leading v (e.g., 1.0.7)"
+        description: "Version to rebuild, without a leading v (e.g., 1.0.0)"
         required: true
-        type: string
-
-concurrency:
-  group: rebuild-${{ inputs.image }}-${{ inputs.version }}
-  cancel-in-progress: false
-
+        type: "string"
+permissions:
+  contents: "write"
+  packages: "write"
+  id-token: "write"
+  attestations: "write"
 jobs:
-  resolve:
-    name: Resolve
-    runs-on: ubuntu-latest
-    # Draft releases are invisible to a read-scoped token, so this must be write.
-    permissions:
-      contents: write
-    outputs:
-      tag: ${{ steps.image.outputs.tag }}
-      tag-prefix: ${{ steps.image.outputs.tag-prefix }}
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
-
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Resolve image
-        id: image
-        env:
-          IMAGE: ${{ inputs.image }}
-          VERSION: ${{ inputs.version }}
-        run: |
-          if ! echo "$IMAGE" | grep -qE '^[a-zA-Z0-9_-]+$'; then
-            echo "::error::Invalid image name format: $IMAGE"
-            exit 1
-          fi
-
-          if ! jq -e --arg i "$IMAGE" '.packages | has($i)' \
-            release-please-config.json > /dev/null; then
-            echo "::error::$IMAGE is not a release-please package. Add it to release-please-config.json first."
-            exit 1
-          fi
-
-          # TAG_PREFIX is the v-or-not before the version, and is identical in
-          # the git tag and the docker tag.
-          TAG_PREFIX=""
-          if jq -e --arg i "$IMAGE" '.packages[$i]["include-v-in-tag"]' \
-            release-please-config.json > /dev/null; then
-            TAG_PREFIX="v"
-          fi
-
-          {
-            echo "tag=${IMAGE}-${TAG_PREFIX}${VERSION}"
-            echo "tag-prefix=$TAG_PREFIX"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Verify the release is recoverable
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.image.outputs.tag }}
-          TAG_PREFIX: ${{ steps.image.outputs.tag-prefix }}
-          IMAGE: ${{ inputs.image }}
-          VERSION: ${{ inputs.version }}
-        run: |
-          if ! git rev-parse -q --verify "refs/tags/${TAG}" > /dev/null; then
-            echo "::error::Tag ${TAG} does not exist. This workflow rebuilds an existing release; it does not create one."
-            exit 1
-          fi
-
-          # The image job builds the run's commit, so the run itself must start from the tag.
-          if [ "$GITHUB_REF" != "refs/tags/${TAG}" ]; then
-            echo "::error::Run this workflow from the tag, not ${GITHUB_REF}: gh workflow run rebuild-release.yaml --ref ${TAG} -f image=${IMAGE} -f version=${VERSION}"
-            exit 1
-          fi
-
-          if ! DRAFT=$(gh release view "$TAG" --json isDraft --jq .isDraft); then
-            echo "::error::No release found for ${TAG}."
-            exit 1
-          fi
-
-          if [ "$DRAFT" != "true" ]; then
-            echo "::error::Release ${TAG} is already published. Cut a new version instead."
-            exit 1
-          fi
-
-          if ! PUBLISHED=$(gh release list --limit 200 --json tagName,isDraft \
-            --jq '.[] | select(.isDraft == false) | .tagName'); then
-            echo "::error::Could not list releases to check for a newer ${IMAGE} version."
-            exit 1
-          fi
-          # The digit anchor keeps llm-guard from matching llm-guard-cuda tags.
-          NEWEST=$(printf '%s\n' "$PUBLISHED" \
-            | sed -n "s|^${IMAGE}-${TAG_PREFIX}\([0-9]\)|\1|p" | sort -V | tail -n 1)
-
-          if [ -n "$NEWEST" ] && [ "$(printf '%s\n%s\n' "$NEWEST" "$VERSION" | sort -V | tail -n 1)" != "$VERSION" ]; then
-            echo "::error::${IMAGE} ${NEWEST} is already published, so rebuilding ${VERSION} would move the latest and major.minor tags backwards. Cut a new version instead."
-            exit 1
-          fi
-
-  build:
-    name: ${{ inputs.image }}
-    needs: resolve
-    permissions:
-      contents: write
-      packages: write
-      id-token: write
-      attestations: write
-    uses: ./.github/workflows/_build-image.yaml
-    secrets:
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  rebuild:
+    uses: "anthony-spruyt/repo-operator/.github/workflows/_rebuild-release.yaml@2bb0362170266430d2277de0dde5a204ecbf0eee"
     with:
-      image: ${{ inputs.image }}
-      push: true
-      version: ${{ inputs.version }}
-      tag-name: ${{ needs.resolve.outputs.tag }}
-      tag-prefix: ${{ needs.resolve.outputs.tag-prefix }}
+      version: "${{ inputs.version }}"
+      language: "none"
+      dockerhub-namespace: "aspruyt"
+    secrets:
+      DOCKERHUB_TOKEN: "${{ secrets.DOCKERHUB_TOKEN }}"

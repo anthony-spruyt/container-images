@@ -1,162 +1,22 @@
----
 # yaml-language-server: $schema=https://raw.githubusercontent.com/SchemaStore/schemastore/master/src/schemas/json/github-workflow.json
-name: Container Retention Policy
+# This file is automatically updated - do not modify directly
 
+name: "Container Retention"
 on:
   schedule:
-    - cron: "0 5 * * 0" # Weekly, Sundays at 5 AM UTC; deletes for real
+    - cron: "0 17 * * 6"
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: "Dry run (no deletions). Scheduled runs always delete."
-        type: boolean
+      dry-run:
+        description: "List what would be deleted without deleting it"
+        type: "boolean"
         default: true
-      max_deletions:
-        description: "Abort before deleting anything if more releases than this (0-999999) are planned for deletion. Each deleted release also removes its tag."
-        type: number
-        default: 50
-
 permissions: {}
-
-concurrency:
-  group: container-retention
-  cancel-in-progress: false
-
 jobs:
-  collect-packages:
-    runs-on: ubuntu-latest
+  cleanup:
     permissions:
-      contents: read
-    outputs:
-      list: ${{ steps.packages.outputs.list }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Collect packages
-        id: packages
-        run: |
-          echo "list=$(jq -r '.packages | keys | join(",")' release-please-config.json)" >> "$GITHUB_OUTPUT"
-
-  cleanup-containers:
-    needs: collect-packages
-    permissions:
-      packages: write
-    uses: anthony-spruyt/repo-operator/.github/workflows/_container-retention.yaml@7bf816527b748801f0ac22002211ecdd00c2f64c # main
+      packages: "write"
+    uses: "anthony-spruyt/repo-operator/.github/workflows/_container-retention.yaml@2bb0362170266430d2277de0dde5a204ecbf0eee"
     with:
-      packages: ${{ needs.collect-packages.outputs.list }}
-      dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
-
-  cleanup-releases:
-    runs-on: ubuntu-latest
-    permissions: {}
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
-
-      - name: Generate app token
-        id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          client-id: ${{ secrets.GARBO_CLIENT_ID }}
-          private-key: ${{ secrets.GARBO_PRIVATE_KEY }}
-
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Delete old releases and tags
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          REPO: ${{ github.repository }}
-          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
-          MAX_DELETIONS: ${{ inputs.max_deletions }}
-        run: |
-          CUTOFF_DATE=$(date -d '4 weeks ago' +%s)
-          KEEP_N=5
-          # Empty on schedule, where workflow_dispatch inputs don't exist
-          MAX_DELETIONS=${MAX_DELETIONS:-50}
-
-          # Bounded: [ -gt ] errors on huge values, and inside an if that skips the cap
-          if ! [[ "$MAX_DELETIONS" =~ ^[0-9]{1,6}$ ]]; then
-            echo "::error::MAX_DELETIONS must be an integer from 0 to 999999, got '$MAX_DELETIONS'"
-            exit 1
-          fi
-
-          # Keep release-please's current tags regardless of age: losing one
-          # makes it recut a version that already shipped
-          CURRENT_TAGS=$(jq -r --slurpfile cfg release-please-config.json '
-            to_entries[]
-            | .key as $c
-            | "\($c)-\(if $cfg[0].packages[$c]["include-v-in-tag"] then "v" else "" end)\(.value)"
-          ' .release-please-manifest.json)
-
-          COMPONENTS=$(jq -r '.packages | keys[]' release-please-config.json)
-
-          # The garbo App bypasses the tag-deletion ruleset, so plan every
-          # deletion first and let the cap below be the only guard.
-          PLAN=$(mktemp)
-
-          for COMPONENT in $COMPONENTS; do
-            echo "Processing releases for component: $COMPONENT"
-
-            # Anchor on the version that follows, so llm-guard does not swallow
-            # the releases belonging to llm-guard-cuda.
-            RELEASES=$(gh release list --repo "$REPO" --limit 1000 \
-              --json tagName,createdAt,isDraft \
-              --jq ".[] | select(.tagName | test(\"^${COMPONENT}-v?[0-9]\"))")
-
-            COUNT=0
-
-            while read -r RELEASE; do
-              [ -n "$RELEASE" ] || continue
-              TAG=$(echo "$RELEASE" | jq -r '.tagName')
-              CREATED=$(echo "$RELEASE" | jq -r '.createdAt')
-              CREATED_TS=$(date -d "$CREATED" +%s)
-
-              # Drafts don't count toward KEEP_N, so a stuck draft can't push
-              # out the last published release
-              if [ "$(echo "$RELEASE" | jq -r '.isDraft')" = "true" ]; then
-                echo "Skipping (draft): $TAG"
-                continue
-              fi
-
-              COUNT=$((COUNT + 1))
-
-              if [ "$COUNT" -le "$KEEP_N" ]; then
-                echo "Keeping (recent): $TAG"
-                continue
-              fi
-
-              if echo "$CURRENT_TAGS" | grep -qxF "$TAG"; then
-                echo "Keeping (current release-please version): $TAG"
-                continue
-              fi
-
-              if [ "$CREATED_TS" -lt "$CUTOFF_DATE" ]; then
-                echo "Planned for deletion: $TAG (created: $CREATED)"
-                echo "$TAG $CREATED" >>"$PLAN"
-              else
-                echo "Keeping (not old enough): $TAG"
-              fi
-            done < <(echo "$RELEASES" | jq -c '.')
-          done
-
-          PLANNED=$(wc -l <"$PLAN")
-          if [ "$PLANNED" -gt "$MAX_DELETIONS" ]; then
-            echo "::error::Aborting: $PLANNED releases planned for deletion exceeds the cap of $MAX_DELETIONS. Nothing was deleted. If the plan above is intended, dispatch with a higher max_deletions."
-            exit 1
-          fi
-          echo "$PLANNED releases planned for deletion (cap: $MAX_DELETIONS)"
-
-          while read -r TAG CREATED; do
-            if [ "$DRY_RUN" = "true" ]; then
-              echo "Would delete: $TAG (created: $CREATED)"
-            else
-              echo "Deleting: $TAG (created: $CREATED)"
-              gh release delete "$TAG" --repo "$REPO" --cleanup-tag --yes
-            fi
-          done <"$PLAN"
+      packages: "chrony,claude-agent-read,claude-agent-spruyt-labs,claude-agent-write,coder-gitops,devcontainer-common,happy-server,llm-guard,llm-guard-cuda,megalinter-base,megalinter-cpp,megalinter-go,megalinter-python,megalinter-spruyt-labs,megalinter-typescript,ssh-key-rotation"
+      dry-run: "${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}"
