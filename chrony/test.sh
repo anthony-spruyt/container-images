@@ -1,5 +1,5 @@
 #!/bin/bash
-# Test script for chrony container
+# Test script for the chrony container
 # Usage: ./test.sh <image-ref>
 
 set -euo pipefail

@@ -220,7 +220,7 @@ def generate_files(flavor_dir: Path, factory_dir: Path) -> None:
     go_linters = [linter for linter in custom_linters if linter["type"] == "go"]
     cargo_linters = [linter for linter in custom_linters if linter["type"] == "cargo"]
     gem_linters = [linter for linter in custom_linters if linter["type"] == "gem"]
-    # Script and dockerfile types both use raw dockerfile instructions
+    # Script and dockerfile types both use raw Dockerfile instructions
     script_linters = [linter for linter in custom_linters if linter["type"] in ("script", "dockerfile")]
 
     all_apk_packages = sorted({pkg for linter in custom_linters for pkg in linter.get("apk_packages", [])})

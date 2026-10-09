@@ -1,5 +1,5 @@
 #!/bin/bash
-# Test script for llm-guard container
+# Test script for the llm-guard container
 # Usage: ./test.sh <image-ref> [flavor]
 #   flavor: cpu (default) or cuda — selects the torch build assertions.
 #           llm-guard-cuda/test.sh passes "cuda".
