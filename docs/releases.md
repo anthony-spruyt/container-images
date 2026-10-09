@@ -21,19 +21,19 @@ Git tags keep the format this repo already used, so existing tags round-trip and
 4. Merging creates a git tag and a **draft** GitHub release per image in the PR.
 5. The same workflow run builds each released image from the commit the run started from, runs its `test-command`, pushes it to `ghcr.io/anthony-spruyt/<image>` and `docker.io/aspruyt/<image>`, attests provenance, and publishes that image's release with the ref and digest appended. A matrix job runs once per released image, so one PR still yields one tag, release, and build per image.
 
-If step 5 fails, the release stays a draft and no image is published. Recover with [Rebuild Release](#rebuild-release).
+If step 5 fails, the release stays a draft and no image is published. See [Recovering a stuck draft](#recovering-a-stuck-draft).
 
 ### The build is always the tag's commit
 
 The image job checks out the commit its run started from (`github.sha`), never the tag by name, and refuses to build unless the release tag points at that commit. The provenance attestation always names the run's commit and no input overrides it, so building any other commit would sign the wrong source. The `org.opencontainers.image.revision` label comes from the checked-out commit (`docker/metadata-action` `context: git`), so it matches too. release-please tags the release PR's merge commit, which is the commit its run starts from, so on the normal path the check passes.
 
-A push to `main` while a `Release Please` run is still pending makes GitHub cancel that run. If the cancelled run was the release PR's merge, the next run's release-please creates the release for the earlier merge commit, and its image job refuses: the run fails, the release stays a draft, and the error prints the recovery command, `gh workflow run rebuild-release.yaml --ref <tag> -f image=<image> -f version=<version>`.
+A push to `main` while a `Release Please` run is still pending makes GitHub cancel that run. If the cancelled run was the release PR's merge, the next run's release-please creates the release for the earlier merge commit, and its image job refuses: the run fails, the release stays a draft, and the error says to cut the next release and then delete the draft.
 
 The image job checks the release before building and fails closed:
 
 - release lookup fails (missing tag, API error, token that can't see drafts): the job fails and the release stays a draft
 - release is a draft: build, push, attest, publish
-- release is already published: skip the build and leave the release unchanged, so an overlapping rebuild can't push again or append a second image section
+- release is already published: skip the build and leave the release unchanged, so an overlapping run can't push again or append a second image section
 - any other answer: the job fails
 
 ## Version bumps
@@ -91,36 +91,28 @@ It compares composed linter sets (base, languages and `custom_linters`), not ups
 
 `llm-guard-cuda` builds from `llm-guard/` via `build_context`, but release-please only watches `llm-guard-cuda/`'s own path. A change confined to `llm-guard/app/` therefore releases `llm-guard` but not the CUDA variant. The CUDA variant picks the change up on its next release; to ship it immediately, include a commit that touches `llm-guard-cuda/`.
 
-## Rebuild Release
+## Recovering a stuck draft
 
-For a release that was tagged but whose build failed, try `gh run rerun <run-id> --failed` first. A re-run keeps the original run's commit, so it is the cheapest fix whenever that commit is the tag. It can't fix a run that refused because the tag is a different commit; use Rebuild Release for that.
+A release that was tagged but whose build failed stays a draft. How to recover depends on the cause:
 
-`Rebuild Release` (`.github/workflows/rebuild-release.yaml`) covers what a re-run cannot: runs older than 30 days, runs that hit GitHub's 50 re-run cap, and full re-runs — release-please does not re-emit `release_created` on a second pass, so the build job is skipped.
+- **Transient, or in repo-operator's shared workflows:** fix the cause, then re-run the release run's failed jobs. A re-run builds the same commit as the original run, so it publishes the draft whenever that commit is the tag.
 
-Dispatch it **from the tag**, with the image directory name and the version (no leading `v`):
+  ```bash
+  gh run rerun <run-id> --failed
+  ```
 
-```bash
-gh workflow run rebuild-release.yaml --ref <image>-<version-tag> -f image=<image> -f version=<version>
-```
+- **The tag points at a different commit than the run** (for example, after a cancelled run), **or the tagged code is broken:** fix it on `main` and cut the next release, then delete the leftover draft.
 
-For example, `--ref chrony-5.0.4 -f image=chrony -f version=5.0.4`, or `--ref megalinter-spruyt-labs-v3.0.0 -f image=megalinter-spruyt-labs -f version=3.0.0`. Starting from the tag makes the run's commit, and so the attestation, the tag's commit. The `v`-or-not prefix is read from `include-v-in-tag` in `release-please-config.json`, so an image needs no registration here beyond being a release-please package. It refuses to run unless all of these hold:
-
-- the git tag exists
-- the run was started from that tag
-- the release is still a draft
-- no newer version of that image is already published (a failed release lookup or listing also refuses)
-
-It never creates a release. If the tag does not exist, cut a new version instead.
+A full re-run does not help: release-please does not re-emit `release_created` on a second pass, so the build job is skipped.
 
 ## Configuration
 
-| File                                     | Purpose                                                       |
-| ---------------------------------------- | ------------------------------------------------------------- |
-| `release-please-config.json`             | Per-image release type, component, and tag format             |
-| `.release-please-manifest.json`          | Current version per image — the source of truth               |
-| `<image>/metadata.yaml`                  | Per-image build settings, such as `test-command`              |
-| `.github/workflows/release-please.yaml`  | Synced caller of repo-operator's `_release-please.yaml`       |
-| `.github/workflows/rebuild-release.yaml` | Synced caller of `_rebuild-release.yaml`, for a stuck release |
+| File                                    | Purpose                                                 |
+| --------------------------------------- | ------------------------------------------------------- |
+| `release-please-config.json`            | Per-image release type, component, and tag format       |
+| `.release-please-manifest.json`         | Current version per image — the source of truth         |
+| `<image>/metadata.yaml`                 | Per-image build settings, such as `test-command`        |
+| `.github/workflows/release-please.yaml` | Synced caller of repo-operator's `_release-please.yaml` |
 
 Notable settings:
 
@@ -155,7 +147,7 @@ Leave it in place. It is not migration scaffolding, and removing it silently inf
 
 **Release PR is not auto-merging.** Mergify requires the author to be `repo-operator-release-bot[bot]`, the branch to start with `release-please--branches--`, and the PR to touch `.release-please-manifest.json`. All three come from the app token — a `GITHUB_TOKEN` release PR will not satisfy them and will not trigger status checks either.
 
-**A release is stuck as a draft.** The build failed after tagging. Fix the cause, then re-drive the build — see [Rebuild Release](#rebuild-release).
+**A release is stuck as a draft.** The build failed after tagging. See [Recovering a stuck draft](#recovering-a-stuck-draft).
 
 **Renovate shows no release notes for an own image.** The image needs a `sourceDirectory` package rule pointing at its directory, in `renovate-overrides.json5` (or repo-operator's `.github/renovate/package-rules.json5` for a `megalinter-*` flavor).
 

@@ -142,11 +142,7 @@ CI builds but never pushes. Every publish goes through release-please — see [d
 A pull request or push to `main` builds and tests every image with a changed file in its directory, one of its `watch` paths, or its `build_context`. Changelogs and `.release-please-manifest.json` never trigger a build. Changes to `megalinter-factory/` build all flavors but release none: the factory is not a release-please package. Publishing happens when the resulting release PR merges. See
 repo-operator's [docs/ci.md](https://github.com/anthony-spruyt/repo-operator/blob/main/docs/ci.md#images) for the details.
 
-To republish a release whose build failed after tagging, run `Rebuild Release` from the release tag (see [docs/releases.md](docs/releases.md#rebuild-release)):
-
-```bash
-gh workflow run rebuild-release.yaml --ref <tag> -f image=<image> -f version=<version>
-```
+A release whose build failed after tagging stays a draft. To recover it, see [docs/releases.md](docs/releases.md#recovering-a-stuck-draft).
 
 ## Automatic Version Updates
 
