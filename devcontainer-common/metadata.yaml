@@ -1,0 +1,2 @@
+---
+test-command: bash ./devcontainer-common/test.sh "$IMAGE_REF"

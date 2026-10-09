@@ -1,0 +1,2 @@
+---
+test-command: bash ./claude-agent-write/test.sh "$IMAGE_REF"

@@ -1,0 +1,2 @@
+---
+test-command: bash ./chrony/test.sh "$IMAGE_REF"

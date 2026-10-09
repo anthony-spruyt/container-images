@@ -1,0 +1,2 @@
+---
+test-command: bash ./happy-server/test.sh "$IMAGE_REF"

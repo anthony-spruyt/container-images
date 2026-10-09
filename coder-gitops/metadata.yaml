@@ -1,0 +1,2 @@
+---
+test-command: bash ./coder-gitops/test.sh "$IMAGE_REF"

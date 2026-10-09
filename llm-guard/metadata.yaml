@@ -1,0 +1,2 @@
+---
+test-command: bash ./llm-guard/test.sh "$IMAGE_REF"

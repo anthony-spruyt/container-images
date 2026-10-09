@@ -1,0 +1,2 @@
+---
+test-command: bash ./ssh-key-rotation/test.sh "$IMAGE_REF"
