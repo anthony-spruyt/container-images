@@ -23,14 +23,14 @@ Either way: do your analysis, then output a clear verdict with summary. Do NOT s
 
 ## Repository Context
 
-This repo builds container images from upstream sources or custom Dockerfiles, published to `ghcr.io/anthony-spruyt/<image>`. Key structures:
+This repo builds container images from upstream sources or custom Dockerfiles, published to `ghcr.io/anthony-spruyt/<image>` and `docker.io/aspruyt/<image>`. Builds and releases run through repo-operator's shared workflows. Key structures:
 
 ```
 <image-name>/
-├── metadata.yaml     # build_context, for variant images only (optional)
+├── metadata.yaml     # Build settings: test-command, free-disk, build_context, flavor prepare-command
 ├── flavor.yaml       # MegaLinter flavor config (megalinter-* images only)
 ├── Dockerfile        # Build instructions (may be generated for flavors)
-├── test.sh           # CI tests run after build
+├── test.sh           # CI tests, run via metadata.yaml's test-command
 ├── .trivyignore      # Per-image vulnerability ignores
 └── assets/           # Additional build assets
 
