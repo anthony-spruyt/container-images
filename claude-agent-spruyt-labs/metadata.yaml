@@ -1,0 +1,3 @@
+---
+free-disk: true
+test-command: bash ./claude-agent-spruyt-labs/test.sh "$IMAGE_REF"

@@ -1,3 +1,0 @@
----
-# Test fixture: semver with prerelease tag
-version: "1.2.3-beta.1"

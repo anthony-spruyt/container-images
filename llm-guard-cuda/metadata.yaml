@@ -1,6 +1,6 @@
 ---
+free-disk: true
 # Build from llm-guard/ so app/ is shared; only this directory's Dockerfile
 # (CUDA torch wheel) differs.
 build_context: llm-guard
-
-# Version lives in .release-please-manifest.json — release-please owns it.
+test-command: bash ./llm-guard-cuda/test.sh "$IMAGE_REF"
