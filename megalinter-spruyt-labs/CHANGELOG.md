@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.1.0](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v3.0.0...megalinter-spruyt-labs-v3.1.0) (2026-10-09)
+
+
+### Features
+
+* **megalinter:** add a docker language and compose it into image-building flavors ([#2177](https://github.com/anthony-spruyt/container-images/issues/2177)) ([bafaf0f](https://github.com/anthony-spruyt/container-images/commit/bafaf0f9bf4958725ef01179c45af58154a7ea96))
+
+
+### Dependencies
+
+* **deps:** update dependency @biomejs/biome to v2.5.15 ([#2190](https://github.com/anthony-spruyt/container-images/issues/2190)) ([0c3e6da](https://github.com/anthony-spruyt/container-images/commit/0c3e6dab855f0b8343efb3fddb2268868c135444))
+
 ## [3.0.0](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v2.0.4...megalinter-spruyt-labs-v3.0.0) (2026-10-06)
 
 

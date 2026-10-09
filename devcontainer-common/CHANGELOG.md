@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.3.3](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.3.2...devcontainer-common-2.3.3) (2026-10-09)
+
+
+### Dependencies
+
+* **deps:** update container image mcr.microsoft.com/devcontainers/base to resolute ([#2210](https://github.com/anthony-spruyt/container-images/issues/2210)) ([15465ce](https://github.com/anthony-spruyt/container-images/commit/15465ce66978edd1c6d4a002e237be2aaeefa46d))
+* **deps:** update dependency @aikidosec/safe-chain to v1.5.23 ([#2122](https://github.com/anthony-spruyt/container-images/issues/2122)) ([3a5642e](https://github.com/anthony-spruyt/container-images/commit/3a5642e0152579e40abdb2f700f5f12a9ea07d9b))
+* **deps:** update dependency @aikidosec/safe-chain to v1.5.24 ([#2211](https://github.com/anthony-spruyt/container-images/issues/2211)) ([a63372e](https://github.com/anthony-spruyt/container-images/commit/a63372e9137cc662c71673a2b01fc501223d6550))
+* **deps:** update dependency pipx to v1.17.9 ([#2217](https://github.com/anthony-spruyt/container-images/issues/2217)) ([67d51dd](https://github.com/anthony-spruyt/container-images/commit/67d51ddd0e84635e143e300293b6cdb426951be9))
+
 ## [2.3.2](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.3.1...devcontainer-common-2.3.2) (2026-10-07)
 
 
