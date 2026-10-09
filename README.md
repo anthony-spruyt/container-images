@@ -34,6 +34,8 @@ Versions are owned by release-please. See [docs/releases.md](docs/releases.md).
 
    The fields are documented in repo-operator's [docs/ci.md](https://github.com/anthony-spruyt/repo-operator/blob/main/docs/ci.md#detect-images).
 
+4. Ask for the image to be added to `retentionPackages` in repo-operator's `src/repos.yaml`, which writes the synced `container-retention.yaml`.
+
 CI and releases find images in `release-please-config.json`, so no workflow changes are needed. Merging a conventional commit that touches the directory then opens a release PR; merging that cuts the tag and publishes the image.
 
 ### Variant of an Existing Image
@@ -89,7 +91,15 @@ The command will:
 
 3. Copy an existing flavor's `metadata.yaml` and replace the flavor name in `prepare-command` and `test-command`.
 
-4. Commit both files - CI generates Dockerfile and test.sh, then builds automatically
+4. Register the flavor with release-please:
+   - Add `megalinter-<name>` to `packages` in `release-please-config.json`, copying `megalinter-python`'s entry.
+   - Add `"megalinter-<name>": "0.0.0"` to `.release-please-manifest.json`.
+
+   CI and the release workflows only build release-please packages, so an unregistered flavor never builds.
+
+5. Ask for the flavor to be added to `retentionPackages` in repo-operator's `src/repos.yaml`, which writes the synced `container-retention.yaml`.
+
+6. Commit the files. CI generates the Dockerfile and test.sh, then builds the flavor.
 
 ### Available Linters
 

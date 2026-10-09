@@ -66,7 +66,7 @@ CI's `image` job runs after lint and the factory tests (`ci-repo.yaml`) and buil
 
 The synced `.github/workflows/container-retention.yaml` calls repo-operator's `_container-retention.yaml` every Saturday:
 
-- Deletes GHCR tags older than 4 weeks, keeping `latest` and the 5 newest
+- Deletes GHCR tags older than 4 weeks, keeping `latest` and the 5 newest, and deletes ghost images
 - A manual dispatch is a dry run unless `dry-run` is off
 - Docker Hub tags, GitHub releases and git tags are never deleted
 - Targets: the package list repo-operator writes from `retentionPackages` in its `src/repos.yaml`

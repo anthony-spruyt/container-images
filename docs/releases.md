@@ -147,6 +147,7 @@ Leave it in place. It is not migration scaffolding, and removing it silently inf
 2. Add its current version to `.release-please-manifest.json`.
 3. Add `<image>/metadata.yaml`. Set `test-command` if the image has a `test.sh`; nothing runs it otherwise. The release workflows find the image in `release-please-config.json` and take the docker tag's `v` prefix from `include-v-in-tag`, so they need no change.
 4. Add a `sourceDirectory` rule so Renovate shows its release notes: in `renovate-overrides.json5`, or for a `megalinter-*` flavor in repo-operator's `.github/renovate/package-rules.json5`, which every repo extends.
+5. Ask for the image to be added to `retentionPackages` in repo-operator's `src/repos.yaml`, which writes the synced `container-retention.yaml`.
 
 ## Troubleshooting
 
