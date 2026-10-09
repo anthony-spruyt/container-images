@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/github/license/anthony-spruyt/container-images)](https://github.com/anthony-spruyt/container-images/blob/main/LICENSE) [![CI](https://github.com/anthony-spruyt/container-images/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/anthony-spruyt/container-images/actions/workflows/ci.yaml)
 [![Trivy Scan](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml/badge.svg?branch=main)](https://github.com/anthony-spruyt/container-images/actions/workflows/trivy-scan.yaml)
 
-Container images I use, published to `ghcr.io/anthony-spruyt/<image>` and `docker.io/aspruyt/<image>`. Some wrap upstream software, some are my own Dockerfiles. CI scans each one with Trivy and attaches a build provenance attestation.
+Container images I use, published to `ghcr.io/anthony-spruyt/<image>` and `docker.io/aspruyt/<image>`. Some wrap upstream software, some are my own Dockerfiles. The daily Trivy scan checks the published images, and each release attaches a build provenance attestation.
 
 ## Development
 
@@ -36,6 +36,8 @@ Versions are owned by release-please. See [docs/releases.md](docs/releases.md).
 
 4. Ask for the image to be added to `retentionPackages` in repo-operator's `src/repos.yaml`, which writes the synced `container-retention.yaml`.
 
+5. Add a `sourceDirectory` rule to `renovate-overrides.json5` so Renovate shows its release notes.
+
 CI and releases find images in `release-please-config.json`, so no workflow changes are needed. Merging a conventional commit that touches the directory then opens a release PR; merging that cuts the tag and publishes the image.
 
 ### Variant of an Existing Image
@@ -63,7 +65,7 @@ The command will:
 1. Validate the flavor name and check for conflicts
 2. Reuse each language's definition in `megalinter-factory/languages/`, creating any that are missing
 3. Generate `megalinter-<name>/flavor.yaml` with Renovate annotations
-4. Register the flavor with release-please and Renovate
+4. Register the flavor with release-please and `EXPECTED_LINTERS`
 
 ### Manual Setup
 
@@ -97,9 +99,13 @@ The command will:
 
    CI and the release workflows only build release-please packages, so an unregistered flavor never builds.
 
-5. Ask for the flavor to be added to `retentionPackages` in repo-operator's `src/repos.yaml`, which writes the synced `container-retention.yaml`.
+5. Add the flavor to `EXPECTED_LINTERS` in `megalinter-factory/test_compose.py`.
 
-6. Commit the files. CI generates the Dockerfile and test.sh, then builds the flavor.
+6. Ask for the flavor to be added to `retentionPackages` in repo-operator's `src/repos.yaml`, which writes the synced `container-retention.yaml`.
+
+7. Ask for a `sourceDirectory` rule for the flavor in repo-operator's `.github/renovate/package-rules.json5`, which every repo extends, so Renovate shows its release notes.
+
+8. Commit the files. CI generates the Dockerfile and test.sh, then builds the flavor.
 
 ### Available Linters
 

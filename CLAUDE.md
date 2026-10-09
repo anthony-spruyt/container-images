@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Personal container images, published to `ghcr.io/anthony-spruyt/<image>` and `docker.io/aspruyt/<image>`. Container retention only cleans ghcr.io. CI scans each with Trivy and attaches build provenance.
+Personal container images, published to `ghcr.io/anthony-spruyt/<image>` and `docker.io/aspruyt/<image>`. Container retention only cleans ghcr.io. The daily `trivy-scan.yaml` scans the published images, and each release attaches build provenance.
 
 Builds and releases run through repo-operator's shared workflows, synced here by xfg. Their behaviour and every `metadata.yaml` field are documented in repo-operator's [docs/ci.md](https://github.com/anthony-spruyt/repo-operator/blob/main/docs/ci.md).
 
@@ -110,8 +110,7 @@ languages:
   - python
 ```
 
-3. Copy an existing flavor's `metadata.yaml` and replace the flavor name in `prepare-command` and `test-command`
-4. Register it with release-please (see the `create-megalinter-flavor` skill), commit and push
+3. Do every step of "Register with release-please" in the `create-megalinter-flavor` skill: `metadata.yaml`, release-please registration, `EXPECTED_LINTERS` in `megalinter-factory/test_compose.py`, repo-operator's `retentionPackages` and the Renovate `sourceDirectory` rule. Then commit and push
 
 A missing language fails the build. Add one as `languages/<language>.yaml` with `linters` (MegaLinter keys) and, where needed, `extra_dockerfile`, `extra_test_linters`, `extra_test_env_vars`, and `languages` to include another language. Fragments reference their own fields as `{{ language.<field> }}`. A language file is named after a language, never a tool, and holds that language's one linter
 set. A flavor may still set `custom_linters` and the `extra_*` fields for something only it needs; these reference `{{ flavor.<field> }}`.
