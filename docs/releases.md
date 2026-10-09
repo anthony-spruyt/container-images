@@ -95,15 +95,16 @@ It compares composed linter sets (base, languages and `custom_linters`), not ups
 
 A release that was tagged but whose build failed stays a draft. How to recover depends on the cause:
 
-- **Transient, or in repo-operator's shared workflows:** fix the cause, then re-run the release run's failed jobs. A re-run builds the same commit as the original run, so it publishes the draft whenever that commit is the tag.
+- **The cause is outside the commit and outside the pinned shared workflows** (a registry outage, a flaky test, a missing or expired secret): fix the cause, then re-run the release run's failed jobs. A re-run uses the same commit and the same pinned `_release-please.yaml`, so it publishes the draft whenever that commit is the tag.
 
   ```bash
   gh run rerun <run-id> --failed
   ```
 
-- **The tag points at a different commit than the run** (for example, after a cancelled run), **or the tagged code is broken:** fix it on `main` and cut the next release, then delete the leftover draft.
+- **The tagged code is broken, or the cause is in repo-operator's shared workflows:** fix it on `main` (for a shared workflow, the fix lands once the caller pin moves) and cut the next release, then delete the leftover draft.
+- **The tag points at a different commit than the run** (for example, after a cancelled run): cut the next release, then delete the leftover draft.
 
-A full re-run does not help: release-please does not re-emit `release_created` on a second pass, so the build job is skipped.
+A full re-run does not help: release-please does not re-emit `releases_created` on a second pass, so the build job is skipped.
 
 ## Configuration
 
