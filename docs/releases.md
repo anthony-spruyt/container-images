@@ -19,7 +19,7 @@ Git tags keep the format this repo already used, so existing tags round-trip and
 2. `Release Please` runs on `main` and opens (or updates) a single release PR, labelled `autorelease: pending`, covering every image with pending changes.
 3. Mergify auto-merges the release PR once `summary / Check Results` passes.
 4. Merging creates a git tag and a **draft** GitHub release per image in the PR.
-5. The same workflow run builds each image from the commit the run started from, pushes it to GHCR, attests provenance, and publishes that image's release with the ref and digest appended. Build jobs key off per-component outputs, so one PR still yields one tag, release, and build per image.
+5. The same workflow run builds each released image from the commit the run started from, runs its `test-command`, pushes it to `ghcr.io/anthony-spruyt/<image>` and `docker.io/aspruyt/<image>`, attests provenance, and publishes that image's release with the ref and digest appended. A matrix job runs once per released image, so one PR still yields one tag, release, and build per image.
 
 If step 5 fails, the release stays a draft and no image is published. Recover with [Rebuild Release](#rebuild-release).
 
@@ -56,9 +56,9 @@ Release-As: 2.0.0
 
 ## Pull request checks
 
-On a PR, changed images build via `_build-image.yaml` with `push: false`. Nothing is pushed and no release is touched. `<image>/test.sh` runs against the locally loaded image if it exists.
+On a PR, CI's `image` job builds each changed image through repo-operator's shared `_images.yaml` without pushing. Nothing is pushed and no release is touched. The image's `test-command` from its `metadata.yaml` runs against the locally loaded image; a `test.sh` that no `test-command` names never runs.
 
-That job runs PR code with sudo, so it gets `contents: read` and no secrets. Only the `publish` job, which runs when `push` is true, gets write scopes and `DOCKERHUB_TOKEN`. Callers pass that secret explicitly, never with `secrets: inherit`.
+That job runs PR code with sudo, so it gets `contents: read` and no secrets. Only the release workflows publish, and only they get write scopes and `DOCKERHUB_TOKEN`, which they pass explicitly, never with `secrets: inherit`. See repo-operator's [docs/ci.md](https://github.com/anthony-spruyt/repo-operator/blob/main/docs/ci.md#images) for change detection.
 
 ## MegaLinter flavor refresh
 
@@ -114,14 +114,13 @@ It never creates a release. If the tag does not exist, cut a new version instead
 
 ## Configuration
 
-| File                                     | Purpose                                           |
-| ---------------------------------------- | ------------------------------------------------- |
-| `release-please-config.json`             | Per-image release type, component, and tag format |
-| `.release-please-manifest.json`          | Current version per image — the source of truth   |
-| `.github/workflows/release-please.yaml`  | Cuts releases and dispatches builds               |
-| `.github/workflows/_build-image.yaml`    | Build prep, then repo-operator's build actions    |
-| `.github/actions/prepare-build/`         | Build context, flavor generation, test command    |
-| `.github/workflows/rebuild-release.yaml` | Recovery for a tagged-but-unbuilt release         |
+| File                                     | Purpose                                                       |
+| ---------------------------------------- | ------------------------------------------------------------- |
+| `release-please-config.json`             | Per-image release type, component, and tag format             |
+| `.release-please-manifest.json`          | Current version per image — the source of truth               |
+| `<image>/metadata.yaml`                  | Per-image build settings, such as `test-command`              |
+| `.github/workflows/release-please.yaml`  | Synced caller of repo-operator's `_release-please.yaml`       |
+| `.github/workflows/rebuild-release.yaml` | Synced caller of `_rebuild-release.yaml`, for a stuck release |
 
 Notable settings:
 
@@ -146,7 +145,7 @@ Leave it in place. It is not migration scaffolding, and removing it silently inf
 
 1. Add the directory to `packages` in `release-please-config.json`.
 2. Add its current version to `.release-please-manifest.json`.
-3. Add outputs and a build job to `.github/workflows/release-please.yaml`. Pass `tag-prefix: "v"` only if the package has `"include-v-in-tag": true`.
+3. Add `<image>/metadata.yaml`. Set `test-command` if the image has a `test.sh`; nothing runs it otherwise. The release workflows find the image in `release-please-config.json` and take the docker tag's `v` prefix from `include-v-in-tag`, so they need no change.
 4. Add a `sourceDirectory` rule so Renovate shows its release notes: in `renovate-overrides.json5`, or for a `megalinter-*` flavor in repo-operator's `.github/renovate/package-rules.json5`, which every repo extends.
 
 ## Troubleshooting

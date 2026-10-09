@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Personal container images, published to `ghcr.io/<owner>/<image>` and `docker.io/aspruyt/<image>`. Container retention only cleans ghcr.io. CI scans each with Trivy and attaches build provenance.
+Personal container images, published to `ghcr.io/anthony-spruyt/<image>` and `docker.io/aspruyt/<image>`. Container retention only cleans ghcr.io. CI scans each with Trivy and attaches build provenance.
+
+Builds and releases run through repo-operator's shared workflows, synced here by xfg. Their behaviour and every `metadata.yaml` field are documented in repo-operator's [docs/ci.md](https://github.com/anthony-spruyt/repo-operator/blob/main/docs/ci.md).
 
 ## Commands
 
@@ -18,13 +20,26 @@ pre-commit run --all-files   # Run pre-commit hooks manually
 Versions are owned by release-please. See [docs/releases.md](docs/releases.md).
 
 1. Create `<image-name>/Dockerfile`.
-2. Register the image in `release-please-config.json` and `.release-please-manifest.json`.
-3. Add its outputs and build job to `.github/workflows/release-please.yaml`.
-4. Add a `sourceDirectory` rule to `renovate-overrides.json5` so Renovate shows its release notes. `megalinter-*` flavors get theirs in repo-operator's `.github/renovate/package-rules.json5` instead.
+2. Register the image in `release-please-config.json` and `.release-please-manifest.json`. CI and release-please find images there, so no workflow changes.
+3. Create `<image-name>/metadata.yaml` with its build settings (see [Image Settings](#image-settings)).
+4. Ask for the image to be added to `retentionPackages` in repo-operator's `src/repos.yaml`, which writes the synced `container-retention.yaml`.
+5. Add a `sourceDirectory` rule to `renovate-overrides.json5` so Renovate shows its release notes. `megalinter-*` flavors get theirs in repo-operator's `.github/renovate/package-rules.json5` instead.
+
+### Image Settings
+
+Every image here sets `free-disk: true`. An image with a `test.sh` must also name it in `test-command`, because the shared build never looks for `test.sh` by itself:
+
+```yaml
+---
+free-disk: true
+test-command: bash ./chrony/test.sh "$IMAGE_REF"
+```
+
+The test runs against the built image on every CI build and before each publish. See `chrony/test.sh` for an example. MegaLinter flavors also set `prepare-command` and `watch`; copy an existing flavor's `metadata.yaml`.
 
 ### Variant of an existing image (`build_context`)
 
-For a variant that shares another image's sources but needs its own Dockerfile, add a `metadata.yaml` setting `build_context` to that image's directory. The variant directory then only needs a `Dockerfile` (plus optionally `test.sh`) — no copy of the shared `app/` or `assets/`:
+For a variant that shares another image's sources but needs its own Dockerfile, set `build_context` in its `metadata.yaml` to that image's directory. The variant directory then only needs a `Dockerfile` (plus optionally `test.sh`) — no copy of the shared `app/` or `assets/`:
 
 ```yaml
 build_context: llm-guard
@@ -32,11 +47,7 @@ build_context: llm-guard
 
 CI builds with `context: <build_context>` and `file: <image-name>/Dockerfile`, and change detection fans out — a change in the source directory rebuilds the variant too.
 
-Note that release-please only sees the variant's own directory, so a source-only change does not cut a release for the variant. The weekly rebuild covers it; to release immediately, include a commit touching the variant's directory.
-
-### Optional: Add CI Tests
-
-Create `<image-name>/test.sh` - runs after build, before Trivy scan. See `chrony/test.sh` for example.
+Note that release-please only sees the variant's own directory, so a source-only change does not cut a release for the variant. It picks the change up on its next release; to release immediately, include a commit touching the variant's directory.
 
 ### Optional: Add Trivy Ignores
 
@@ -46,22 +57,20 @@ Create `<image-name>/.trivyignore` for per-image vulnerability/secret ignores (p
 
 CI never pushes. Every publish goes through release-please — see [docs/releases.md](docs/releases.md).
 
-- **Pull requests**: CI runs on all PRs to main; change detection picks images with modified Dockerfile/top-level `*.sh`/assets/metadata.yaml/flavor.yaml/.rebuild-stamp. PR builds get a read-only token and no secrets, since `test.sh` runs PR code with sudo
-- **Push to main**: Lints every push (including xfg sync commits that skip PRs) and builds changed images without pushing (megalinter-factory changes rebuild every flavor)
-- **workflow_dispatch**: Manual trigger with an `image` input, for an on-demand build with no push
+CI's `image` job runs after lint and the factory tests (`ci-repo.yaml`) and builds and tests each changed image without pushing. An image rebuilds when a file in its directory, one of its `watch` paths or its `build_context` changes; changelogs and `.release-please-manifest.json` never trigger a build.
+
+- **Pull requests**: diffed against the merge base. PR builds get a read-only token and no secrets, since `test-command` runs PR code with sudo
+- **Push to main**: diffed against `HEAD~1`, and every push is linted (including xfg sync commits that skip PRs). Flavors watch `megalinter-factory/`, so a factory change rebuilds every flavor
 
 ## Container Retention
 
-Old container images and releases are automatically cleaned up weekly:
+The synced `.github/workflows/container-retention.yaml` calls repo-operator's `_container-retention.yaml` every Saturday:
 
-- Images older than 4 weeks are deleted
-- The weekly run deletes for real; a manual dispatch is a dry run unless `dry_run=false`
-- GitHub releases and tags older than 4 weeks are deleted
-- 5 most recent versions always kept; draft releases neither count toward the 5 nor get deleted
-- The release half aborts before deleting anything if more than 50 releases (`max_deletions` on dispatch, 0-999999) are planned for deletion; each deleted release also removes its tag. It exists because the garbo App bypasses the tag-deletion ruleset
-- Runs never overlap (`concurrency` group, no cancel-in-progress)
-- Targets: every image registered in `release-please-config.json`
-- Workflow: `.github/workflows/container-retention.yaml`, which calls repo-operator's `_container-retention.yaml` with this repo's `GITHUB_TOKEN`. Each package must give this repo the **Admin** role under its Actions access settings (images first pushed by this repo's CI have it)
+- Deletes GHCR tags older than 4 weeks, keeping `latest` and the 5 newest
+- A manual dispatch is a dry run unless `dry-run` is off
+- Docker Hub tags, GitHub releases and git tags are never deleted
+- Targets: the package list repo-operator writes from `retentionPackages` in its `src/repos.yaml`
+- Each package must give this repo the **Admin** role under its Actions access settings (images first pushed by this repo's CI have it)
 
 ## Commits
 
@@ -101,7 +110,8 @@ languages:
   - python
 ```
 
-3. Register it with release-please (see the `create-megalinter-flavor` skill), commit and push
+3. Copy an existing flavor's `metadata.yaml` and replace the flavor name in `prepare-command` and `test-command`
+4. Register it with release-please (see the `create-megalinter-flavor` skill), commit and push
 
 A missing language fails the build. Add one as `languages/<language>.yaml` with `linters` (MegaLinter keys) and, where needed, `extra_dockerfile`, `extra_test_linters`, `extra_test_env_vars`, and `languages` to include another language. Fragments reference their own fields as `{{ language.<field> }}`. A language file is named after a language, never a tool, and holds that language's one linter
 set. A flavor may still set `custom_linters` and the `extra_*` fields for something only it needs; these reference `{{ flavor.<field> }}`.
