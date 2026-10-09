@@ -31,7 +31,7 @@ sudo chmod a+rx /etc/containers /etc/containers/registries.conf.d /etc/container
 git ls-files -z '*.sh' | xargs -0 -r chmod +x 2>/dev/null || true
 
 # renovate: datasource=npm depName=@aikidosec/safe-chain
-SAFE_CHAIN_VERSION="1.5.23"
+SAFE_CHAIN_VERSION="1.5.24"
 SAFE_CHAIN_SHIMS="$HOME/.safe-chain/shims"
 # Shims inherited from ~/.bashrc break npm when the global package behind them is gone
 shims_real=$(realpath -m "$SAFE_CHAIN_SHIMS")
