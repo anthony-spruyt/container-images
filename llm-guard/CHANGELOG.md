@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.46](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.0.45...llm-guard-1.0.46) (2026-10-09)
+
+
+### Code Refactoring
+
+* prepare for ruff PLR rules and drop lint actions write ([#2185](https://github.com/anthony-spruyt/container-images/issues/2185)) ([d7ba89f](https://github.com/anthony-spruyt/container-images/commit/d7ba89f064f3291c2d9c6929a0e8fd4ea9e75617))
+
+
+### Dependencies
+
+* **deps:** update dependency fastapi to v0.142.1 ([#2149](https://github.com/anthony-spruyt/container-images/issues/2149)) ([926e1dc](https://github.com/anthony-spruyt/container-images/commit/926e1dc159dbdaf44f621d6212bd05973228fe51))
+* **deps:** update dependency fastapi to v0.142.2 ([#2183](https://github.com/anthony-spruyt/container-images/issues/2183)) ([b5a9d4d](https://github.com/anthony-spruyt/container-images/commit/b5a9d4dced02aa07c7ee3866375895877442c5e1))
+* **deps:** update dependency transformers to v5.18.0 ([#2191](https://github.com/anthony-spruyt/container-images/issues/2191)) ([09ff167](https://github.com/anthony-spruyt/container-images/commit/09ff167749ed0b805479a757c09f4056d5f9b8fd))
+
 ## [1.0.45](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.0.44...llm-guard-1.0.45) (2026-10-06)
 
 

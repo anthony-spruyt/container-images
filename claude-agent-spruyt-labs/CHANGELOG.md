@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.112](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.111...claude-agent-spruyt-labs-1.0.112) (2026-10-09)
+
+
+### Dependencies
+
+* **deps:** update dependency fluxcd/flux2 to v2.9.6 ([#2209](https://github.com/anthony-spruyt/container-images/issues/2209)) ([207cec2](https://github.com/anthony-spruyt/container-images/commit/207cec224a5c1cbcfd66ec059e4cb45670137be1))
+* **deps:** update dependency siderolabs/talos to v1.14.2 ([#2150](https://github.com/anthony-spruyt/container-images/issues/2150)) ([470ca50](https://github.com/anthony-spruyt/container-images/commit/470ca501df993c37d806f42ba786d4992040212e))
+
 ## [1.0.111](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.110...claude-agent-spruyt-labs-1.0.111) (2026-10-07)
 
 
