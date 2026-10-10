@@ -38,6 +38,14 @@
       "hidden": false
     }
   ],
+  "plugins": [
+    {
+      "type": "linked-versions",
+      "groupName": "llm-guard",
+      "components": ["llm-guard", "llm-guard-cuda"],
+      "merge": false
+    }
+  ],
   "packages": {
     "chrony": {
       "release-type": "simple",

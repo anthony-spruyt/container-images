@@ -1,3 +1,4 @@
 ---
+# llm-guard-cuda builds from this directory and is version-linked to it in release-please-config.json.
 free-disk: true
 test-command: bash ./llm-guard/test.sh "$IMAGE_REF"
