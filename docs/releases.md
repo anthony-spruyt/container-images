@@ -21,7 +21,7 @@ Git tags keep the format this repo already used, so existing tags round-trip and
 4. Merging creates a git tag and a **draft** GitHub release per image in the PR.
 5. The same workflow run builds each released image from the commit the run started from, runs its `test-command`, pushes it to `ghcr.io/anthony-spruyt/<image>` and `docker.io/aspruyt/<image>`, attests provenance, and publishes that image's release with the ref and digest appended. A matrix job runs once per released image, so one PR still yields one tag, release, and build per image.
 
-If step 5 fails, the release stays a draft. The image push comes before the publish, so a failure in the publish alone leaves the image on GHCR and Docker Hub. See [Recovering a stuck draft](#recovering-a-stuck-draft).
+If step 5 fails, the release stays a draft. The image push comes before the publish, so a failure after the push leaves the image on GHCR and Docker Hub. See [Recovering a stuck draft](#recovering-a-stuck-draft).
 
 ### The build is always the tag's commit
 
