@@ -2,6 +2,8 @@
 
 import asyncio
 import json
+import threading
+import time
 
 import pytest
 from fastapi.testclient import TestClient
@@ -130,6 +132,64 @@ def test_streamed_body_over_the_limit_is_rejected(metrics):
     assert response.status_code == 413
 
 
+def post_in_background(client, payload) -> tuple[threading.Thread, list]:
+    result = []
+    thread = threading.Thread(target=lambda: result.append(client.post("/v1/scan", json=payload)))
+    thread.start()
+    return thread, result
+
+
+def test_requests_beyond_the_concurrency_cap_get_503_before_the_body_is_read(metrics):
+    scanner = FakeScanner(gated=True)
+    guard = make_guard(metrics, FakeValkey(), scanner)
+    with client_for(metrics, guard=guard, MAX_CONCURRENT_REQUESTS="1", MAX_BODY_BYTES="200") as client:
+        held, result = post_in_background(client, body(["slow"]))
+        assert scanner.started.wait(timeout=5)
+
+        not_json = client.post("/v1/scan", content=b"{not json", headers={"Content-Type": "application/json"})
+        oversize = client.post("/v1/scan", json=body(["x" * 300]))
+        scanner.release()
+        held.join(timeout=5)
+
+    assert (not_json.status_code, oversize.status_code) == (503, 503)
+    assert result[0].status_code == 200
+    assert sample(metrics, "llm_tool_guard_over_limit_total", limit="requests") == 2
+    assert sample(metrics, "llm_tool_guard_over_limit_total", limit="body") == 0
+
+
+def test_the_concurrency_cap_admits_requests_up_to_the_cap(metrics):
+    scanner = FakeScanner(gated=True)
+    guard = make_guard(metrics, FakeValkey(), scanner)
+    with client_for(metrics, guard=guard, MAX_CONCURRENT_REQUESTS="2") as client:
+        held, result = post_in_background(client, body(["slow"]))
+        assert scanner.started.wait(timeout=5)
+
+        second = client.post("/v1/scan", json=body(known=[digest("never seen")]))
+        scanner.release()
+        held.join(timeout=5)
+
+    assert second.status_code == 200
+    assert result[0].status_code == 200
+
+
+def test_finished_and_failed_requests_free_their_slot(metrics):
+    with client_for(metrics, MAX_CONCURRENT_REQUESTS="1", MAX_BODY_BYTES="200") as client:
+        assert client.post("/v1/scan", json=body(["x" * 300])).status_code == 413
+        assert client.post("/v1/scan", content=b"{", headers={"Content-Type": "application/json"}).status_code == 400
+        assert client.post("/v1/scan", json=[]).status_code == 422
+        assert client.post("/v1/scan", json=body(["ok"])).status_code == 200
+        assert client.post("/v1/scan", json=body(["ok"])).status_code == 200
+
+
+def test_unauthorized_requests_do_not_take_a_slot(metrics):
+    with client_for(metrics, AUTH_TOKEN="secret-token", MAX_CONCURRENT_REQUESTS="1") as client:
+        for _ in range(3):
+            assert client.post("/v1/scan", json=body()).status_code == 401
+        response = client.post("/v1/scan", json=body(), headers={"Authorization": "Bearer secret-token"})
+
+    assert response.status_code == 200
+
+
 def test_text_over_the_item_limit_is_flagged(metrics):
     with client_for(metrics, guard=make_guard(metrics, FakeValkey(), MAX_TEXT_BYTES="10")) as client:
         response = client.post("/v1/scan", json=body(["x" * 11, "short"]))
@@ -239,3 +299,112 @@ def test_request_latency_is_observed(metrics, client):
     client.post("/v1/scan", json=body(["x"]))
 
     assert sample(metrics, "llm_tool_guard_request_duration_seconds_count") == 1
+
+
+@pytest.fixture(name="background")
+def fixture_background() -> list:
+    """Holds tasks started by scan_in_background until the test ends."""
+    return []
+
+
+def scan_in_background(client, guard, text, background) -> None:
+    """Start a scan that outlives the portal call, as one left behind by a cancelled request does."""
+
+    async def start():
+        scan = guard.check([{"hash": digest(text), "text": text}], [])
+        background.append(asyncio.get_running_loop().create_task(scan))
+
+    client.portal.call(start)
+
+
+def test_shutdown_waits_for_scans_in_flight_and_caches_them(metrics, background):
+    scanner = FakeScanner(gated=True)
+    valkey = FakeValkey()
+    guard = make_guard(metrics, valkey, scanner)
+    text = f"{INJECTION} slow"
+
+    with client_for(metrics, guard=guard, SHUTDOWN_DRAIN_SECONDS="5") as client:
+        scan_in_background(client, guard, text, background)
+        assert scanner.started.wait(timeout=5)
+        threading.Timer(0.2, scanner.release).start()
+
+    assert list(valkey.data.values()) == ["1"]
+
+
+def test_shutdown_stops_waiting_after_the_drain_budget(metrics, background):
+    scanner = FakeScanner(gated=True)
+    valkey = FakeValkey()
+    guard = make_guard(metrics, valkey, scanner)
+
+    with client_for(metrics, guard=guard, SHUTDOWN_DRAIN_SECONDS="0.2") as client:
+        scan_in_background(client, guard, "slow", background)
+        assert scanner.started.wait(timeout=5)
+        start = time.monotonic()
+
+    elapsed = time.monotonic() - start
+    scanner.release()
+
+    assert 0.2 <= elapsed < 5
+    assert valkey.data == {}
+
+
+async def asgi_post(app, payload, gone: asyncio.Event | None = None) -> int:
+    """POST payload to /v1/scan over raw ASGI; the client disconnects once gone is set, and never otherwise."""
+    raw = json.dumps(payload).encode()
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/v1/scan",
+        "raw_path": b"/v1/scan",
+        "root_path": "",
+        "query_string": b"",
+        "headers": [(b"content-type", b"application/json"), (b"content-length", str(len(raw)).encode())],
+        "server": ("test", 80),
+        "client": ("test", 1),
+    }
+    sent = []
+    delivered = False
+
+    async def receive():
+        nonlocal delivered
+        if not delivered:
+            delivered = True
+            return {"type": "http.request", "body": raw, "more_body": False}
+        if gone is None:
+            await asyncio.Event().wait()
+        await gone.wait()
+        return {"type": "http.disconnect"}
+
+    async def send(message):
+        sent.append(message)
+
+    await app(scope, receive, send)
+    return next(m["status"] for m in sent if m["type"] == "http.response.start")
+
+
+def test_a_request_whose_client_disconnects_frees_its_slot_while_its_scan_still_lands_in_the_cache(metrics):
+    scanner = FakeScanner(gated=True)
+    valkey = FakeValkey()
+    guard = make_guard(metrics, valkey, scanner)
+    app = create_app(Settings.from_env({"MAX_CONCURRENT_REQUESTS": "1"}), metrics, lambda: asyncio.sleep(0, guard))
+    abandoned = f"{INJECTION} abandoned"
+
+    async def run():
+        async with app.router.lifespan_context(app):
+            await asyncio.sleep(0.05)
+            gone = asyncio.Event()
+            request = asyncio.create_task(asgi_post(app, body([abandoned]), gone))
+            await asyncio.to_thread(scanner.started.wait, 5)
+            gone.set()
+            await asyncio.wait_for(request, 2)
+            lookup = await asyncio.wait_for(asgi_post(app, body(known=[digest("never seen")])), 2)
+            scanner.release()
+            await guard.drain()
+            return lookup
+
+    assert asyncio.run(run()) == 200
+    assert valkey.data == {f"llm-tool-guard:ns:{digest(abandoned)}": "1"}
+    assert sample(metrics, "llm_tool_guard_over_limit_total", limit="requests") == 0

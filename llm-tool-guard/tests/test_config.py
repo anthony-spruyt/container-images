@@ -22,6 +22,10 @@ def test_defaults():
     assert settings.threshold == 0.9
     assert (settings.window_tokens, settings.window_overlap) == (2048, 512)
     assert settings.max_windows == 171
+    assert settings.max_body_bytes == 8 * 1024 * 1024
+    assert settings.max_concurrent_requests == 8
+    assert settings.scan_timeout_seconds == 300
+    assert settings.shutdown_drain_seconds == 20
 
 
 def test_overrides():
@@ -37,6 +41,9 @@ def test_overrides():
             "MAX_BODY_BYTES": "5000",
             "SCAN_WORKERS": "3",
             "MAX_PENDING_SCANS": "7",
+            "MAX_CONCURRENT_REQUESTS": "3",
+            "SCAN_TIMEOUT_SECONDS": "12.5",
+            "SHUTDOWN_DRAIN_SECONDS": "0",
             "VALKEY_URL": "redis://valkey:6379/2",
             "VALKEY_USERNAME": "guard",
             "VALKEY_PASSWORD": "pw",
@@ -52,6 +59,9 @@ def test_overrides():
     assert settings.max_windows == 10
     assert (settings.max_text_bytes, settings.max_body_bytes) == (1000, 5000)
     assert (settings.scan_workers, settings.max_pending_scans) == (3, 7)
+    assert settings.max_concurrent_requests == 3
+    assert settings.scan_timeout_seconds == 12.5
+    assert settings.shutdown_drain_seconds == 0
     assert (settings.valkey_url, settings.valkey_username, settings.valkey_password) == (
         "redis://valkey:6379/2",
         "guard",
@@ -73,6 +83,9 @@ def test_empty_values_use_defaults():
         ("SCAN_WORKERS", "0"),
         ("MAX_TEXT_BYTES", "-1"),
         ("MAX_PENDING_SCANS", "1.5"),
+        ("MAX_CONCURRENT_REQUESTS", "0"),
+        ("SCAN_TIMEOUT_SECONDS", "0"),
+        ("SHUTDOWN_DRAIN_SECONDS", "-1"),
         ("CACHE_TTL_SECONDS", "0"),
         ("WINDOW_TOKENS", "1"),
         ("WINDOW_OVERLAP", "-1"),

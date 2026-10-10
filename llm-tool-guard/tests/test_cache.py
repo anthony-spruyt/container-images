@@ -1,10 +1,12 @@
 """Tests for the Valkey verdict cache: key composition, TTL and failure handling."""
 
 import asyncio
+import hashlib
+from importlib.metadata import PackageNotFoundError
 
 import pytest
 
-from cache import VerdictCache, cache_namespace
+from cache import VerdictCache, cache_namespace, runtime_fingerprint
 from fakes import FakeValkey, digest, sample
 
 BASE = {
@@ -15,6 +17,13 @@ BASE = {
     "window_tokens": 2048,
     "window_overlap": 512,
     "max_windows": 200,
+    "runtime": {
+        "scanner_types.py": "aaa",
+        "classifier.py": "bbb",
+        "transformers": "5.18.0",
+        "tokenizers": "0.23.3",
+        "torch": "2.13.0",
+    },
 }
 
 
@@ -32,10 +41,72 @@ def test_namespace_is_stable_for_the_same_settings():
         ("window_tokens", 8192),
         ("window_overlap", 256),
         ("max_windows", 201),
+        ("runtime", {**BASE["runtime"], "scanner_types.py": "ccc"}),
+        ("runtime", {**BASE["runtime"], "classifier.py": "ccc"}),
+        ("runtime", {**BASE["runtime"], "transformers": "5.19.0"}),
+        ("runtime", {**BASE["runtime"], "tokenizers": "0.24.0"}),
+        ("runtime", {**BASE["runtime"], "torch": "2.14.0"}),
     ],
 )
 def test_namespace_changes_with_every_verdict_setting(field, value):
     assert cache_namespace(**{**BASE, field: value}) != cache_namespace(**BASE)
+
+
+def versions(**installed):
+    def lookup(name):
+        if name not in installed:
+            raise PackageNotFoundError(name)
+        return installed[name]
+
+    return lookup
+
+
+def write_sources(directory, **contents):
+    paths = []
+    for name, text in contents.items():
+        path = directory / f"{name}.py"
+        path.write_text(text)
+        paths.append(path)
+    return paths
+
+
+def test_runtime_fingerprint_holds_the_source_digests_and_library_versions(tmp_path):
+    sources = write_sources(tmp_path, scanner_types="SCANNER = 1\n", classifier="CLASSIFIER = 1\n")
+
+    fingerprint = runtime_fingerprint(
+        sources, version=versions(transformers="5.18.0", tokenizers="0.23.3", torch="2.13.0")
+    )
+
+    assert fingerprint == {
+        "scanner_types.py": hashlib.sha256(b"SCANNER = 1\n").hexdigest(),
+        "classifier.py": hashlib.sha256(b"CLASSIFIER = 1\n").hexdigest(),
+        "transformers": "5.18.0",
+        "tokenizers": "0.23.3",
+        "torch": "2.13.0",
+    }
+
+
+@pytest.mark.parametrize("changed", ["scanner_types", "classifier"])
+def test_changing_a_runtime_source_changes_the_namespace(tmp_path, changed):
+    sources = write_sources(tmp_path, scanner_types="SCANNER = 1\n", classifier="CLASSIFIER = 1\n")
+    lookup = versions(transformers="1", tokenizers="1", torch="1")
+
+    def namespace() -> str:
+        return cache_namespace(**{**BASE, "runtime": runtime_fingerprint(sources, version=lookup)})
+
+    before = namespace()
+    (tmp_path / f"{changed}.py").write_text("CHANGED = 2\n")
+
+    assert namespace() != before
+
+
+def test_runtime_fingerprint_names_a_missing_library(tmp_path):
+    sources = write_sources(tmp_path, scanner_types="")
+
+    lookup = versions(transformers="1", tokenizers="1")
+
+    with pytest.raises(PackageNotFoundError, match="torch"):
+        runtime_fingerprint(sources, version=lookup)
 
 
 def test_keys_carry_the_namespace_and_hash(metrics, valkey):

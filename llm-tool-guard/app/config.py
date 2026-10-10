@@ -48,6 +48,9 @@ class Settings:
     max_body_bytes: int
     scan_workers: int
     max_pending_scans: int
+    max_concurrent_requests: int
+    scan_timeout_seconds: float
+    shutdown_drain_seconds: float
     valkey_url: str = field(repr=False)
     valkey_username: str
     valkey_password: str = field(repr=False)
@@ -80,9 +83,12 @@ class Settings:
             window_batch_size=_number(env, "WINDOW_BATCH_SIZE", 1, int, 1),
             max_windows=_number(env, "MAX_WINDOWS", covering, int, 1),
             max_text_bytes=max_text_bytes,
-            max_body_bytes=_number(env, "MAX_BODY_BYTES", 32 * 1024 * 1024, int, 1),
+            max_body_bytes=_number(env, "MAX_BODY_BYTES", 8 * 1024 * 1024, int, 1),
             scan_workers=_number(env, "SCAN_WORKERS", 1, int, 1),
             max_pending_scans=_number(env, "MAX_PENDING_SCANS", 128, int, 1),
+            max_concurrent_requests=_number(env, "MAX_CONCURRENT_REQUESTS", 8, int, 1),
+            scan_timeout_seconds=_number(env, "SCAN_TIMEOUT_SECONDS", 300.0, float, 0.001),
+            shutdown_drain_seconds=_number(env, "SHUTDOWN_DRAIN_SECONDS", 20.0, float, 0.0),
             valkey_url=env.get("VALKEY_URL", ""),
             valkey_username=env.get("VALKEY_USERNAME", ""),
             valkey_password=env.get("VALKEY_PASSWORD", ""),
