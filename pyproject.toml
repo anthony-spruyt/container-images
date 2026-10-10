@@ -1,7 +1,7 @@
 [tool.ruff]
 extend = "ruff-base.toml"
 target-version = "py312"
-src = ["megalinter-factory", "llm-guard/app"]
+src = ["megalinter-factory", "llm-guard/app", "llm-tool-guard/app", "llm-tool-guard/tests"]
 
 [tool.ruff.lint]
 extend-select = ["PLR"]
