@@ -264,8 +264,9 @@ def test_scan_finishes_after_a_client_timeout(metrics, valkey):
     clean = item("slow but fine")
 
     async def run():
+        request = asyncio.wait_for(guard.check([clean], []), 0.05)
         with pytest.raises(TimeoutError):
-            await asyncio.wait_for(guard.check([clean], []), 0.05)
+            await request
         scanner.release()
         await guard.drain()
 
