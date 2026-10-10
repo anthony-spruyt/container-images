@@ -105,7 +105,7 @@ A release that was tagged but whose build failed stays a draft. How to recover d
 
 - **The tagged code is broken, or the cause is in repo-operator's shared workflows:** fix it on `main` (for a shared workflow, the fix lands once the caller pin moves) and cut the next release, then delete the leftover draft.
 - **The tag points at a different commit than the run** (for example, after a cancelled run): cut the next release, then delete the leftover draft.
-- **The run died before relabelling the release PR:** the next run fails once on the duplicate release and starts no image job, so no re-run can publish the draft. Cut the next release, then delete the draft.
+- **The run died before relabelling the release PR:** cut the next release, then delete every leftover draft release for that tag.
 - **The run is past GitHub's 30-day re-run limit:** cut the next release, then delete the draft.
 
 A full re-run does not help: release-please does not re-emit `releases_created` on a second pass, so the build job is skipped.
