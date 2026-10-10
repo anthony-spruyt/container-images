@@ -26,31 +26,31 @@ Verdicts are cached in Valkey under a namespace derived from the model and its r
 
 ## Configuration
 
-| Variable                  | Default                                  | Purpose                                                                                       |
-| ------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `LISTEN_HOST`             | `0.0.0.0`                                | Bind address                                                                                  |
-| `LISTEN_PORT`             | `8080`                                   | Bind port                                                                                     |
-| `LOG_LEVEL`               | `INFO`                                   | Log level                                                                                     |
-| `AUTH_TOKEN`              | empty                                    | Bearer token required on `/v1/scan`; no auth when empty                                       |
-| `MODEL`                   | `Horizon-Labs/prompt-injection-guard-base` | Hugging Face model                                                                          |
-| `INJECTION_LABEL`         | `INJECTION`                              | Model label that means injection                                                              |
-| `THRESHOLD`               | `0.9`                                    | Score at or above which a text is flagged, in (0, 1]                                          |
-| `WINDOW_TOKENS`           | `2048`                                   | Tokens per scan window                                                                        |
-| `WINDOW_OVERLAP`          | `512`                                    | Tokens shared by consecutive windows                                                          |
-| `WINDOW_BATCH_SIZE`       | `1`                                      | Windows scored per model call                                                                 |
-| `MAX_WINDOWS`             | covers `MAX_TEXT_BYTES`                  | Most windows one text may span                                                                |
-| `MAX_TEXT_BYTES`          | `262144`                                 | Largest text scanned; larger texts are flagged                                                |
-| `MAX_BODY_BYTES`          | `8388608`                                | Largest request body, about 32 texts of `MAX_TEXT_BYTES`; larger bodies get `413`             |
-| `MAX_CONCURRENT_REQUESTS` | `8`                                      | Most `/v1/scan` requests in flight; further requests get `503`                               |
-| `MAX_PENDING_SCANS`       | `128`                                    | Most texts queued or being scanned; further texts are flagged                                 |
-| `SCAN_WORKERS`            | `1`                                      | Threads running the model                                                                     |
-| `SCAN_TIMEOUT_SECONDS`    | `300`                                    | Time budget per text, about 1 s per KB of CPU time at `MAX_TEXT_BYTES`; checked between windows |
-| `SHUTDOWN_DRAIN_SECONDS`  | `20`                                     | Time given to scans in flight to finish and be cached when the service stops                  |
-| `VALKEY_URL`              | empty                                    | Verdict cache; no caching when empty                                                          |
-| `VALKEY_USERNAME`         | empty                                    | Valkey user                                                                                   |
-| `VALKEY_PASSWORD`         | empty                                    | Valkey password                                                                               |
-| `VALKEY_TIMEOUT_SECONDS`  | `0.5`                                    | Connect and read timeout for Valkey                                                           |
-| `CACHE_TTL_SECONDS`       | `2592000`                                | Lifetime of a cached verdict                                                                  |
+| Variable                  | Default                                    | Purpose                                                                                         |
+| ------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `LISTEN_HOST`             | `0.0.0.0`                                  | Bind address                                                                                    |
+| `LISTEN_PORT`             | `8080`                                     | Bind port                                                                                       |
+| `LOG_LEVEL`               | `INFO`                                     | Log level                                                                                       |
+| `AUTH_TOKEN`              | empty                                      | Bearer token required on `/v1/scan`; no auth when empty                                         |
+| `MODEL`                   | `Horizon-Labs/prompt-injection-guard-base` | Hugging Face model                                                                              |
+| `INJECTION_LABEL`         | `INJECTION`                                | Model label that means injection                                                                |
+| `THRESHOLD`               | `0.9`                                      | Score at or above which a text is flagged, in (0, 1]                                            |
+| `WINDOW_TOKENS`           | `2048`                                     | Tokens per scan window                                                                          |
+| `WINDOW_OVERLAP`          | `512`                                      | Tokens shared by consecutive windows                                                            |
+| `WINDOW_BATCH_SIZE`       | `1`                                        | Windows scored per model call                                                                   |
+| `MAX_WINDOWS`             | covers `MAX_TEXT_BYTES`                    | Most windows one text may span                                                                  |
+| `MAX_TEXT_BYTES`          | `262144`                                   | Largest text scanned; larger texts are flagged                                                  |
+| `MAX_BODY_BYTES`          | `8388608`                                  | Largest request body, about 32 texts of `MAX_TEXT_BYTES`; larger bodies get `413`               |
+| `MAX_CONCURRENT_REQUESTS` | `8`                                        | Most `/v1/scan` requests in flight; further requests get `503`                                  |
+| `MAX_PENDING_SCANS`       | `128`                                      | Most texts queued or being scanned; further texts are flagged                                   |
+| `SCAN_WORKERS`            | `1`                                        | Threads running the model                                                                       |
+| `SCAN_TIMEOUT_SECONDS`    | `300`                                      | Time budget per text, about 1 s per KB of CPU time at `MAX_TEXT_BYTES`; checked between windows |
+| `SHUTDOWN_DRAIN_SECONDS`  | `20`                                       | Time given to scans in flight to finish and be cached when the service stops                    |
+| `VALKEY_URL`              | empty                                      | Verdict cache; no caching when empty                                                            |
+| `VALKEY_USERNAME`         | empty                                      | Valkey user                                                                                     |
+| `VALKEY_PASSWORD`         | empty                                      | Valkey password                                                                                 |
+| `VALKEY_TIMEOUT_SECONDS`  | `0.5`                                      | Connect and read timeout for Valkey                                                             |
+| `CACHE_TTL_SECONDS`       | `2592000`                                  | Lifetime of a cached verdict                                                                    |
 
 A scan that runs past `SCAN_TIMEOUT_SECONDS` is flagged, not cached, and counted as `llm_tool_guard_scans_total{verdict="timeout"}`. A model call already running cannot be interrupted, so the budget is checked before each window and the worker is freed at the next window boundary.
 
