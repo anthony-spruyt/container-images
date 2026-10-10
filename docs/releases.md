@@ -44,7 +44,7 @@ The image job checks the release before building and fails closed:
 | `feat:`                                                | minor |
 | any type with `!` or a `BREAKING CHANGE:` footer       | major |
 
-Only commits whose files sit inside the image's directory count towards that image's release.
+Only commits whose files sit inside the image's directory count towards that image's release, except for linked images (see [Variant images](#variant-images)).
 
 To force a specific version, add a footer to the commit body:
 
@@ -91,7 +91,9 @@ It compares composed linter sets (base, languages and `custom_linters`), not ups
 
 ## Variant images
 
-`llm-guard-cuda` builds from `llm-guard/` via `build_context`, but release-please only watches `llm-guard-cuda/`'s own path. A change confined to `llm-guard/app/` therefore releases `llm-guard` but not the CUDA variant. The CUDA variant picks the change up on its next release; to ship it immediately, include a commit that touches `llm-guard-cuda/`.
+`llm-guard-cuda` builds from `llm-guard/` via `build_context`. release-please's [`linked-versions`][linked] plugin in `release-please-config.json` groups `llm-guard` and `llm-guard-cuda`, so a commit touching either directory releases both images at the same version: the highest bump either one would take on its own. The image without a matching commit gets a `Synchronize llm-guard versions` changelog entry. `merge: false` keeps both in the single release PR.
+
+Add any further image that builds from another image's directory to such a group as well, so it is never released without its source.
 
 ## Recovering a stuck draft
 
@@ -129,6 +131,7 @@ Notable settings:
 | `tag-separator: "-"` | Matches the tags this repo already uses, so they round-trip  |
 | `include-v-in-tag`   | Per image. Preserves each image's existing `v`-or-not prefix |
 | `last-release-sha`   | Bounds history scanning — see below                          |
+| `plugins`            | Links image versions — see [Variant images](#variant-images) |
 
 ### `last-release-sha`
 
@@ -157,3 +160,4 @@ Leave it in place. It is not migration scaffolding, and removing it silently inf
 **Renovate shows no release notes for an own image.** The image needs a `sourceDirectory` package rule pointing at its directory, in `renovate-overrides.json5` (or repo-operator's `.github/renovate/package-rules.json5` for a `megalinter-*` flavor).
 
 [rp]: https://github.com/googleapis/release-please
+[linked]: https://github.com/googleapis/release-please/blob/main/docs/manifest-releaser.md#linked-versions
