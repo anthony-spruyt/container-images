@@ -72,6 +72,8 @@ It runs:
 
 Runs are serialized. If a refresh PR is still open, the new run stamps its flavors as well and closes it as superseded, so two refresh PRs never edit the same stamp.
 
+The job runs in the `release` environment, which holds the App credentials (`RELEASE_PLEASE_APP_CLIENT_ID`, `RELEASE_PLEASE_APP_PRIVATE_KEY`) and admits only `main`. The schedule, push and manual triggers all run there; the workflow has no pull request trigger.
+
 A factory code change that alters generated output releases nothing by itself; include a commit that touches the affected flavor directories. A `build:` commit to a flavor directory releases nothing either, since `build` has no changelog section — use it for changes that leave the generated image unchanged.
 
 A change that removes or replaces a linter breaks consumers that enable it, so it must release the affected flavors as a major from the change itself, not as a refresh `chore` patch.
