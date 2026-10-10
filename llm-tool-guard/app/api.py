@@ -47,13 +47,21 @@ def _error(status: int, detail: str, headers: dict | None = None) -> JSONRespons
     return JSONResponse(status_code=status, content={"detail": detail}, headers=headers)
 
 
-def _parse(raw: bytes) -> ScanRequest:
+def _parse(raw: bytes) -> tuple[list[dict], list[str]]:
+    """Return the items to scan and the hashes to look up, holding nothing else of the body."""
     try:
-        return ScanRequest.model_validate(json.loads(raw))
+        body = ScanRequest.model_validate(json.loads(raw))
     except ValidationError:
         raise _RequestError(_error(422, "body does not match the scan request schema")) from None
     except ValueError:
         raise _RequestError(_error(400, "body is not valid JSON")) from None
+    return [item.model_dump() for item in body.new], body.known
+
+
+async def _wait_for_disconnect(request: Request) -> None:
+    message = await request.receive()
+    while message["type"] != "http.disconnect":
+        message = await request.receive()
 
 
 class _Service:
@@ -66,6 +74,7 @@ class _Service:
         self._token = f"Bearer {settings.auth_token}".encode() if settings.auth_token else None
         self.guard: ToolGuard | None = None
         self.failed = False
+        self._active = 0
 
     async def start(self) -> None:
         try:
@@ -87,6 +96,7 @@ class _Service:
             with suppress(asyncio.CancelledError):
                 await loading
             if self.guard is not None:
+                await self.guard.drain(self._settings.shutdown_drain_seconds)
                 self.guard.close()
 
     def healthz(self):
@@ -110,11 +120,29 @@ class _Service:
         with self._metrics.request_seconds.time():
             try:
                 guard = self._admit(request)
-                body = _parse(await self._read_body(request))
             except _RequestError as exc:
                 return exc.response
-            flagged, unknown = await guard.check([item.model_dump() for item in body.new], body.known)
+            try:
+                return await self._answer(guard, request)
+            finally:
+                self._active -= 1
+
+    async def _answer(self, guard: ToolGuard, request: Request):
+        try:
+            check = asyncio.create_task(guard.check(*_parse(await self._read_body(request))))
+        except _RequestError as exc:
+            return exc.response
+        gone = asyncio.create_task(_wait_for_disconnect(request))
+        try:
+            # Cancelling check drops only this request's wait; the scans it started are shielded and still get cached
+            await asyncio.wait({check, gone}, return_when=asyncio.FIRST_COMPLETED)
+            if not check.done():
+                return _error(499, "client disconnected")
+            flagged, unknown = check.result()
             return {"flagged": flagged, "unknown": unknown}
+        finally:
+            gone.cancel()
+            check.cancel()
 
     def _admit(self, request: Request) -> ToolGuard:
         if self._token is not None:
@@ -123,6 +151,10 @@ class _Service:
                 raise _RequestError(_error(401, "unauthorized", {"WWW-Authenticate": "Bearer"}))
         if self.guard is None:
             raise _RequestError(_error(503, "not ready"))
+        if self._active >= self._settings.max_concurrent_requests:
+            self._metrics.over_limit.labels("requests").inc()
+            raise _RequestError(_error(503, "too many requests in flight"))
+        self._active += 1
         return self.guard
 
     async def _read_body(self, request: Request) -> bytes:

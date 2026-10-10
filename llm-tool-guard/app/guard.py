@@ -29,6 +29,10 @@ def content_hash(text: str) -> str:
     return _digest(_encode(text))
 
 
+class ScanStoppedError(Exception):
+    """Raised by a scan that ended early because the service is shutting down."""
+
+
 class ToolGuard:
     """Scan service; each text is scanned at most once at a time, and a scan outlives the request that started it."""
 
@@ -41,9 +45,14 @@ class ToolGuard:
         max_text_bytes: int,
         max_pending_scans: int,
         scan_workers: int,
+        stop_scans: Callable[[], None] | None = None,
     ):
-        """scan is a blocking function returning True when text is flagged; it runs on scan_workers threads."""
+        """scan is a blocking function returning True when text is flagged; it runs on scan_workers threads.
+
+        stop_scans makes running scans raise ScanStoppedError at their next safe point; close() calls it.
+        """
         self._scan = scan
+        self._stop_scans = stop_scans
         self._cache = cache
         self._metrics = metrics
         self._max_text_bytes = max_text_bytes
@@ -54,6 +63,8 @@ class ToolGuard:
     async def check(self, new: Sequence[dict], known: Sequence[str]) -> tuple[list[str], list[str]]:
         """Return (flagged, unknown): hashes to mark, and known hashes without a verdict."""
         texts, flagged = self._verify(new)
+        order = [*(item["hash"] for item in new), *known]
+        del new
         unknown = [h for h in dict.fromkeys(known) if h not in texts and h not in flagged]
         lookups = [h for h in unknown if _HASH.fullmatch(h)]
         verdicts: dict[str, bool | None] = dict(
@@ -61,6 +72,7 @@ class ToolGuard:
         )
         waits = {h: self._inflight[h] for h in lookups if h not in verdicts and h in self._inflight}
         waits.update(self._schedule({h: t for h, t in texts.items() if h not in verdicts}, flagged))
+        del texts
         if waits:
             results = await asyncio.gather(*(asyncio.shield(t) for t in waits.values()))
             verdicts.update(zip(waits, results, strict=True))
@@ -69,7 +81,6 @@ class ToolGuard:
                 flagged.setdefault(hash_, "error" if verdict is None else "verdict")
         for reason in flagged.values():
             self._metrics.flagged.labels(reason).inc()
-        order = [*(item["hash"] for item in new), *known]
         return list(dict.fromkeys(h for h in order if h in flagged)), [h for h in unknown if h not in verdicts]
 
     def _schedule(self, texts: dict[str, str], flagged: dict[str, str]) -> dict[str, asyncio.Task[bool | None]]:
@@ -121,6 +132,13 @@ class ToolGuard:
         start = time.perf_counter()
         try:
             flagged = await loop.run_in_executor(self._executor, self._timed, text)
+        except ScanStoppedError:
+            self._metrics.scans.labels("stopped").inc()
+            return None
+        except TimeoutError:
+            self._metrics.scans.labels("timeout").inc()
+            logger.warning("scan of %s over its time budget", hash_[:23])
+            return None
         except Exception:
             self._metrics.scans.labels("error").inc()
             logger.exception("scan of %s failed", hash_[:23])
@@ -140,11 +158,17 @@ class ToolGuard:
         with self._metrics.scan_seconds.time():
             return self._scan(text)
 
-    async def drain(self) -> None:
-        """Wait for every scan in flight to finish and be cached."""
+    async def drain(self, max_wait: float | None = None) -> None:
+        """Wait for scans in flight to finish and be cached, for at most max_wait seconds; they are not cancelled."""
+        deadline = None if max_wait is None else time.monotonic() + max_wait
         while self._inflight:
-            await asyncio.gather(*self._inflight.values(), return_exceptions=True)
+            remaining = None if deadline is None else deadline - time.monotonic()
+            if remaining is not None and remaining <= 0:
+                return
+            await asyncio.wait(list(self._inflight.values()), timeout=remaining)
 
     def close(self) -> None:
-        """Stop the scan threads without waiting for queued scans."""
+        """Stop the scan threads: queued scans are dropped and the running ones end at their next safe point."""
+        if self._stop_scans is not None:
+            self._stop_scans()
         self._executor.shutdown(wait=False, cancel_futures=True)
