@@ -3,13 +3,15 @@
 import asyncio
 import logging
 import os
+from pathlib import Path
 
 import uvicorn
 from prometheus_client import CollectorRegistry
 from redis.asyncio import Redis
 
+import scanner_types
 from api import create_app
-from cache import VerdictCache, cache_namespace
+from cache import VerdictCache, cache_namespace, runtime_fingerprint
 from classifier import Classifier
 from config import Settings
 from guard import ToolGuard
@@ -38,6 +40,7 @@ def build(settings: Settings, metrics: Metrics):
                 max_windows=settings.max_windows,
             ),
             settings.model,
+            time_budget_seconds=settings.scan_timeout_seconds,
         )
         await asyncio.to_thread(classifier.load)
         client = None
@@ -57,6 +60,7 @@ def build(settings: Settings, metrics: Metrics):
             window_tokens=settings.window_tokens,
             window_overlap=settings.window_overlap,
             max_windows=settings.max_windows,
+            runtime=runtime_fingerprint(Path(scanner_types.__file__)),
         )
         logging.getLogger(__name__).info(
             "cache namespace %s (model revision %s, valkey %s)",

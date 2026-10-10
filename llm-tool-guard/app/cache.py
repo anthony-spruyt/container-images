@@ -1,9 +1,11 @@
 """Verdict cache in Valkey, keyed by content hash under a namespace derived from the verdict settings."""
 
 import hashlib
+import importlib.metadata
 import json
 import logging
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Mapping
+from pathlib import Path
 from typing import Any
 
 from redis.exceptions import RedisError
@@ -14,6 +16,19 @@ logger = logging.getLogger(__name__)
 
 _PREFIX = "llm-tool-guard"
 _VALUES = {"1": True, "0": False}
+_LIBRARIES = ("transformers", "tokenizers", "torch")
+
+
+def runtime_fingerprint(
+    scanner_source: Path,
+    libraries: Iterable[str] = _LIBRARIES,
+    *,
+    version: Callable[[str], str] = importlib.metadata.version,
+) -> dict[str, str]:
+    """Return the digest of the scanner source and the installed library versions that shape a verdict."""
+    fingerprint = {"scanner": hashlib.sha256(scanner_source.read_bytes()).hexdigest()}
+    fingerprint.update({name: version(name) for name in libraries})
+    return fingerprint
 
 
 def cache_namespace(  # noqa: PLR0913 - one argument per setting that changes a verdict
@@ -25,6 +40,7 @@ def cache_namespace(  # noqa: PLR0913 - one argument per setting that changes a 
     window_tokens: int,
     window_overlap: int,
     max_windows: int,
+    runtime: Mapping[str, str],
 ) -> str:
     """Return a short digest of every setting that can change a verdict, so changing one starts a fresh cache."""
     settings = {
@@ -35,6 +51,7 @@ def cache_namespace(  # noqa: PLR0913 - one argument per setting that changes a 
         "window_tokens": window_tokens,
         "window_overlap": window_overlap,
         "max_windows": max_windows,
+        "runtime": dict(runtime),
     }
     return hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest()[:16]
 

@@ -54,6 +54,8 @@ class ToolGuard:
     async def check(self, new: Sequence[dict], known: Sequence[str]) -> tuple[list[str], list[str]]:
         """Return (flagged, unknown): hashes to mark, and known hashes without a verdict."""
         texts, flagged = self._verify(new)
+        order = [*(item["hash"] for item in new), *known]
+        del new
         unknown = [h for h in dict.fromkeys(known) if h not in texts and h not in flagged]
         lookups = [h for h in unknown if _HASH.fullmatch(h)]
         verdicts: dict[str, bool | None] = dict(
@@ -61,6 +63,7 @@ class ToolGuard:
         )
         waits = {h: self._inflight[h] for h in lookups if h not in verdicts and h in self._inflight}
         waits.update(self._schedule({h: t for h, t in texts.items() if h not in verdicts}, flagged))
+        del texts
         if waits:
             results = await asyncio.gather(*(asyncio.shield(t) for t in waits.values()))
             verdicts.update(zip(waits, results, strict=True))
@@ -69,7 +72,6 @@ class ToolGuard:
                 flagged.setdefault(hash_, "error" if verdict is None else "verdict")
         for reason in flagged.values():
             self._metrics.flagged.labels(reason).inc()
-        order = [*(item["hash"] for item in new), *known]
         return list(dict.fromkeys(h for h in order if h in flagged)), [h for h in unknown if h not in verdicts]
 
     def _schedule(self, texts: dict[str, str], flagged: dict[str, str]) -> dict[str, asyncio.Task[bool | None]]:
@@ -121,6 +123,10 @@ class ToolGuard:
         start = time.perf_counter()
         try:
             flagged = await loop.run_in_executor(self._executor, self._timed, text)
+        except TimeoutError:
+            self._metrics.scans.labels("timeout").inc()
+            logger.warning("scan of %s over its time budget", hash_[:23])
+            return None
         except Exception:
             self._metrics.scans.labels("error").inc()
             logger.exception("scan of %s failed", hash_[:23])
@@ -140,10 +146,14 @@ class ToolGuard:
         with self._metrics.scan_seconds.time():
             return self._scan(text)
 
-    async def drain(self) -> None:
-        """Wait for every scan in flight to finish and be cached."""
+    async def drain(self, max_wait: float | None = None) -> None:
+        """Wait for scans in flight to finish and be cached, for at most max_wait seconds; they are not cancelled."""
+        deadline = None if max_wait is None else time.monotonic() + max_wait
         while self._inflight:
-            await asyncio.gather(*self._inflight.values(), return_exceptions=True)
+            remaining = None if deadline is None else deadline - time.monotonic()
+            if remaining is not None and remaining <= 0:
+                return
+            await asyncio.wait(list(self._inflight.values()), timeout=remaining)
 
     def close(self) -> None:
         """Stop the scan threads without waiting for queued scans."""

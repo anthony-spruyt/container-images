@@ -112,16 +112,21 @@ wait_for "$BASE/readyz" 600
 echo "Test 6: scan API, auth and verdict cache..."
 python3 "$DIR/tests/smoke.py" "$BASE" "$TOKEN" scan
 
-echo "Test 7: restart offline from the warm model cache..."
+echo "Test 7: scan time budget..."
+start_guard -e HF_HUB_OFFLINE=1 -e SCAN_TIMEOUT_SECONDS=0.5 -e WINDOW_TOKENS=16 -e WINDOW_OVERLAP=4
+wait_for "$BASE/readyz" 120
+python3 "$DIR/tests/smoke.py" "$BASE" "$TOKEN" budget
+
+echo "Test 8: restart offline from the warm model cache..."
 start_guard -e HF_HUB_OFFLINE=1
 wait_for "$BASE/readyz" 120
 python3 "$DIR/tests/smoke.py" "$BASE" "$TOKEN" cached
 
-echo "Test 8: scans keep working with Valkey down..."
+echo "Test 9: scans keep working with Valkey down..."
 docker stop "$VALKEY" >/dev/null
 python3 "$DIR/tests/smoke.py" "$BASE" "$TOKEN" cache-down
 
-echo "Test 9: unit tests..."
+echo "Test 10: unit tests..."
 docker run --rm \
   -v "$DIR/tests:/tests:ro" \
   -e PYTHONDONTWRITEBYTECODE=1 \

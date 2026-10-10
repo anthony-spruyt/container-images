@@ -1,6 +1,6 @@
 """Checks a running llm-tool-guard over HTTP; test.sh runs it on the host with the standard library only.
 
-Usage: python3 smoke.py <base-url> <token> <scan|cached|cache-down>
+Usage: python3 smoke.py <base-url> <token> <scan|budget|cached|cache-down>
 """
 
 import hashlib
@@ -86,6 +86,18 @@ def scan(base: str, token: str) -> None:
     expect(metric(base, "llm_tool_guard_cache_hits_total") >= len(new), "cache hits counted")
 
 
+def budget(base: str, token: str) -> None:
+    long = "".join(f"line {i}: nothing unusual in this output\n" for i in range(300))
+    status, body = post(
+        base, token, {"new": [{"hash": digest(long), "text": long}, {"hash": digest("ok"), "text": "ok"}]}
+    )
+    expect(status == HTTPStatus.OK, "scan over its time budget returns 200", status)
+    expect(body["flagged"] == [digest(long)], "text over the budget is flagged, short text is not", body)
+    expect(metric(base, 'llm_tool_guard_scans_total{verdict="timeout"}') == 1, "timeout counted")
+    status, body = post(base, token, {"known": [digest(long), digest("ok")]})
+    expect(body == {"flagged": [], "unknown": [digest(long)]}, "timed-out text has no cached verdict", body)
+
+
 def cached(base: str, token: str) -> None:
     status, body = post(base, token, {"known": [digest(CLEAN), digest(INJECTION)]})
     expect(status == HTTPStatus.OK, "lookup after restart returns 200", status)
@@ -101,4 +113,4 @@ def cache_down(base: str, token: str) -> None:
 
 
 if __name__ == "__main__":
-    {"scan": scan, "cached": cached, "cache-down": cache_down}[sys.argv[3]](sys.argv[1], sys.argv[2])
+    {"scan": scan, "budget": budget, "cached": cached, "cache-down": cache_down}[sys.argv[3]](sys.argv[1], sys.argv[2])

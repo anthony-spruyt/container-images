@@ -1,7 +1,10 @@
 """Tests for the scan service: hashing, verdict cache use, single-flight, limits and failure paths."""
 
 import asyncio
+import gc
 import hashlib
+import time
+import weakref
 
 import pytest
 
@@ -358,6 +361,58 @@ def test_scan_error_is_flagged_and_not_cached(metrics, valkey):
     assert sample(metrics, "llm_tool_guard_flagged_total", reason="error") == 1
 
 
+def test_scan_over_its_time_budget_is_flagged_and_not_cached(metrics, valkey):
+    guard = make_guard(FakeScanner(error=TimeoutError("scan over budget")), metrics, valkey)
+    slow = item("slow")
+
+    flagged, _ = asyncio.run(guard.check([slow], []))
+
+    assert flagged == [slow["hash"]]
+    assert valkey.data == {}
+    assert sample(metrics, "llm_tool_guard_scans_total", verdict="timeout") == 1
+    assert sample(metrics, "llm_tool_guard_scans_total", verdict="error") == 0
+    assert sample(metrics, "llm_tool_guard_flagged_total", reason="error") == 1
+
+
+def test_timed_out_scan_frees_its_slot_and_the_text_is_scanned_again_next_time(metrics, valkey):
+    scanner = FakeScanner(error=TimeoutError("scan over budget"))
+    guard = make_guard(scanner, metrics, valkey, max_pending_scans=1)
+    slow = item("slow")
+
+    asyncio.run(guard.check([slow], []))
+    asyncio.run(guard.check([slow], []))
+
+    assert len(scanner.calls) == 2
+    assert sample(metrics, "llm_tool_guard_pending_scans") == 0
+
+
+class Text(str):
+    """A str that can be weakly referenced."""
+
+
+def test_texts_not_waiting_on_a_scan_are_released_while_others_scan(metrics, valkey):
+    scanner = FakeScanner(gated=True)
+    guard = make_guard(scanner, metrics, valkey)
+    refs = []
+
+    def items():
+        cached = Text("already known")
+        refs.append(weakref.ref(cached))
+        valkey.data[cache_key(digest(cached))] = "0"
+        return [{"hash": digest(cached), "text": cached}, item("still scanning")]
+
+    async def run():
+        request = asyncio.create_task(guard.check(items(), []))
+        await wait_for(scanner.started.is_set)
+        gc.collect()
+        alive = refs[0]() is not None
+        scanner.release()
+        await request
+        return alive
+
+    assert asyncio.run(run()) is False
+
+
 def test_scan_latency_is_observed(metrics, valkey):
     guard = make_guard(FakeScanner(), metrics, valkey)
 
@@ -390,3 +445,49 @@ def test_without_valkey_items_are_scanned_and_known_is_unknown(metrics):
     assert asyncio.run(guard.check([clean], [digest("old")])) == ([], [digest("old")])
     assert asyncio.run(guard.check([clean], [])) == ([], [])
     assert len(scanner.calls) == 2
+
+
+def test_drain_returns_once_scans_finish_within_the_timeout(metrics, valkey):
+    scanner = FakeScanner(gated=True)
+    guard = make_guard(scanner, metrics, valkey)
+    clean = item("slow but fine")
+
+    async def run():
+        asyncio.get_running_loop().call_later(0.05, scanner.release)
+        request = asyncio.create_task(guard.check([clean], []))
+        await wait_for(scanner.started.is_set)
+        await guard.drain(max_wait=5)
+        await request
+
+    asyncio.run(run())
+
+    assert valkey.data == {cache_key(clean["hash"]): "0"}
+
+
+def test_drain_gives_up_after_the_timeout_without_cancelling_scans(metrics, valkey):
+    scanner = FakeScanner(gated=True)
+    guard = make_guard(scanner, metrics, valkey)
+    clean = item("slow but fine")
+
+    async def run():
+        request = asyncio.create_task(guard.check([clean], []))
+        await wait_for(scanner.started.is_set)
+        start = time.monotonic()
+        await guard.drain(max_wait=0.05)
+        waited = time.monotonic() - start
+        before = dict(valkey.data)
+        scanner.release()
+        await request
+        return waited, before
+
+    waited, before = asyncio.run(run())
+
+    assert 0.05 <= waited < 5
+    assert before == {}
+    assert valkey.data == {cache_key(clean["hash"]): "0"}
+
+
+def test_drain_with_nothing_in_flight_returns_at_once(metrics, valkey):
+    guard = make_guard(FakeScanner(), metrics, valkey)
+
+    asyncio.run(asyncio.wait_for(guard.drain(max_wait=0), 1))
