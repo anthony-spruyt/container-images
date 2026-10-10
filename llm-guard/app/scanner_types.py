@@ -61,8 +61,10 @@ class PromptInjectionScanner:
             model (str): HuggingFace model ID. Defaults to config.DEFAULT_MODEL.
             injection_label (str): Positive-class label. Defaults to config.DEFAULT_INJECTION_LABEL.
             threshold (float): Block threshold [0,1]. Defaults to config.DEFAULT_THRESHOLD.
-            match_type (str): ``"full"`` or ``"sentence"``. Defaults to ``"full"``.
+            match_type (str): ``"full"``, ``"sentence"`` or ``"sliding_window"``. Defaults to ``"full"``.
             model_max_length (int): Max token length. Defaults to 512.
+            window_overlap (int): Tokens shared by consecutive windows in ``"sliding_window"`` mode.
+                Defaults to a quarter of the window.
         """
         self._model = kwargs.get("model", "") or config.DEFAULT_MODEL
         self._injection_label = kwargs.get("injection_label", "") or config.DEFAULT_INJECTION_LABEL
@@ -70,6 +72,8 @@ class PromptInjectionScanner:
         self._threshold = config.DEFAULT_THRESHOLD if threshold is None else threshold
         self._match_type = kwargs.get("match_type", "full")
         self._model_max_length = kwargs.get("model_max_length", 512)
+        self._window_overlap: int | None = kwargs.get("window_overlap")
+        self._window_span = 0
         self._pipe: Pipeline | None = None
         self._injection_label_missing_warned = False
 
@@ -87,6 +91,8 @@ class PromptInjectionScanner:
             max_length=self._model_max_length,
             top_k=None,
         )
+        if self._match_type == "sliding_window":
+            self._configure_windows()
         known_labels = self._known_labels()
         if known_labels and self._injection_label not in known_labels:
             raise RuntimeError(f"injection_label {self._injection_label!r} not in model labels: {known_labels}")
@@ -99,6 +105,16 @@ class PromptInjectionScanner:
                 extra={"injection_label": self._injection_label},
             )
         logger.info("model ready")
+
+    def _configure_windows(self):
+        """Size sliding windows to the model's content tokens and validate the overlap."""
+        self._window_span = self._model_max_length - self._pipe.tokenizer.num_special_tokens_to_add(pair=False)
+        if self._window_overlap is None:
+            self._window_overlap = self._window_span // 4
+        if not 0 <= self._window_overlap < self._window_span:
+            raise ValueError(
+                f"window_overlap {self._window_overlap} must be >= 0 and < the window of {self._window_span} tokens"
+            )
 
     def _known_labels(self) -> set:
         """Return the model's label names from label2id or id2label, if any."""
@@ -134,6 +150,20 @@ class PromptInjectionScanner:
         parts = re.split(r"(?<=[.!?])\s+", text.strip())
         return [p for p in parts if p]
 
+    def _split_windows(self, text: str) -> list:
+        """Split text into overlapping slices of at most one window of tokens each."""
+        offsets = self._pipe.tokenizer(text, add_special_tokens=False, return_offsets_mapping=True)["offset_mapping"]
+        if len(offsets) <= self._window_span:
+            return [text]
+        step = self._window_span - self._window_overlap
+        windows = []
+        for start in range(0, len(offsets), step):
+            end = min(start + self._window_span, len(offsets))
+            windows.append(text[offsets[start][0] : offsets[end - 1][1]])
+            if end == len(offsets):
+                break
+        return windows
+
     def scan(self, text: str) -> ScanResult:
         """
         Scan text for prompt injection.
@@ -144,6 +174,8 @@ class PromptInjectionScanner:
         if self._match_type == "sentence":
             sentences = self._split_sentences(text) or [text]
             injection_score = max(self._score_text(s) for s in sentences)
+        elif self._match_type == "sliding_window":
+            injection_score = max(self._score_text(w) for w in self._split_windows(text))
         else:
             injection_score = self._score_text(text)
 
