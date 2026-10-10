@@ -10,13 +10,16 @@ on:
     branches:
       - "main"
 permissions: {}
+concurrency:
+  group: "${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.action != 'labeled' && github.event.pull_request.number || github.run_id }}"
+  cancel-in-progress: "${{ github.event_name == 'pull_request' && github.event.action != 'labeled' }}"
 jobs:
   lint:
     permissions:
       actions: "read"
       contents: "read"
       security-events: "write"
-    uses: "anthony-spruyt/repo-operator/.github/workflows/_lint.yaml@cb40ddc2ff6cd9f0441cd59406c849c68f6bd464"
+    uses: "anthony-spruyt/repo-operator/.github/workflows/_lint.yaml@03ce087ec3006c13aa278b3d1b42e8f409cd6c43"
   repo:
     needs:
       - "lint"
@@ -31,14 +34,18 @@ jobs:
     if: "!cancelled() && needs.lint.result == 'success' && (needs.repo.result == 'success' || needs.repo.result == 'skipped')"
     permissions:
       contents: "read"
-    uses: "anthony-spruyt/repo-operator/.github/workflows/_images.yaml@cb40ddc2ff6cd9f0441cd59406c849c68f6bd464"
+    uses: "anthony-spruyt/repo-operator/.github/workflows/_images.yaml@03ce087ec3006c13aa278b3d1b42e8f409cd6c43"
   summary:
     needs:
       - "lint"
       - "repo"
       - "image"
+      - "sonar"
     if: "always()"
     permissions:
       actions: "read"
       contents: "read"
-    uses: "anthony-spruyt/repo-operator/.github/workflows/_summary.yaml@cb40ddc2ff6cd9f0441cd59406c849c68f6bd464"
+    uses: "anthony-spruyt/repo-operator/.github/workflows/_summary.yaml@03ce087ec3006c13aa278b3d1b42e8f409cd6c43"
+  sonar:
+    permissions: {}
+    uses: "anthony-spruyt/repo-operator/.github/workflows/_sonar-new-issues.yaml@03ce087ec3006c13aa278b3d1b42e8f409cd6c43"

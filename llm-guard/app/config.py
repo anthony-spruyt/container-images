@@ -10,7 +10,7 @@ are read from the environment.
 import os
 
 # --- Scanner fallback defaults (overridden per-scanner in CONFIG_FILE) ---
-DEFAULT_MODEL = "protectai/deberta-v3-base-prompt-injection-v2"
+DEFAULT_MODEL = "Horizon-Labs/prompt-injection-guard-base"
 DEFAULT_INJECTION_LABEL = "INJECTION"
 DEFAULT_THRESHOLD = 0.5
 

@@ -139,7 +139,7 @@ Inform the user:
    - `megalinter-<name>/flavor.yaml` - flavor configuration
    - `megalinter-<name>/metadata.yaml` - build settings
    - any new `megalinter-factory/languages/<language>.yaml`
-2. Registered with release-please and Renovate; the daily Trivy scan finds the image on GHCR by itself
+2. Registered with release-please; the daily Trivy scan finds the image on GHCR by itself. `retentionPackages` and the Renovate `sourceDirectory` rule still need a request to repo-operator
 3. Linter versions will be extracted from MegaLinter at build time
 4. Next steps:
    - Commit the changes

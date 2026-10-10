@@ -15,9 +15,7 @@ fi
 CONTAINER_NAME="llm-guard-test-$$"
 PORT=8080
 
-# Uncompressed size ceiling for the CPU image. The pre-split image (CUDA torch
-# pulled in from default PyPI) was ~7GB uncompressed, so this fails loudly if
-# the CUDA wheel ever comes back into the CPU variant.
+# Uncompressed CPU image ceiling: fails loudly if the CUDA torch wheel lands in the CPU variant.
 MAX_CPU_IMAGE_BYTES=$((2500 * 1000 * 1000))
 
 # cleanup removes the Docker container named by CONTAINER_NAME (if present) and suppresses any errors.
@@ -57,9 +55,7 @@ if [ $ELAPSED -ge $TIMEOUT ]; then
   exit 1
 fi
 
-# /readyz returns 503 until pipeline.load() finishes. The model is no longer
-# baked into the image, so first load downloads it from the HF Hub into
-# HF_HOME — allow a generous timeout for the cold download in CI.
+# /readyz returns 503 until pipeline.load() finishes, which includes the cold model download into HF_HOME.
 echo "Test 3: Waiting for /readyz (max 600s, includes first-load model download)..."
 TIMEOUT=600
 ELAPSED=0
@@ -115,9 +111,7 @@ fi
 echo "  /scan/prompt OK"
 
 echo "Test 7: Generic Guardrail API payload with explicit nulls (regression: 422)..."
-# LiteLLM serialises with model_dump(mode="json"), sending optional fields as
-# explicit null and using structured_messages instead of texts. Guards against
-# the 422 where non-Optional fields rejected explicit nulls.
+# LiteLLM sends optional fields as explicit null and uses structured_messages instead of texts.
 RESPONSE=$(curl -sf -X POST http://localhost:${PORT}/beta/litellm_basic_guardrail_api \
   -H "Content-Type: application/json" \
   -d '{
@@ -139,8 +133,7 @@ fi
 echo "  generic guardrail (explicit nulls) action=NONE OK"
 
 echo "Test 8: torch build matches flavor ($FLAVOR)..."
-# Direct regression guard for the image-size split: the CPU image must never
-# ship the CUDA wheel. torch.version.cuda is None on a +cpu build.
+# torch.version.cuda is None on a +cpu build.
 TORCH_CUDA=$(docker exec "$CONTAINER_NAME" python -c "import torch; print(torch.version.cuda)")
 if [[ "$FLAVOR" == "cpu" ]]; then
   if [[ "$TORCH_CUDA" != "None" ]]; then
@@ -156,12 +149,8 @@ fi
 echo "  torch.version.cuda=$TORCH_CUDA OK"
 
 echo "Test 9: device resolution logged..."
-# CI runners have no GPU, so both flavors must resolve to -1. Catches
-# _resolve_device() throwing or mis-parsing SCANNER_DEVICE.
-# Logs are captured to a variable rather than piped into grep: under
-# `set -o pipefail`, `grep -q` exits on the first match, `docker logs` then
-# takes SIGPIPE and exits 141, and the pipeline reports failure even though
-# the line was found.
+# CI runners have no GPU, so both flavors must resolve to -1.
+# Captured, not piped: under pipefail, grep -q exiting early SIGPIPEs docker logs and fails the check.
 CONTAINER_LOGS=$(docker logs "$CONTAINER_NAME" 2>&1)
 if ! grep -q 'loading model on device -1' <<<"$CONTAINER_LOGS"; then
   echo "  ERROR: expected 'loading model on device -1' in logs" >&2
@@ -179,6 +168,19 @@ if [[ "$FLAVOR" == "cpu" ]]; then
   fi
   echo "  ${IMAGE_BYTES} bytes (ceiling ${MAX_CPU_IMAGE_BYTES}) OK"
 fi
+
+echo "Test 11: scanner unit tests..."
+# Runs against the image's torch and transformers; the tests stub the model and download only its tokenizer.
+TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tests"
+docker run --rm \
+  -v "$TESTS_DIR:/tests:ro" \
+  -e PYTHONDONTWRITEBYTECODE=1 \
+  -e LLM_GUARD_TESTS_REQUIRE_HUB=1 \
+  "$IMAGE_REF" \
+  sh -c 'pip install --user --no-cache-dir --quiet --disable-pip-version-check --no-warn-script-location \
+    --only-binary :all: --require-hashes -r /tests/requirements-test.txt \
+    && python -m pytest -p no:cacheprovider -q /tests'
+echo "  unit tests OK"
 
 echo ""
 echo "=== All tests passed ==="

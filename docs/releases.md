@@ -21,7 +21,7 @@ Git tags keep the format this repo already used, so existing tags round-trip and
 4. Merging creates a git tag and a **draft** GitHub release per image in the PR.
 5. The same workflow run builds each released image from the commit the run started from, runs its `test-command`, pushes it to `ghcr.io/anthony-spruyt/<image>` and `docker.io/aspruyt/<image>`, attests provenance, and publishes that image's release with the ref and digest appended. A matrix job runs once per released image, so one PR still yields one tag, release, and build per image.
 
-If step 5 fails, the release stays a draft and no image is published. See [Recovering a stuck draft](#recovering-a-stuck-draft).
+If step 5 fails, the release stays a draft. The image push comes before the publish, so a failure after the push leaves the image on GHCR and Docker Hub. See [Recovering a stuck draft](#recovering-a-stuck-draft).
 
 ### The build is always the tag's commit
 
@@ -44,7 +44,7 @@ The image job checks the release before building and fails closed:
 | `feat:`                                                | minor |
 | any type with `!` or a `BREAKING CHANGE:` footer       | major |
 
-Only commits whose files sit inside the image's directory count towards that image's release.
+Only commits whose files sit inside the image's directory count towards that image's release, except for linked images (see [Variant images](#variant-images)).
 
 To force a specific version, add a footer to the commit body:
 
@@ -91,7 +91,9 @@ It compares composed linter sets (base, languages and `custom_linters`), not ups
 
 ## Variant images
 
-`llm-guard-cuda` builds from `llm-guard/` via `build_context`, but release-please only watches `llm-guard-cuda/`'s own path. A change confined to `llm-guard/app/` therefore releases `llm-guard` but not the CUDA variant. The CUDA variant picks the change up on its next release; to ship it immediately, include a commit that touches `llm-guard-cuda/`.
+`llm-guard-cuda` builds from `llm-guard/` via `build_context`. release-please's [`linked-versions`][linked] plugin in `release-please-config.json` groups `llm-guard` and `llm-guard-cuda`, so a commit touching either directory releases both images at the same version: the highest bump either one would take on its own. The image without a matching commit gets a `Synchronize llm-guard versions` changelog entry. `merge: false` keeps both in the single release PR.
+
+Add any further image that builds from another image's directory to such a group as well, so it is never released without its source.
 
 ## Recovering a stuck draft
 
@@ -105,6 +107,8 @@ A release that was tagged but whose build failed stays a draft. How to recover d
 
 - **The tagged code is broken, or the cause is in repo-operator's shared workflows:** fix it on `main` (for a shared workflow, the fix lands once the caller pin moves) and cut the next release, then delete the leftover draft.
 - **The tag points at a different commit than the run** (for example, after a cancelled run): cut the next release, then delete the leftover draft.
+- **The run died before relabelling the release PR:** cut the next release, then delete every leftover draft release for that tag.
+- **The run is past GitHub's 30-day re-run limit:** cut the next release, then delete the draft.
 
 A full re-run does not help: release-please does not re-emit `releases_created` on a second pass, so the build job is skipped.
 
@@ -127,6 +131,7 @@ Notable settings:
 | `tag-separator: "-"` | Matches the tags this repo already uses, so they round-trip  |
 | `include-v-in-tag`   | Per image. Preserves each image's existing `v`-or-not prefix |
 | `last-release-sha`   | Bounds history scanning — see below                          |
+| `plugins`            | Links image versions — see [Variant images](#variant-images) |
 
 ### `last-release-sha`
 
@@ -139,7 +144,7 @@ Leave it in place. It is not migration scaffolding, and removing it silently inf
 ## Adding an image
 
 1. Add the directory to `packages` in `release-please-config.json`.
-2. Add its current version to `.release-please-manifest.json`.
+2. Add it to `.release-please-manifest.json` at `0.0.0`. Its first release is `1.0.0`; a non-zero entry with no matching tag counts as already released.
 3. Add `<image>/metadata.yaml`. Set `test-command` if the image has a `test.sh`; nothing runs it otherwise. The release workflows find the image in `release-please-config.json` and take the docker tag's `v` prefix from `include-v-in-tag`, so they need no change.
 4. Add a `sourceDirectory` rule so Renovate shows its release notes: in `renovate-overrides.json5`, or for a `megalinter-*` flavor in repo-operator's `.github/renovate/package-rules.json5`, which every repo extends.
 5. Ask for the image to be added to `retentionPackages` in repo-operator's `src/repos.yaml`, which writes the synced `container-retention.yaml`.
@@ -155,3 +160,4 @@ Leave it in place. It is not migration scaffolding, and removing it silently inf
 **Renovate shows no release notes for an own image.** The image needs a `sourceDirectory` package rule pointing at its directory, in `renovate-overrides.json5` (or repo-operator's `.github/renovate/package-rules.json5` for a `megalinter-*` flavor).
 
 [rp]: https://github.com/googleapis/release-please
+[linked]: https://github.com/googleapis/release-please/blob/main/docs/manifest-releaser.md#linked-versions

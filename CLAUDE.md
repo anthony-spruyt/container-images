@@ -20,7 +20,7 @@ pre-commit run --all-files   # Run pre-commit hooks manually
 Versions are owned by release-please. See [docs/releases.md](docs/releases.md).
 
 1. Create `<image-name>/Dockerfile`.
-2. Register the image in `release-please-config.json` and `.release-please-manifest.json`. CI and release-please find images there, so no workflow changes.
+2. Register the image in `release-please-config.json`, and add it to `.release-please-manifest.json` at `0.0.0`; its first release is `1.0.0`. CI and release-please find images there, so no workflow changes.
 3. Create `<image-name>/metadata.yaml` with its build settings (see [Image Settings](#image-settings)).
 4. Ask for the image to be added to `retentionPackages` in repo-operator's `src/repos.yaml`, which writes the synced `container-retention.yaml`.
 5. Add a `sourceDirectory` rule to `renovate-overrides.json5` so Renovate shows its release notes. `megalinter-*` flavors get theirs in repo-operator's `.github/renovate/package-rules.json5` instead.
@@ -48,6 +48,11 @@ build_context: llm-guard
 CI builds with `context: <build_context>` and `file: <image-name>/Dockerfile`, and change detection fans out — a change in the source directory rebuilds the variant too.
 
 Note that release-please only sees the variant's own directory, so a source-only change does not cut a release for the variant. It picks the change up on its next release; to release immediately, include a commit touching the variant's directory.
+
+### Sharing a file with another image
+
+An image with its own sources that reuses one file from another image keeps a copy of it, lists the original under `watch` in its `metadata.yaml`, and fails its `test.sh` when the two differ. `llm-tool-guard/app/scanner_types.py` copies `llm-guard/app/scanner_types.py` this way: a change to the original rebuilds `llm-tool-guard`, its test fails until the copy is updated, and updating the copy
+touches `llm-tool-guard/`, so release-please releases it.
 
 ### Optional: Add Trivy Ignores
 

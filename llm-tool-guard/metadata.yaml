@@ -1,0 +1,6 @@
+---
+free-disk: true
+# app/scanner_types.py is a copy of llm-guard's; test.sh fails when they differ.
+watch:
+  - llm-guard/app/scanner_types.py
+test-command: bash ./llm-tool-guard/test.sh "$IMAGE_REF"

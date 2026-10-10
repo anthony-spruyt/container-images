@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.3.4](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.3.3...devcontainer-common-2.3.4) (2026-10-10)
+
+
+### Dependencies
+
+* **deps:** update container image mcr.microsoft.com/devcontainers/base to resolute ([#2239](https://github.com/anthony-spruyt/container-images/issues/2239)) ([b530cfa](https://github.com/anthony-spruyt/container-images/commit/b530cfa34750b492d3251ddf20aa193c78184489))
+* **deps:** update dependency pipx to v1.17.10 ([#2235](https://github.com/anthony-spruyt/container-images/issues/2235)) ([c9f8d26](https://github.com/anthony-spruyt/container-images/commit/c9f8d26515f29e1a7be5bfee11011ab20c8bd6f0))
+
 ## [2.3.3](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.3.2...devcontainer-common-2.3.3) (2026-10-09)
 
 

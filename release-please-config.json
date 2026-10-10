@@ -38,6 +38,14 @@
       "hidden": false
     }
   ],
+  "plugins": [
+    {
+      "type": "linked-versions",
+      "groupName": "llm-guard",
+      "components": ["llm-guard", "llm-guard-cuda"],
+      "merge": false
+    }
+  ],
   "packages": {
     "chrony": {
       "release-type": "simple",
@@ -98,6 +106,13 @@
     "llm-guard-cuda": {
       "release-type": "simple",
       "component": "llm-guard-cuda",
+      "tag-separator": "-",
+      "include-component-in-tag": true,
+      "include-v-in-tag": false
+    },
+    "llm-tool-guard": {
+      "release-type": "simple",
+      "component": "llm-tool-guard",
       "tag-separator": "-",
       "include-component-in-tag": true,
       "include-v-in-tag": false
