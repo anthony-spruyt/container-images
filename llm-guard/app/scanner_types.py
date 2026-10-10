@@ -67,7 +67,8 @@ class PromptInjectionScanner:
             injection_label (str): Positive-class label. Defaults to config.DEFAULT_INJECTION_LABEL.
             threshold (float): Block threshold [0,1]. Defaults to config.DEFAULT_THRESHOLD.
             match_type (str): ``"full"``, ``"sentence"`` or ``"sliding_window"``. Defaults to ``"full"``.
-            model_max_length (int): Max token length, special tokens included. Defaults to 512.
+            model_max_length (int): Max token length, special tokens included, up to the model's limit.
+                Defaults to 512.
             window_overlap (int): Tokens shared by consecutive windows in ``"sliding_window"`` mode.
                 Defaults to a quarter of the window.
             window_batch_size (int): Windows scored per model call in ``"sliding_window"`` mode. Defaults to 8.
@@ -102,6 +103,7 @@ class PromptInjectionScanner:
             max_length=self._model_max_length,
             top_k=None,
         )
+        self._check_model_limit()
         if self._match_type == "sliding_window":
             self._configure_windows()
         known_labels = self._known_labels()
@@ -140,6 +142,39 @@ class PromptInjectionScanner:
             self._window_overlap = span // 4
         if not 0 <= self._window_overlap < span:
             raise ValueError(f"window_overlap {self._window_overlap} must be >= 0 and < the window of {span} tokens")
+        self._check_overflow_windows(span)
+
+    def _check_model_limit(self):
+        """Reject a model_max_length above the model's position embeddings or the tokenizer's max length."""
+        limits = (
+            getattr(self._pipe.model.config, "max_position_embeddings", None),
+            getattr(self._pipe.tokenizer, "model_max_length", None),
+        )
+        limit = min((n for n in limits if _is_int(n)), default=None)
+        if limit is not None and _is_int(self._model_max_length) and self._model_max_length > limit:
+            raise ValueError(f"model_max_length {self._model_max_length} exceeds the model limit of {limit} tokens")
+
+    def _check_overflow_windows(self, span: int):
+        """Check the tokenizer splits a probe text longer than one window into windows overlapping by window_overlap."""
+        tokenizer = self._pipe.tokenizer
+        step = span - self._window_overlap
+        # At least three windows, and past max_length so a tokenizer that stops reading there is caught.
+        length = max(span + step, self._model_max_length + 16) + 1
+        probe = " ".join(f"w{i}" for i in range(length))
+        encoded = tokenizer(probe, add_special_tokens=False, return_offsets_mapping=True, verbose=False)
+        probe = probe[: encoded["offset_mapping"][length - 1][1]]
+        full = tokenizer(probe, add_special_tokens=False, verbose=False)["input_ids"]
+        expected = [full[start : start + span] for start in range(0, max(len(full) - self._window_overlap, 1), step)]
+        enc = self._encode_windows(probe, return_special_tokens_mask=True)
+        windows = [
+            [i for i, special in zip(ids, mask, strict=True) if not special]
+            for ids, mask in zip(enc["input_ids"], enc["special_tokens_mask"], strict=True)
+        ]
+        if windows != expected:
+            raise RuntimeError(
+                f"tokenizer overflow windows do not continue the input with overlap {self._window_overlap}; "
+                "tokenizers 0.23.3 or later is required"
+            )
 
     def _known_labels(self) -> set:
         """Return the model's label names from label2id or id2label, if any."""
@@ -161,9 +196,8 @@ class PromptInjectionScanner:
         """Pick the injection label's score out of one pipeline result."""
         scores = {r["label"]: r["score"] for r in label_scores}
         if self._injection_label not in scores and not self._injection_label_missing_warned:
-            # A missing label scores every prompt 0.0; warn once so it shows in the logs.
             logger.warning(
-                "injection_label not in model output; scoring 0.0",
+                "injection_label not in model output",
                 extra={"injection_label": self._injection_label, "model_labels": sorted(scores.keys())},
             )
             self._injection_label_missing_warned = True
@@ -175,15 +209,20 @@ class PromptInjectionScanner:
         parts = re.split(r"(?<=[.!?])\s+", text.strip())
         return [p for p in parts if p]
 
-    def _split_windows(self, text: str) -> list:
-        """Tokenize text once into overlapping model inputs of at most model_max_length tokens each."""
-        enc = self._pipe.tokenizer(
+    def _encode_windows(self, text: str, **kwargs):
+        """Tokenize text into overlapping rows of at most model_max_length tokens each."""
+        return self._pipe.tokenizer(
             text,
             truncation=True,
             max_length=self._model_max_length,
             stride=self._window_overlap,
             return_overflowing_tokens=True,
+            **kwargs,
         )
+
+    def _split_windows(self, text: str) -> list:
+        """Tokenize text once into overlapping model inputs of at most model_max_length tokens each."""
+        enc = self._encode_windows(text)
         enc.pop("overflow_to_sample_mapping", None)
         return [{key: rows[i] for key, rows in enc.items()} for i in range(len(enc["input_ids"]))]
 

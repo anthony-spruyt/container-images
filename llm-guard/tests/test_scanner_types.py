@@ -55,12 +55,15 @@ class RecordingPipe:
     the MARKER token is among the scored ids, else 0.1.
     """
 
-    def __init__(self, tokenizer, max_length: int):
+    def __init__(self, tokenizer, max_length: int, max_position_embeddings: int | None = None):
         """Wrap tokenizer; max_length is the pipeline's truncation length."""
         self.tokenizer = tokenizer
         self.max_length = max_length
         label2id = {v: k for k, v in LABELS.items()}
-        self.model = SimpleNamespace(config=SimpleNamespace(label2id=label2id, id2label=LABELS))
+        cfg = SimpleNamespace(label2id=label2id, id2label=LABELS)
+        if max_position_embeddings is not None:
+            cfg.max_position_embeddings = max_position_embeddings
+        self.model = SimpleNamespace(config=cfg)
         self.texts: list[str] = []
         self.rows: list[list[int]] = []
         self.batch_sizes: list[int] = []
@@ -91,12 +94,38 @@ class RecordingPipe:
         return [{"label": LABELS[i], "score": s} for i, s in enumerate(scores)]
 
 
-def use_pipe(monkeypatch: pytest.MonkeyPatch, tokenizer) -> list:
+class BrokenOverflowTokenizer:
+    """Fast-tokenizer proxy whose overflow windows break the stride contract, as tokenizers 0.23.1-0.23.2 do."""
+
+    def __init__(self, tokenizer, mode: str):
+        """Wrap tokenizer; mode is "stops_at_max_length", "ignores_stride" or "drops_last_window"."""
+        self._tokenizer = tokenizer
+        self._mode = mode
+
+    def __getattr__(self, name: str):
+        """Delegate everything else to the wrapped tokenizer."""
+        return getattr(self._tokenizer, name)
+
+    def __call__(self, text: str, **kwargs):
+        """Tokenize text, breaking the overflow windows when asked for them."""
+        if not kwargs.get("return_overflowing_tokens"):
+            return self._tokenizer(text, **kwargs)
+        if self._mode == "stops_at_max_length":
+            return self._tokenizer(" ".join(text.split()[: kwargs["max_length"]]), **kwargs)
+        if self._mode == "ignores_stride":
+            return self._tokenizer(text, **{**kwargs, "stride": 0})
+        enc = self._tokenizer(text, **kwargs)
+        for key in list(enc.keys()):
+            enc[key] = enc[key][:-1]
+        return enc
+
+
+def use_pipe(monkeypatch: pytest.MonkeyPatch, tokenizer, max_position_embeddings: int | None = None) -> list:
     """Patch transformers.pipeline to build RecordingPipes over tokenizer; return the pipes it built."""
     built = []
 
     def factory(*_args, max_length: int, **_kwargs) -> RecordingPipe:
-        built.append(RecordingPipe(tokenizer, max_length))
+        built.append(RecordingPipe(tokenizer, max_length, max_position_embeddings))
         return built[-1]
 
     monkeypatch.setattr(scanner_types, "pipeline", factory)
@@ -259,6 +288,51 @@ def test_sliding_window_requires_fast_tokenizer(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(scanner_types, "pipeline", lambda *_args, **_kwargs: pipe)
     scanner = PromptInjectionScanner(match_type="sliding_window", model_max_length=12)
     with pytest.raises(ValueError, match="fast tokenizer"):
+        scanner.load()
+
+
+@pytest.mark.parametrize(
+    ("mode", "overlap"),
+    [
+        ("stops_at_max_length", 0),
+        ("stops_at_max_length", 3),
+        ("stops_at_max_length", 9),
+        ("ignores_stride", 3),
+        ("ignores_stride", 9),
+        ("drops_last_window", 0),
+        ("drops_last_window", 3),
+        ("drops_last_window", 9),
+    ],
+)
+def test_sliding_window_load_rejects_tokenizer_with_broken_overflow_windows(
+    monkeypatch: pytest.MonkeyPatch, mode: str, overlap: int
+):
+    use_pipe(monkeypatch, BrokenOverflowTokenizer(word_tokenizer(), mode))
+    scanner = PromptInjectionScanner(match_type="sliding_window", model_max_length=12, window_overlap=overlap)
+    with pytest.raises(RuntimeError, match="overflow windows"):
+        scanner.load()
+
+
+@pytest.mark.parametrize("overlap", [0, 1, 9])
+def test_sliding_window_load_accepts_tokenizer_with_correct_overflow_windows(pipes: list, overlap: int):
+    loaded(match_type="sliding_window", model_max_length=12, window_overlap=overlap)
+    assert pipes[0].rows == []
+
+
+@pytest.mark.parametrize("match_type", ["full", "sentence", "sliding_window"])
+@pytest.mark.parametrize("limit_from", ["max_position_embeddings", "tokenizer"])
+def test_load_rejects_model_max_length_over_the_model_limit(
+    monkeypatch: pytest.MonkeyPatch, match_type: str, limit_from: str
+):
+    tok = word_tokenizer()
+    if limit_from == "tokenizer":
+        tok.model_max_length = 16
+        use_pipe(monkeypatch, tok)
+    else:
+        use_pipe(monkeypatch, tok, max_position_embeddings=16)
+    loaded(match_type=match_type, model_max_length=16)
+    scanner = PromptInjectionScanner(match_type=match_type, model_max_length=17)
+    with pytest.raises(ValueError, match="model_max_length 17 exceeds the model limit of 16"):
         scanner.load()
 
 
