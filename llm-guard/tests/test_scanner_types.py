@@ -257,8 +257,9 @@ def test_sliding_window_requires_fast_tokenizer(monkeypatch: pytest.MonkeyPatch)
     slow = SimpleNamespace(is_fast=False, num_special_tokens_to_add=lambda pair=False: SPECIAL_TOKENS)
     pipe = SimpleNamespace(tokenizer=slow, model=SimpleNamespace(config=SimpleNamespace(label2id={"INJECTION": 1})))
     monkeypatch.setattr(scanner_types, "pipeline", lambda *_args, **_kwargs: pipe)
+    scanner = PromptInjectionScanner(match_type="sliding_window", model_max_length=12)
     with pytest.raises(ValueError, match="fast tokenizer"):
-        PromptInjectionScanner(match_type="sliding_window", model_max_length=12).load()
+        scanner.load()
 
 
 def test_sliding_window_over_max_windows_is_blocked(pipes: list, caplog: pytest.LogCaptureFixture):
