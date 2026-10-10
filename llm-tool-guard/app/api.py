@@ -59,8 +59,9 @@ def _parse(raw: bytes) -> tuple[list[dict], list[str]]:
 
 
 async def _wait_for_disconnect(request: Request) -> None:
-    while (await request.receive())["type"] != "http.disconnect":
-        pass
+    message = await request.receive()
+    while message["type"] != "http.disconnect":
+        message = await request.receive()
 
 
 class _Service:
