@@ -110,6 +110,13 @@
       "include-component-in-tag": true,
       "include-v-in-tag": false
     },
+    "llm-tool-guard": {
+      "release-type": "simple",
+      "component": "llm-tool-guard",
+      "tag-separator": "-",
+      "include-component-in-tag": true,
+      "include-v-in-tag": false
+    },
     "megalinter-base": {
       "release-type": "simple",
       "component": "megalinter-base",

@@ -49,6 +49,11 @@ CI builds with `context: <build_context>` and `file: <image-name>/Dockerfile`, a
 
 Note that release-please only sees the variant's own directory, so a source-only change does not cut a release for the variant. It picks the change up on its next release; to release immediately, include a commit touching the variant's directory.
 
+### Sharing a file with another image
+
+An image with its own sources that reuses one file from another image keeps a copy of it, lists the original under `watch` in its `metadata.yaml`, and fails its `test.sh` when the two differ. `llm-tool-guard/app/scanner_types.py` copies `llm-guard/app/scanner_types.py` this way: a change to the original rebuilds `llm-tool-guard`, its test fails until the copy is updated, and updating the copy
+touches `llm-tool-guard/`, so release-please releases it.
+
 ### Optional: Add Trivy Ignores
 
 Create `<image-name>/.trivyignore` for per-image vulnerability/secret ignores (plain text, one ID per line). Falls back to global `.trivyignore.yaml` if not present.

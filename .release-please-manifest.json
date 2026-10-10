@@ -8,6 +8,7 @@
   "happy-server": "1.0.4",
   "llm-guard": "1.0.47",
   "llm-guard-cuda": "1.0.17",
+  "llm-tool-guard": "0.0.0",
   "megalinter-base": "1.0.0",
   "megalinter-cpp": "1.1.0",
   "megalinter-go": "2.1.0",
