@@ -1,6 +1,7 @@
 """Tests for environment configuration."""
 
 import math
+import secrets
 
 import pytest
 
@@ -104,10 +105,10 @@ def test_max_windows_default_is_one_for_text_that_fits_one_window():
 
 
 def test_repr_hides_secrets():
+    url_password, password, token = (secrets.token_hex(8) for _ in range(3))
     settings = Settings.from_env(
-        {"VALKEY_URL": "redis://:url-pw@valkey:6379", "VALKEY_PASSWORD": "valkey-pw", "AUTH_TOKEN": "bearer-tok"}
+        {"VALKEY_URL": f"redis://:{url_password}@valkey:6379", "VALKEY_PASSWORD": password, "AUTH_TOKEN": token}
     )
 
-    assert "url-pw" not in repr(settings)
-    assert "valkey-pw" not in repr(settings)
-    assert "bearer-tok" not in repr(settings)
+    for secret in (url_password, password, token):
+        assert secret not in repr(settings)

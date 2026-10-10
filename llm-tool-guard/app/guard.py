@@ -56,17 +56,11 @@ class ToolGuard:
         texts, flagged = self._verify(new)
         unknown = [h for h in dict.fromkeys(known) if h not in texts and h not in flagged]
         lookups = [h for h in unknown if _HASH.fullmatch(h)]
-        verdicts = await self._cache.get_many([*texts, *(h for h in lookups if h not in self._inflight)])
+        verdicts: dict[str, bool | None] = dict(
+            await self._cache.get_many([*texts, *(h for h in lookups if h not in self._inflight)])
+        )
         waits = {h: self._inflight[h] for h in lookups if h not in verdicts and h in self._inflight}
-        for hash_, text in texts.items():
-            if hash_ in verdicts:
-                continue
-            task = self._inflight.get(hash_) or self._start(hash_, text)
-            if task is None:
-                flagged[hash_] = "over_limit"
-                self._metrics.over_limit.labels("queue").inc()
-            else:
-                waits[hash_] = task
+        waits.update(self._schedule({h: t for h, t in texts.items() if h not in verdicts}, flagged))
         if waits:
             results = await asyncio.gather(*(asyncio.shield(t) for t in waits.values()))
             verdicts.update(zip(waits, results, strict=True))
@@ -77,6 +71,18 @@ class ToolGuard:
             self._metrics.flagged.labels(reason).inc()
         order = [*(item["hash"] for item in new), *known]
         return list(dict.fromkeys(h for h in order if h in flagged)), [h for h in unknown if h not in verdicts]
+
+    def _schedule(self, texts: dict[str, str], flagged: dict[str, str]) -> dict[str, asyncio.Task[bool | None]]:
+        """Join or start a scan per text; texts beyond the pending limit are flagged instead."""
+        tasks = {}
+        for hash_, text in texts.items():
+            task = self._inflight.get(hash_) or self._start(hash_, text)
+            if task is None:
+                flagged[hash_] = "over_limit"
+                self._metrics.over_limit.labels("queue").inc()
+            else:
+                tasks[hash_] = task
+        return tasks
 
     def _verify(self, new: Sequence[dict]) -> tuple[dict[str, str], dict[str, str]]:
         """Split items into texts to look up or scan, and hashes flagged without a scan (by reason)."""
@@ -115,9 +121,9 @@ class ToolGuard:
         start = time.perf_counter()
         try:
             flagged = await loop.run_in_executor(self._executor, self._timed, text)
-        except Exception as exc:  # noqa: BLE001 - any model failure leaves the text unverified
+        except Exception:
             self._metrics.scans.labels("error").inc()
-            logger.error("scan of %s failed: %s", hash_[:23], type(exc).__name__)
+            logger.exception("scan of %s failed", hash_[:23])
             return None
         self._metrics.scans.labels("flagged" if flagged else "clean").inc()
         logger.info(
