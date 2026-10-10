@@ -40,6 +40,11 @@ def _resolve_device() -> int:
     return 0 if torch.cuda.is_available() else -1
 
 
+def _is_int(value) -> bool:
+    """Return True for ints, excluding bools."""
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 @dataclass
 class ScanResult:
     """Result from a single scanner."""
@@ -62,9 +67,12 @@ class PromptInjectionScanner:
             injection_label (str): Positive-class label. Defaults to config.DEFAULT_INJECTION_LABEL.
             threshold (float): Block threshold [0,1]. Defaults to config.DEFAULT_THRESHOLD.
             match_type (str): ``"full"``, ``"sentence"`` or ``"sliding_window"``. Defaults to ``"full"``.
-            model_max_length (int): Max token length. Defaults to 512.
+            model_max_length (int): Max token length, special tokens included. Defaults to 512.
             window_overlap (int): Tokens shared by consecutive windows in ``"sliding_window"`` mode.
                 Defaults to a quarter of the window.
+            window_batch_size (int): Windows scored per model call in ``"sliding_window"`` mode. Defaults to 8.
+            max_windows (int): Most windows one input may span in ``"sliding_window"`` mode. Input spanning
+                more is blocked with score 1.0. Defaults to 64.
         """
         self._model = kwargs.get("model", "") or config.DEFAULT_MODEL
         self._injection_label = kwargs.get("injection_label", "") or config.DEFAULT_INJECTION_LABEL
@@ -73,12 +81,15 @@ class PromptInjectionScanner:
         self._match_type = kwargs.get("match_type", "full")
         self._model_max_length = kwargs.get("model_max_length", 512)
         self._window_overlap: int | None = kwargs.get("window_overlap")
-        self._window_span = 0
+        self._window_batch_size = kwargs.get("window_batch_size", 8)
+        self._max_windows = kwargs.get("max_windows", 64)
         self._pipe: Pipeline | None = None
         self._injection_label_missing_warned = False
 
     def load(self):
         """Load the HuggingFace pipeline and validate the injection label exists."""
+        if self._match_type == "sliding_window":
+            self._check_window_params()
         device = _resolve_device()
         # Device goes in msg, not extra: the logging.basicConfig format in
         # main.py only renders %(message)s, so extra= fields never surface.
@@ -106,15 +117,29 @@ class PromptInjectionScanner:
             )
         logger.info("model ready")
 
+    def _check_window_params(self):
+        """Reject sliding-window params that are not positive ints, before the model loads."""
+        for name in ("model_max_length", "window_batch_size", "max_windows"):
+            value = getattr(self, f"_{name}")
+            if not _is_int(value) or value < 1:
+                raise ValueError(f"{name} must be a positive int, got {value!r}")
+        if self._window_overlap is not None and not _is_int(self._window_overlap):
+            raise ValueError(f"window_overlap must be an int, got {self._window_overlap!r}")
+
     def _configure_windows(self):
-        """Size sliding windows to the model's content tokens and validate the overlap."""
-        self._window_span = self._model_max_length - self._pipe.tokenizer.num_special_tokens_to_add(pair=False)
+        """Check the tokenizer can build token-ID windows and validate the overlap against the window size."""
+        tokenizer = self._pipe.tokenizer
+        if not getattr(tokenizer, "is_fast", False):
+            raise ValueError(f"sliding_window needs a fast tokenizer; {self._model!r} has none")
+        if self._window_batch_size > 1 and tokenizer.pad_token is None:
+            raise ValueError(f"window_batch_size > 1 needs a pad token; {self._model!r} has none")
+        span = self._model_max_length - tokenizer.num_special_tokens_to_add(pair=False)
+        if span < 1:
+            raise ValueError(f"model_max_length {self._model_max_length} leaves no room beside the special tokens")
         if self._window_overlap is None:
-            self._window_overlap = self._window_span // 4
-        if not 0 <= self._window_overlap < self._window_span:
-            raise ValueError(
-                f"window_overlap {self._window_overlap} must be >= 0 and < the window of {self._window_span} tokens"
-            )
+            self._window_overlap = span // 4
+        if not 0 <= self._window_overlap < span:
+            raise ValueError(f"window_overlap {self._window_overlap} must be >= 0 and < the window of {span} tokens")
 
     def _known_labels(self) -> set:
         """Return the model's label names from label2id or id2label, if any."""
@@ -129,16 +154,16 @@ class PromptInjectionScanner:
 
     def _score_text(self, text: str) -> float:
         """Return injection score [0,1] for a single text chunk."""
-        if self._pipe is None:
-            raise RuntimeError("PromptInjectionScanner not loaded; call load() first")
         results = self._pipe(text)
-        flat = results[0] if results and isinstance(results[0], list) else results
-        scores = {r["label"]: r["score"] for r in flat}
+        return self._injection_score(results[0] if results and isinstance(results[0], list) else results)
+
+    def _injection_score(self, label_scores: list) -> float:
+        """Pick the injection label's score out of one pipeline result."""
+        scores = {r["label"]: r["score"] for r in label_scores}
         if self._injection_label not in scores and not self._injection_label_missing_warned:
-            # Fail-open: a missing label means every prompt scores 0.0. Warn
-            # once so the silent pass-through is observable at runtime.
+            # A missing label scores every prompt 0.0; warn once so it shows in the logs.
             logger.warning(
-                "injection_label not in model output; scanner fails open (scores 0.0)",
+                "injection_label not in model output; scoring 0.0",
                 extra={"injection_label": self._injection_label, "model_labels": sorted(scores.keys())},
             )
             self._injection_label_missing_warned = True
@@ -151,18 +176,26 @@ class PromptInjectionScanner:
         return [p for p in parts if p]
 
     def _split_windows(self, text: str) -> list:
-        """Split text into overlapping slices of at most one window of tokens each."""
-        offsets = self._pipe.tokenizer(text, add_special_tokens=False, return_offsets_mapping=True)["offset_mapping"]
-        if len(offsets) <= self._window_span:
-            return [text]
-        step = self._window_span - self._window_overlap
-        windows = []
-        for start in range(0, len(offsets), step):
-            end = min(start + self._window_span, len(offsets))
-            windows.append(text[offsets[start][0] : offsets[end - 1][1]])
-            if end == len(offsets):
-                break
-        return windows
+        """Tokenize text once into overlapping model inputs of at most model_max_length tokens each."""
+        enc = self._pipe.tokenizer(
+            text,
+            truncation=True,
+            max_length=self._model_max_length,
+            stride=self._window_overlap,
+            return_overflowing_tokens=True,
+        )
+        enc.pop("overflow_to_sample_mapping", None)
+        return [{key: rows[i] for key, rows in enc.items()} for i in range(len(enc["input_ids"]))]
+
+    def _score_windows(self, windows: list) -> float:
+        """Return the highest injection score across windows, scoring window_batch_size of them per model call."""
+        best = 0.0
+        for start in range(0, len(windows), self._window_batch_size):
+            batch = self._pipe.tokenizer.pad(windows[start : start + self._window_batch_size], return_tensors="pt")
+            logits = self._pipe.forward(dict(batch))["logits"]
+            for row in logits:
+                best = max(best, self._injection_score(self._pipe.postprocess({"logits": row[None]}, top_k=None)))
+        return best
 
     def scan(self, text: str) -> ScanResult:
         """
@@ -171,11 +204,22 @@ class PromptInjectionScanner:
         Returns:
             ScanResult with is_safe=True if injection score is below threshold.
         """
+        if self._pipe is None:
+            raise RuntimeError("PromptInjectionScanner not loaded; call load() first")
         if self._match_type == "sentence":
             sentences = self._split_sentences(text) or [text]
             injection_score = max(self._score_text(s) for s in sentences)
         elif self._match_type == "sliding_window":
-            injection_score = max(self._score_text(w) for w in self._split_windows(text))
+            windows = self._split_windows(text)
+            if len(windows) > self._max_windows:
+                logger.warning("input spans %d windows, over max_windows %d; blocking", len(windows), self._max_windows)
+                return ScanResult(
+                    scanner="PromptInjection",
+                    is_safe=False,
+                    score=1.0,
+                    reason=f"input spans {len(windows)} windows, over max_windows {self._max_windows}",
+                )
+            injection_score = self._score_windows(windows)
         else:
             injection_score = self._score_text(text)
 

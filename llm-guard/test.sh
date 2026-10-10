@@ -170,11 +170,12 @@ if [[ "$FLAVOR" == "cpu" ]]; then
 fi
 
 echo "Test 11: scanner unit tests..."
-# Runs against the image's torch and transformers; the tests stub the model, so nothing is downloaded.
+# Runs against the image's torch and transformers; the tests stub the model and download only its tokenizer.
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tests"
 docker run --rm \
   -v "$TESTS_DIR:/tests:ro" \
   -e PYTHONDONTWRITEBYTECODE=1 \
+  -e LLM_GUARD_TESTS_REQUIRE_HUB=1 \
   "$IMAGE_REF" \
   sh -c 'pip install --user --no-cache-dir --quiet --disable-pip-version-check --no-warn-script-location \
     --only-binary :all: --require-hashes -r /tests/requirements-test.txt \
