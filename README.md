@@ -23,7 +23,7 @@ Versions are owned by release-please. See [docs/releases.md](docs/releases.md).
 
 1. Create a directory named after the image, containing a `Dockerfile`.
 
-2. Register the image in `release-please-config.json` and `.release-please-manifest.json`.
+2. Register the image in `release-please-config.json`, and add it to `.release-please-manifest.json` at `0.0.0`. Its first release is `1.0.0`.
 
 3. Add a `metadata.yaml` with the image's build settings. If the image has a `test.sh`, set `test-command` to run it; CI doesn't find it automatically:
 
@@ -64,8 +64,11 @@ The command will:
 
 1. Validate the flavor name and check for conflicts
 2. Reuse each language's definition in `megalinter-factory/languages/`, creating any that are missing
-3. Generate `megalinter-<name>/flavor.yaml` with Renovate annotations
-4. Register the flavor with release-please and `EXPECTED_LINTERS`
+3. Write `megalinter-<name>/flavor.yaml` with Renovate annotations, and `metadata.yaml` copied from `megalinter-python`
+4. Register the flavor in `release-please-config.json`, in `.release-please-manifest.json` at `0.0.0`, and in `EXPECTED_LINTERS`
+5. Run the factory generator to check the result
+
+It does not commit, and `retentionPackages` and Renovate's `sourceDirectory` rule still need a request to repo-operator.
 
 ### Manual Setup
 

@@ -19,7 +19,7 @@ This repository implements the following security controls:
 
 ### Build Pipeline
 
-- **Vulnerability scanning** - Trivy scans all images before push; blocks CRITICAL and HIGH severity CVEs
+- **Vulnerability scanning** - The daily `trivy-scan.yaml` workflow scans every published image; the build itself does not scan before push
 - **SBOM generation** - Software Bill of Materials generated for all published images
 - **Provenance attestation** - Build provenance attached to all images (SLSA Level 3)
 - **SHA-pinned actions** - All GitHub Actions pinned to specific commit hashes

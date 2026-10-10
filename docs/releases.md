@@ -21,7 +21,7 @@ Git tags keep the format this repo already used, so existing tags round-trip and
 4. Merging creates a git tag and a **draft** GitHub release per image in the PR.
 5. The same workflow run builds each released image from the commit the run started from, runs its `test-command`, pushes it to `ghcr.io/anthony-spruyt/<image>` and `docker.io/aspruyt/<image>`, attests provenance, and publishes that image's release with the ref and digest appended. A matrix job runs once per released image, so one PR still yields one tag, release, and build per image.
 
-If step 5 fails, the release stays a draft and no image is published. See [Recovering a stuck draft](#recovering-a-stuck-draft).
+If step 5 fails, the release stays a draft. The image push comes before the publish, so a failure in the publish alone leaves the image on GHCR and Docker Hub. See [Recovering a stuck draft](#recovering-a-stuck-draft).
 
 ### The build is always the tag's commit
 
@@ -105,6 +105,8 @@ A release that was tagged but whose build failed stays a draft. How to recover d
 
 - **The tagged code is broken, or the cause is in repo-operator's shared workflows:** fix it on `main` (for a shared workflow, the fix lands once the caller pin moves) and cut the next release, then delete the leftover draft.
 - **The tag points at a different commit than the run** (for example, after a cancelled run): cut the next release, then delete the leftover draft.
+- **The run died before relabelling the release PR:** the next run fails once on the duplicate release and starts no image job, so no re-run can publish the draft. Cut the next release, then delete the draft.
+- **The run is past GitHub's 30-day re-run limit:** cut the next release, then delete the draft.
 
 A full re-run does not help: release-please does not re-emit `releases_created` on a second pass, so the build job is skipped.
 
@@ -139,7 +141,7 @@ Leave it in place. It is not migration scaffolding, and removing it silently inf
 ## Adding an image
 
 1. Add the directory to `packages` in `release-please-config.json`.
-2. Add its current version to `.release-please-manifest.json`.
+2. Add it to `.release-please-manifest.json` at `0.0.0`. Its first release is `1.0.0`; a non-zero entry with no matching tag counts as already released.
 3. Add `<image>/metadata.yaml`. Set `test-command` if the image has a `test.sh`; nothing runs it otherwise. The release workflows find the image in `release-please-config.json` and take the docker tag's `v` prefix from `include-v-in-tag`, so they need no change.
 4. Add a `sourceDirectory` rule so Renovate shows its release notes: in `renovate-overrides.json5`, or for a `megalinter-*` flavor in repo-operator's `.github/renovate/package-rules.json5`, which every repo extends.
 5. Ask for the image to be added to `retentionPackages` in repo-operator's `src/repos.yaml`, which writes the synced `container-retention.yaml`.
