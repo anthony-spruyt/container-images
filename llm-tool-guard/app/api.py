@@ -58,6 +58,11 @@ def _parse(raw: bytes) -> tuple[list[dict], list[str]]:
     return [item.model_dump() for item in body.new], body.known
 
 
+async def _wait_for_disconnect(request: Request) -> None:
+    while (await request.receive())["type"] != "http.disconnect":
+        pass
+
+
 class _Service:
     """Holds the guard once loaded, and serves the endpoints."""
 
@@ -123,10 +128,20 @@ class _Service:
 
     async def _answer(self, guard: ToolGuard, request: Request):
         try:
-            flagged, unknown = await guard.check(*_parse(await self._read_body(request)))
+            check = asyncio.create_task(guard.check(*_parse(await self._read_body(request))))
         except _RequestError as exc:
             return exc.response
-        return {"flagged": flagged, "unknown": unknown}
+        gone = asyncio.create_task(_wait_for_disconnect(request))
+        try:
+            # Cancelling check drops only this request's wait; the scans it started are shielded and still get cached
+            await asyncio.wait({check, gone}, return_when=asyncio.FIRST_COMPLETED)
+            if not check.done():
+                return _error(499, "client disconnected")
+            flagged, unknown = check.result()
+            return {"flagged": flagged, "unknown": unknown}
+        finally:
+            gone.cancel()
+            check.cancel()
 
     def _admit(self, request: Request) -> ToolGuard:
         if self._token is not None:

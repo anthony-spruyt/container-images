@@ -20,13 +20,13 @@ _LIBRARIES = ("transformers", "tokenizers", "torch")
 
 
 def runtime_fingerprint(
-    scanner_source: Path,
+    sources: Iterable[Path],
     libraries: Iterable[str] = _LIBRARIES,
     *,
     version: Callable[[str], str] = importlib.metadata.version,
 ) -> dict[str, str]:
-    """Return the digest of the scanner source and the installed library versions that shape a verdict."""
-    fingerprint = {"scanner": hashlib.sha256(scanner_source.read_bytes()).hexdigest()}
+    """Return the digest of each source file and the installed library versions that shape a verdict."""
+    fingerprint = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in sources}
     fingerprint.update({name: version(name) for name in libraries})
     return fingerprint
 

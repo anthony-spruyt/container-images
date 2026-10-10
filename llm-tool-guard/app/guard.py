@@ -29,6 +29,10 @@ def content_hash(text: str) -> str:
     return _digest(_encode(text))
 
 
+class ScanStoppedError(Exception):
+    """Raised by a scan that ended early because the service is shutting down."""
+
+
 class ToolGuard:
     """Scan service; each text is scanned at most once at a time, and a scan outlives the request that started it."""
 
@@ -41,9 +45,14 @@ class ToolGuard:
         max_text_bytes: int,
         max_pending_scans: int,
         scan_workers: int,
+        stop_scans: Callable[[], None] | None = None,
     ):
-        """scan is a blocking function returning True when text is flagged; it runs on scan_workers threads."""
+        """scan is a blocking function returning True when text is flagged; it runs on scan_workers threads.
+
+        stop_scans makes running scans raise ScanStoppedError at their next safe point; close() calls it.
+        """
         self._scan = scan
+        self._stop_scans = stop_scans
         self._cache = cache
         self._metrics = metrics
         self._max_text_bytes = max_text_bytes
@@ -123,6 +132,9 @@ class ToolGuard:
         start = time.perf_counter()
         try:
             flagged = await loop.run_in_executor(self._executor, self._timed, text)
+        except ScanStoppedError:
+            self._metrics.scans.labels("stopped").inc()
+            return None
         except TimeoutError:
             self._metrics.scans.labels("timeout").inc()
             logger.warning("scan of %s over its time budget", hash_[:23])
@@ -156,5 +168,7 @@ class ToolGuard:
             await asyncio.wait(list(self._inflight.values()), timeout=remaining)
 
     def close(self) -> None:
-        """Stop the scan threads without waiting for queued scans."""
+        """Stop the scan threads: queued scans are dropped and the running ones end at their next safe point."""
+        if self._stop_scans is not None:
+            self._stop_scans()
         self._executor.shutdown(wait=False, cancel_futures=True)

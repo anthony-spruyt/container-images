@@ -3,14 +3,16 @@
 import asyncio
 import gc
 import hashlib
+import threading
 import time
 import weakref
+from collections.abc import Callable
 
 import pytest
 
 from cache import VerdictCache
 from fakes import INJECTION, FakeScanner, FakeValkey, digest, sample
-from guard import ToolGuard, content_hash
+from guard import ScanStoppedError, ToolGuard, content_hash
 from metrics import Metrics
 
 NAMESPACE = "ns"
@@ -25,6 +27,7 @@ def make_guard(  # noqa: PLR0913 - test builder with keyword-only knobs
     max_text_bytes: int = 1024,
     max_pending_scans: int = 16,
     scan_workers: int = 1,
+    stop_scans: Callable[[], None] | None = None,
 ) -> ToolGuard:
     cache = VerdictCache(valkey, namespace=NAMESPACE, ttl_seconds=TTL, metrics=metrics)
     return ToolGuard(
@@ -34,6 +37,7 @@ def make_guard(  # noqa: PLR0913 - test builder with keyword-only knobs
         max_text_bytes=max_text_bytes,
         max_pending_scans=max_pending_scans,
         scan_workers=scan_workers,
+        stop_scans=stop_scans,
     )
 
 
@@ -491,3 +495,46 @@ def test_drain_with_nothing_in_flight_returns_at_once(metrics, valkey):
     guard = make_guard(FakeScanner(), metrics, valkey)
 
     asyncio.run(asyncio.wait_for(guard.drain(max_wait=0), 1))
+
+
+class StoppableScanner(FakeScanner):
+    """A scan that runs until stop() is called, then ends the way a stopped classifier does."""
+
+    def __init__(self):
+        """Build a scanner that has not been stopped."""
+        super().__init__(gated=True)
+        self.stopped = threading.Event()
+
+    def stop(self):
+        """Ask running scans to end."""
+        self.stopped.set()
+
+    def __call__(self, text: str) -> bool:
+        """Run until stopped."""
+        self.calls.append(text)
+        self.started.set()
+        if not self.stopped.wait(timeout=10):
+            raise TimeoutError("scan never stopped")
+        raise ScanStoppedError("stopped")
+
+
+def test_close_stops_the_running_scan_and_its_verdict_is_not_cached(metrics, valkey):
+    scanner = StoppableScanner()
+    guard = make_guard(scanner, metrics, valkey, stop_scans=scanner.stop)
+    slow = item("slow")
+
+    async def run():
+        request = asyncio.create_task(guard.check([slow], []))
+        await wait_for(scanner.started.is_set)
+        start = time.monotonic()
+        guard.close()
+        await guard.drain(max_wait=5)
+        return time.monotonic() - start, await request
+
+    waited, (flagged, _) = asyncio.run(run())
+
+    assert waited < 2
+    assert flagged == [slow["hash"]]
+    assert valkey.data == {}
+    assert sample(metrics, "llm_tool_guard_scans_total", verdict="stopped") == 1
+    assert sample(metrics, "llm_tool_guard_scans_total", verdict="error") == 0

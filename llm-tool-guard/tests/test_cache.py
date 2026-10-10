@@ -17,7 +17,13 @@ BASE = {
     "window_tokens": 2048,
     "window_overlap": 512,
     "max_windows": 200,
-    "runtime": {"scanner": "aaa", "transformers": "5.18.0", "tokenizers": "0.23.3", "torch": "2.13.0"},
+    "runtime": {
+        "scanner_types.py": "aaa",
+        "classifier.py": "bbb",
+        "transformers": "5.18.0",
+        "tokenizers": "0.23.3",
+        "torch": "2.13.0",
+    },
 }
 
 
@@ -35,7 +41,8 @@ def test_namespace_is_stable_for_the_same_settings():
         ("window_tokens", 8192),
         ("window_overlap", 256),
         ("max_windows", 201),
-        ("runtime", {**BASE["runtime"], "scanner": "bbb"}),
+        ("runtime", {**BASE["runtime"], "scanner_types.py": "ccc"}),
+        ("runtime", {**BASE["runtime"], "classifier.py": "ccc"}),
         ("runtime", {**BASE["runtime"], "transformers": "5.19.0"}),
         ("runtime", {**BASE["runtime"], "tokenizers": "0.24.0"}),
         ("runtime", {**BASE["runtime"], "torch": "2.14.0"}),
@@ -54,40 +61,52 @@ def versions(**installed):
     return lookup
 
 
-def test_runtime_fingerprint_holds_the_scanner_digest_and_library_versions(tmp_path):
-    source = tmp_path / "scanner_types.py"
-    source.write_text("SCANNER = 1\n")
+def write_sources(directory, **contents):
+    paths = []
+    for name, text in contents.items():
+        path = directory / f"{name}.py"
+        path.write_text(text)
+        paths.append(path)
+    return paths
+
+
+def test_runtime_fingerprint_holds_the_source_digests_and_library_versions(tmp_path):
+    sources = write_sources(tmp_path, scanner_types="SCANNER = 1\n", classifier="CLASSIFIER = 1\n")
 
     fingerprint = runtime_fingerprint(
-        source, version=versions(transformers="5.18.0", tokenizers="0.23.3", torch="2.13.0")
+        sources, version=versions(transformers="5.18.0", tokenizers="0.23.3", torch="2.13.0")
     )
 
     assert fingerprint == {
-        "scanner": hashlib.sha256(b"SCANNER = 1\n").hexdigest(),
+        "scanner_types.py": hashlib.sha256(b"SCANNER = 1\n").hexdigest(),
+        "classifier.py": hashlib.sha256(b"CLASSIFIER = 1\n").hexdigest(),
         "transformers": "5.18.0",
         "tokenizers": "0.23.3",
         "torch": "2.13.0",
     }
 
 
-def test_runtime_fingerprint_changes_with_the_scanner_source(tmp_path):
-    source = tmp_path / "scanner_types.py"
+@pytest.mark.parametrize("changed", ["scanner_types", "classifier"])
+def test_changing_a_runtime_source_changes_the_namespace(tmp_path, changed):
+    sources = write_sources(tmp_path, scanner_types="SCANNER = 1\n", classifier="CLASSIFIER = 1\n")
     lookup = versions(transformers="1", tokenizers="1", torch="1")
-    source.write_text("SCANNER = 1\n")
-    before = runtime_fingerprint(source, version=lookup)
-    source.write_text("SCANNER = 2\n")
 
-    assert runtime_fingerprint(source, version=lookup) != before
+    def namespace() -> str:
+        return cache_namespace(**{**BASE, "runtime": runtime_fingerprint(sources, version=lookup)})
+
+    before = namespace()
+    (tmp_path / f"{changed}.py").write_text("CHANGED = 2\n")
+
+    assert namespace() != before
 
 
 def test_runtime_fingerprint_names_a_missing_library(tmp_path):
-    source = tmp_path / "scanner_types.py"
-    source.write_text("")
+    sources = write_sources(tmp_path, scanner_types="")
 
     lookup = versions(transformers="1", tokenizers="1")
 
     with pytest.raises(PackageNotFoundError, match="torch"):
-        runtime_fingerprint(source, version=lookup)
+        runtime_fingerprint(sources, version=lookup)
 
 
 def test_keys_carry_the_namespace_and_hash(metrics, valkey):

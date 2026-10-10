@@ -9,6 +9,7 @@ import uvicorn
 from prometheus_client import CollectorRegistry
 from redis.asyncio import Redis
 
+import classifier as classifier_module
 import scanner_types
 from api import create_app
 from cache import VerdictCache, cache_namespace, runtime_fingerprint
@@ -60,7 +61,7 @@ def build(settings: Settings, metrics: Metrics):
             window_tokens=settings.window_tokens,
             window_overlap=settings.window_overlap,
             max_windows=settings.max_windows,
-            runtime=runtime_fingerprint(Path(scanner_types.__file__)),
+            runtime=runtime_fingerprint([Path(scanner_types.__file__), Path(classifier_module.__file__)]),
         )
         logging.getLogger(__name__).info(
             "cache namespace %s (model revision %s, valkey %s)",
@@ -76,6 +77,7 @@ def build(settings: Settings, metrics: Metrics):
             max_text_bytes=settings.max_text_bytes,
             max_pending_scans=settings.max_pending_scans,
             scan_workers=settings.scan_workers,
+            stop_scans=classifier.stop,
         )
 
     return load

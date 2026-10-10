@@ -14,7 +14,7 @@ class Metrics:
         self.registry = registry
         self.scans = Counter(
             "llm_tool_guard_scans_total",
-            "Model scans by verdict (clean, flagged, error, timeout)",
+            "Model scans by verdict (clean, flagged, error, timeout, stopped)",
             ["verdict"],
             registry=registry,
         )
@@ -52,7 +52,7 @@ class Metrics:
         )
         self.pending_scans = Gauge("llm_tool_guard_pending_scans", "Texts queued or being scanned", registry=registry)
         self.ready = Gauge("llm_tool_guard_ready", "1 once the model has loaded", registry=registry)
-        for verdict in ("clean", "flagged", "error", "timeout"):
+        for verdict in ("clean", "flagged", "error", "timeout", "stopped"):
             self.scans.labels(verdict)
         for reason in ("verdict", "over_limit", "hash_mismatch", "error"):
             self.flagged.labels(reason)

@@ -7,6 +7,8 @@ from collections.abc import Callable
 from pathlib import PurePath
 from typing import Any
 
+from guard import ScanStoppedError
+
 _SURROGATE = re.compile("[\ud800-\udfff]")
 
 
@@ -41,22 +43,28 @@ class Classifier:
         self._locate = locate
         self._budget = time_budget_seconds
         self._local = threading.local()
+        self._stopped = threading.Event()
         self.revision = ""
 
     def load(self) -> None:
         """Load the model and record the cached snapshot it was loaded from."""
         self._scanner.load()
-        if self._budget is not None:
-            self._enforce_budget()
+        self._guard_windows()
         path = self._locate(self._model, "config.json")
         self.revision = PurePath(path).parent.name if isinstance(path, str) else ""
 
-    def _enforce_budget(self) -> None:
-        """Check the calling thread's deadline before each model call; a running forward pass cannot be interrupted."""
+    def stop(self) -> None:
+        """Make every scan, running or later, raise ScanStoppedError before its next window."""
+        self._stopped.set()
+
+    def _guard_windows(self) -> None:
+        """Check the stop flag and the thread's deadline before each model call; a running pass cannot be stopped."""
         pipe = self._scanner._pipe
         forward = pipe.forward
 
         def bounded(*args: Any, **kwargs: Any) -> Any:
+            if self._stopped.is_set():
+                raise ScanStoppedError("scan stopped")
             deadline = getattr(self._local, "deadline", None)
             if deadline is not None and time.monotonic() >= deadline:
                 raise TimeoutError(f"scan over its {self._budget}s time budget")

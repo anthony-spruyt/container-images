@@ -16,13 +16,13 @@ Prompt-injection scanner for tool results. The LiteLLM tool-guard middleware sen
 
 - `new` items are checked against the content hash, looked up in the verdict cache and scanned on a miss. A text whose hash does not match, is over `MAX_TEXT_BYTES`, exceeds `SCAN_TIMEOUT_SECONDS`, cannot be scanned, or finds no room in the scan queue is flagged and not cached.
 - `known` hashes are looked up only. Hashes without a verdict come back in `unknown`.
-- `503` means the model is still loading, or `MAX_CONCURRENT_REQUESTS` requests are already in flight. The cap is checked before the body is read.
+- `503` means the model is still loading, or `MAX_CONCURRENT_REQUESTS` requests are already in flight. The cap is checked before the body is read. A request holds its slot only while its client is connected: when the client disconnects the slot is released, and the scans it started still finish and are cached.
 
 `GET /healthz` fails only when the model could not load, `GET /readyz` passes once it has, and `GET /metrics` serves Prometheus metrics.
 
 ## Verdict cache
 
-Verdicts are cached in Valkey under a namespace derived from the model and its revision, the label and threshold, the window settings, the digest of `scanner_types.py`, and the installed `transformers`, `tokenizers` and `torch` versions. Changing any of them starts a fresh namespace.
+Verdicts are cached in Valkey under a namespace derived from the model and its revision, the label and threshold, the window settings, the digests of `scanner_types.py` and `classifier.py`, and the installed `transformers`, `tokenizers` and `torch` versions. Changing any of them starts a fresh namespace.
 
 ## Configuration
 
@@ -53,3 +53,5 @@ Verdicts are cached in Valkey under a namespace derived from the model and its r
 | `CACHE_TTL_SECONDS`       | `2592000`                                | Lifetime of a cached verdict                                                                  |
 
 A scan that runs past `SCAN_TIMEOUT_SECONDS` is flagged, not cached, and counted as `llm_tool_guard_scans_total{verdict="timeout"}`. A model call already running cannot be interrupted, so the budget is checked before each window and the worker is freed at the next window boundary.
+
+Scans still running when `SHUTDOWN_DRAIN_SECONDS` ends stop at their next window, are not cached, and are counted as `llm_tool_guard_scans_total{verdict="stopped"}`.

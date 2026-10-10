@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from classifier import Classifier
+from guard import ScanStoppedError
 
 MODEL = "org/model"
 SNAPSHOT = "/hf/hub/models--org--model/snapshots/0123abc/config.json"
@@ -20,6 +21,7 @@ class StubScanner:
         self.is_safe = is_safe
         self.texts: list[str] = []
         self.loaded = False
+        self._pipe = SimpleNamespace(forward=lambda batch: batch)
 
     def load(self):
         """Pretend to load the model."""
@@ -163,3 +165,26 @@ def test_time_budgets_are_per_thread():
         thread.join()
 
     assert outcomes == [False, False, False]
+
+
+@pytest.mark.parametrize("budget", [None, 60])
+def test_stopping_ends_a_running_scan_at_the_next_window(budget):
+    scanner = WindowedScanner(windows=500, seconds=0.02)
+    classifier = loaded(scanner, time_budget_seconds=budget)
+    threading.Timer(0.1, classifier.stop).start()
+
+    with pytest.raises(ScanStoppedError):
+        classifier("x")
+
+    assert 2 <= scanner.forwards < 20
+
+
+def test_no_window_is_scored_once_stopped():
+    scanner = WindowedScanner(windows=3, seconds=0)
+    classifier = loaded(scanner)
+    classifier.stop()
+
+    with pytest.raises(ScanStoppedError):
+        classifier("x")
+
+    assert scanner.forwards == 0

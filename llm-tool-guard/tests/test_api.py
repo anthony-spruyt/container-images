@@ -346,3 +346,65 @@ def test_shutdown_stops_waiting_after_the_drain_budget(metrics, background):
 
     assert 0.2 <= elapsed < 5
     assert valkey.data == {}
+
+
+async def asgi_post(app, payload, gone: asyncio.Event | None = None) -> int:
+    """POST payload to /v1/scan over raw ASGI; the client disconnects once gone is set, and never otherwise."""
+    raw = json.dumps(payload).encode()
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/v1/scan",
+        "raw_path": b"/v1/scan",
+        "root_path": "",
+        "query_string": b"",
+        "headers": [(b"content-type", b"application/json"), (b"content-length", str(len(raw)).encode())],
+        "server": ("test", 80),
+        "client": ("test", 1),
+    }
+    sent = []
+    delivered = False
+
+    async def receive():
+        nonlocal delivered
+        if not delivered:
+            delivered = True
+            return {"type": "http.request", "body": raw, "more_body": False}
+        if gone is None:
+            await asyncio.Event().wait()
+        await gone.wait()
+        return {"type": "http.disconnect"}
+
+    async def send(message):
+        sent.append(message)
+
+    await app(scope, receive, send)
+    return next(m["status"] for m in sent if m["type"] == "http.response.start")
+
+
+def test_a_request_whose_client_disconnects_frees_its_slot_while_its_scan_still_lands_in_the_cache(metrics):
+    scanner = FakeScanner(gated=True)
+    valkey = FakeValkey()
+    guard = make_guard(metrics, valkey, scanner)
+    app = create_app(Settings.from_env({"MAX_CONCURRENT_REQUESTS": "1"}), metrics, lambda: asyncio.sleep(0, guard))
+    abandoned = f"{INJECTION} abandoned"
+
+    async def run():
+        async with app.router.lifespan_context(app):
+            await asyncio.sleep(0.05)
+            gone = asyncio.Event()
+            request = asyncio.create_task(asgi_post(app, body([abandoned]), gone))
+            await asyncio.to_thread(scanner.started.wait, 5)
+            gone.set()
+            await asyncio.wait_for(request, 2)
+            lookup = await asyncio.wait_for(asgi_post(app, body(known=[digest("never seen")])), 2)
+            scanner.release()
+            await guard.drain()
+            return lookup
+
+    assert asyncio.run(run()) == 200
+    assert valkey.data == {f"llm-tool-guard:ns:{digest(abandoned)}": "1"}
+    assert sample(metrics, "llm_tool_guard_over_limit_total", limit="requests") == 0
