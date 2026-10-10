@@ -16,7 +16,7 @@ jobs:
   cleanup:
     permissions:
       packages: "write"
-    uses: "anthony-spruyt/repo-operator/.github/workflows/_container-retention.yaml@50007523d17053af1ed7d7128f78a7fc5890f8e4"
+    uses: "anthony-spruyt/repo-operator/.github/workflows/_container-retention.yaml@55f5772eda61e5585fcfe7207d409f86ab130c5b"
     with:
       packages: "chrony,claude-agent-read,claude-agent-spruyt-labs,claude-agent-write,coder-gitops,devcontainer-common,happy-server,llm-guard,llm-guard-cuda,megalinter-base,megalinter-cpp,megalinter-go,megalinter-python,megalinter-spruyt-labs,megalinter-typescript,ssh-key-rotation"
       dry-run: "${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}"
