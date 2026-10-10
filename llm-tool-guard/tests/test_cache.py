@@ -84,8 +84,10 @@ def test_runtime_fingerprint_names_a_missing_library(tmp_path):
     source = tmp_path / "scanner_types.py"
     source.write_text("")
 
+    lookup = versions(transformers="1", tokenizers="1")
+
     with pytest.raises(PackageNotFoundError, match="torch"):
-        runtime_fingerprint(source, version=versions(transformers="1", tokenizers="1"))
+        runtime_fingerprint(source, version=lookup)
 
 
 def test_keys_carry_the_namespace_and_hash(metrics, valkey):
