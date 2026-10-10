@@ -78,6 +78,12 @@
       "sourceDirectory": "llm-guard-cuda",
     },
     {
+      "description": "Release notes for own images: llm-tool-guard",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/llm-tool-guard"],
+      "sourceDirectory": "llm-tool-guard",
+    },
+    {
       "description": "Release notes for own images: ssh-key-rotation",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["ghcr.io/anthony-spruyt/ssh-key-rotation"],
