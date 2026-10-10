@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.0.47...llm-guard-1.1.0) (2026-10-10)
+
+
+### Features
+
+* **llm-guard:** sliding-window scanning and Horizon prompt-injection model ([55e23c0](https://github.com/anthony-spruyt/container-images/commit/55e23c04fb76766548f778f724f38a83cb099492))
+
+
+### Bug Fixes
+
+* **release:** link llm-guard-cuda releases to llm-guard ([be858bd](https://github.com/anthony-spruyt/container-images/commit/be858bdf93f4d20f6a6ab6b0f2b4e593f47b4d67))
+
 ## [1.0.47](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.0.46...llm-guard-1.0.47) (2026-10-10)
 
 
