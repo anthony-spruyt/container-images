@@ -8,6 +8,3 @@ EXTENDS:
 # Append additional linters to base config (don't replace)
 CONFIG_PROPERTIES_TO_APPEND:
   - ENABLE_LINTERS
-# Add project-specific linters below:
-ENABLE_LINTERS:
-  - DOCKERFILE_HADOLINT
