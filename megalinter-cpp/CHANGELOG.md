@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/anthony-spruyt/container-images/compare/megalinter-cpp-1.1.0...megalinter-cpp-1.1.1) (2026-10-12)
+
+
+### Dependencies
+
+* **megalinter:** weekly linter version refresh ([#2249](https://github.com/anthony-spruyt/container-images/issues/2249)) ([29061c3](https://github.com/anthony-spruyt/container-images/commit/29061c3b95c872dc3c552ca6c19ad9864cc17d1d))
+* **megalinter:** weekly linter version refresh ([#2281](https://github.com/anthony-spruyt/container-images/issues/2281)) ([bfc19fa](https://github.com/anthony-spruyt/container-images/commit/bfc19fa8b60df78d005aa89e9567382a96fb8b03))
+
 ## [1.1.0](https://github.com/anthony-spruyt/container-images/compare/megalinter-cpp-1.0.0...megalinter-cpp-1.1.0) (2026-10-07)
 
 
