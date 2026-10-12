@@ -86,3 +86,56 @@ def test_main_prints_the_entries_as_json(repo: Path, capsys) -> None:
 
     assert main([str(repo)]) == 0
     assert json.loads(capsys.readouterr().out) == tree_entries(repo)
+
+
+def test_content_keeps_its_line_endings(repo: Path) -> None:
+    """CRLF and a lone CR reach the commit unchanged."""
+    (repo / STAMP).write_bytes(b"a\r\nb\rc\n")
+    git(repo, "add", "-A")
+
+    assert tree_entries(repo)[0]["content"] == "a\r\nb\rc\n"
+
+
+def test_non_utf8_content_is_rejected(repo: Path) -> None:
+    """The API's content field only carries UTF-8 text."""
+    (repo / STAMP).write_bytes(b"\xff\xfe")
+    git(repo, "add", "-A")
+
+    with pytest.raises(ValueError, match=f"{STAMP}: not UTF-8 text"):
+        tree_entries(repo)
+
+
+def test_submodule_is_rejected(repo: Path) -> None:
+    """A gitlink would need a commit entry, not a blob."""
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True
+    ).stdout.strip()
+    git(repo, "update-index", "--add", "--cacheinfo", f"160000,{head},sub")
+
+    with pytest.raises(ValueError, match="sub: submodules are not supported"):
+        tree_entries(repo)
+
+
+def test_unmerged_path_is_rejected(repo: Path) -> None:
+    """A conflicted path has no single blob to commit."""
+    git(repo, "checkout", "-q", "-b", "other")
+    write(repo, STAMP, "other\n")
+    git(repo, "commit", "-q", "-am", "other")
+    git(repo, "checkout", "-q", "-")
+    write(repo, STAMP, "mine\n")
+    git(repo, "commit", "-q", "-am", "mine")
+    subprocess.run(["git", "merge", "-q", "other"], cwd=repo, check=False, capture_output=True)
+
+    with pytest.raises(ValueError, match=f"{STAMP}: unmerged"):
+        tree_entries(repo)
+
+
+def test_main_reports_a_rejected_path(repo: Path, capsys) -> None:
+    """The workflow step fails with an annotation, and stdout stays empty."""
+    (repo / STAMP).write_bytes(b"\xff\xfe")
+    git(repo, "add", "-A")
+
+    assert main([str(repo)]) == 1
+    out, err = capsys.readouterr()
+    assert not out
+    assert f"::error::{STAMP}: not UTF-8 text" in err

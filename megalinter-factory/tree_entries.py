@@ -6,11 +6,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+GITLINK = "160000"
+
 
 def git(repo: Path, *args: str) -> str:
-    """Return the output of a git command run in repo."""
-    result = subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True, encoding="utf-8")
-    return result.stdout
+    """Return the output of a git command run in repo, line endings untouched."""
+    result = subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True)
+    return result.stdout.decode("utf-8")
 
 
 def tree_entries(repo: Path) -> list[dict]:
@@ -20,11 +22,18 @@ def tree_entries(repo: Path) -> list[dict]:
     entries = []
     for meta, path in zip(fields[0::2], fields[1::2], strict=True):
         old_mode, new_mode, _, new_sha, status = meta.lstrip(":").split()
+        if status == "U":
+            raise ValueError(f"{path}: unmerged")
+        if GITLINK in (old_mode, new_mode):
+            raise ValueError(f"{path}: submodules are not supported")
         if status == "D":
             entries.append({"path": path, "mode": old_mode, "type": "blob", "sha": None})
-        else:
+            continue
+        try:
             content = git(repo, "cat-file", "blob", new_sha)
-            entries.append({"path": path, "mode": new_mode, "type": "blob", "content": content})
+        except UnicodeDecodeError:
+            raise ValueError(f"{path}: not UTF-8 text") from None
+        entries.append({"path": path, "mode": new_mode, "type": "blob", "content": content})
     return entries
 
 
@@ -33,7 +42,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("repo", type=Path, nargs="?", default=Path.cwd())
     args = parser.parse_args(argv)
-    print(json.dumps(tree_entries(args.repo)))
+    try:
+        entries = tree_entries(args.repo)
+    except ValueError as error:
+        # stderr: the workflow captures stdout into a variable, hiding the annotation
+        print(f"::error::{error}", file=sys.stderr)
+        return 1
+    print(json.dumps(entries))
     return 0
 
 
