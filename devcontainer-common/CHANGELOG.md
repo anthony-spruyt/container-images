@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.3.5](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.3.4...devcontainer-common-2.3.5) (2026-10-12)
+
+
+### Dependencies
+
+* **deps:** update container image ghcr.io/devcontainers/features/github-cli to v1.1.3 ([#2282](https://github.com/anthony-spruyt/container-images/issues/2282)) ([d7df63a](https://github.com/anthony-spruyt/container-images/commit/d7df63aa2b0359bb6d4c344447bb0c94a4e68c52))
+* **deps:** update container image ghcr.io/devcontainers/features/node to v2.1.1 ([#2283](https://github.com/anthony-spruyt/container-images/issues/2283)) ([df95538](https://github.com/anthony-spruyt/container-images/commit/df9553836ccdfd0ab5abef9b14ec3cac0cd2a50b))
+* **deps:** update dependency @aikidosec/safe-chain to v1.5.25 ([#2284](https://github.com/anthony-spruyt/container-images/issues/2284)) ([d8b4d59](https://github.com/anthony-spruyt/container-images/commit/d8b4d591e74ac775553840fc926caaf3f0a0eb19))
+* **deps:** update dependency pipx to v1.17.11 ([#2277](https://github.com/anthony-spruyt/container-images/issues/2277)) ([d7b39ba](https://github.com/anthony-spruyt/container-images/commit/d7b39baf0eeb93bfd24f1c04a214a934117b4081))
+* **deps:** update dependency pipx to v1.17.13 ([#2286](https://github.com/anthony-spruyt/container-images/issues/2286)) ([687e4a2](https://github.com/anthony-spruyt/container-images/commit/687e4a20a97f3d490ef220cde570e52b02a270c8))
+* **deps:** update dependency pipx to v1.17.14 ([#2304](https://github.com/anthony-spruyt/container-images/issues/2304)) ([c6f4a78](https://github.com/anthony-spruyt/container-images/commit/c6f4a78e5efc7cf5fcc8fbe2a6d91bbd0d25dec2))
+
 ## [2.3.4](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.3.3...devcontainer-common-2.3.4) (2026-10-10)
 
 
