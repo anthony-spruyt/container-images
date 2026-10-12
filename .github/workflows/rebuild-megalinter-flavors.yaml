@@ -120,10 +120,7 @@ jobs:
           BRANCH="chore/megalinter-refresh-$(date -u +%Y%m%d)${SUFFIX}"
           BASE=$(git rev-parse HEAD)
           git add -A
-          ENTRIES=$(git diff --cached --name-only | while read -r path; do
-            jq -n --arg path "$path" --rawfile content "$path" \
-              '{path: $path, mode: "100644", type: "blob", content: $content}'
-          done | jq -s -c .)
+          ENTRIES=$(python megalinter-factory/tree_entries.py)
           TREE=$(jq -n --arg base "$(git rev-parse 'HEAD^{tree}')" --argjson tree "$ENTRIES" \
             '{base_tree: $base, tree: $tree}' |
             gh api --method POST "repos/$GITHUB_REPOSITORY/git/trees" --input - --jq .sha)
