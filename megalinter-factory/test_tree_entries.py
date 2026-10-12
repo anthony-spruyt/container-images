@@ -12,10 +12,10 @@ STAMP = "megalinter-go/.rebuild-stamp"
 SCRIPT = "megalinter-go/build.sh"
 
 
-def git(repo: Path, *args: str) -> None:
+def git(repo: Path, *args: str, check: bool = True) -> None:
     """Run git in repo with a throwaway identity."""
     identity = ["-c", "user.name=test", "-c", "user.email=test@example.com"]
-    subprocess.run(["git", *identity, *args], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", *identity, *args], cwd=repo, check=check, capture_output=True)
 
 
 def write(repo: Path, path: str, content: str, mode: int = 0o644) -> None:
@@ -124,7 +124,7 @@ def test_unmerged_path_is_rejected(repo: Path) -> None:
     git(repo, "checkout", "-q", "-")
     write(repo, STAMP, "mine\n")
     git(repo, "commit", "-q", "-am", "mine")
-    subprocess.run(["git", "merge", "-q", "other"], cwd=repo, check=False, capture_output=True)
+    git(repo, "merge", "-q", "other", check=False)
 
     with pytest.raises(ValueError, match=f"{STAMP}: unmerged"):
         tree_entries(repo)
