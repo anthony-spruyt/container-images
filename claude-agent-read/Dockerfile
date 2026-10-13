@@ -56,14 +56,13 @@ RUN ARCH="$(dpkg --print-architecture)" \
 # Aikido safe-chain (installed globally, then set up for node user).
 # ubuntu has no uid 1000 user; create one named "node" to match downstream
 # images and the n8n spawner's expected runtime user.
+# /etc/claude-code is pre-created: BuildKit gives COPY --chmod's mode to parent dirs it creates.
 # renovate: depName=@aikidosec/safe-chain datasource=npm
 ARG SAFE_CHAIN_VERSION="1.5.25"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}" \
   && if getent passwd 1000 >/dev/null; then userdel -r "$(getent passwd 1000 | cut -d: -f1)"; fi \
-  && useradd -m -u 1000 -s /bin/bash node
-
-# BuildKit gives COPY --chmod's mode to the parent dirs it creates
-RUN install -d -m 0755 /etc/claude-code
+  && useradd -m -u 1000 -s /bin/bash node \
+  && install -d -m 0755 /etc/claude-code
 
 # Set up safe-chain shims for node user before any npm/pip calls
 USER 1000
