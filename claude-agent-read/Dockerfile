@@ -7,7 +7,8 @@ HEALTHCHECK NONE
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # System deps. xz-utils is required to extract the node .tar.xz tarball below
-# (node:24-slim provided it implicitly; ubuntu minimal does not).
+# (node:24-slim provided it implicitly; ubuntu minimal does not). bubblewrap and socat are
+# the sandbox runtime that CLAUDE_CODE_SUBPROCESS_ENV_SCRUB starts Bash in.
 # archive.ubuntu.com times out intermittently on GitHub runners. Without
 # Error-Mode=any, apt-get update only warns on an unreachable mirror and the
 # install fails later with a confusing "has no installation candidate".
@@ -24,8 +25,8 @@ RUN { echo 'Acquire::Retries "5";'; \
   done; \
   [[ -n "${ok}" ]] \
   && apt-get install -y --no-install-recommends \
-  ca-certificates curl git jq openssh-client python3 python3-pip \
-  xz-utils \
+  bubblewrap ca-certificates curl git jq openssh-client python3 python3-pip \
+  socat xz-utils \
   && rm -rf /var/lib/apt/lists/*
 
 # Node.js (prebuilt binary tarball — Renovate tracks via node-version datasource)
@@ -76,6 +77,11 @@ ENV PATH="/home/node/.safe-chain/shims:${PATH}"
 ARG CLAUDE_VERSION="2.1.296"
 RUN curl -fsSL https://claude.ai/install.sh | bash -s -- "$CLAUDE_VERSION"
 ENV PATH="/home/node/.local/bin:${PATH}"
+
+# Agent runtime config. The managed settings are read-only to the agent user.
+COPY --chmod=0644 assets/managed-settings.json /etc/claude-code/managed-settings.json
+COPY --chmod=0755 assets/ap-mcp-headers /usr/local/bin/ap-mcp-headers
+COPY --chmod=0755 assets/claude-plugins-bootstrap.sh /usr/local/bin/claude-plugins-bootstrap
 
 # Working directory
 WORKDIR /workspace
