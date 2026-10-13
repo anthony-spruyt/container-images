@@ -92,6 +92,7 @@ if [[ "$1" == --version ]]; then
   [[ -e "$STUB_CLAUDE_BROKEN" ]] && exit 1
   exit 0
 fi
+last="${@: -1}"
 dir="$HOME/.claude/plugins"
 mkdir -p "$dir"
 markets="$dir/stub-marketplaces.json"
@@ -101,21 +102,21 @@ plugins="$dir/stub-plugins.json"
 case "$2 $3" in
 "marketplace list") cat "$markets" ;;
 "marketplace add")
-  name="${4##*/}"
+  name="${last##*/}"
   mkdir -p "$dir/marketplaces/$name"
   cp "$STUB_CATALOG" "$dir/marketplaces/$name/catalog"
-  jq --arg n "$name" --arg r "$4" --arg l "$dir/marketplaces/$name" \
+  jq --arg n "$name" --arg r "$last" --arg l "$dir/marketplaces/$name" \
     'map(select(.name != $n)) + [{name: $n, source: "github", repo: $r, installLocation: $l}]' "$markets" >"$markets.tmp" && mv "$markets.tmp" "$markets"
   ;;
-"marketplace update") cp "$STUB_CATALOG" "$dir/marketplaces/$4/catalog" ;;
+"marketplace update") cp "$STUB_CATALOG" "$dir/marketplaces/$last/catalog" ;;
 "list --json") cat "$plugins" ;;
 install*)
-  grep -qx "${3%@*}" "$dir/marketplaces/${3##*@}/catalog" 2>/dev/null || {
-    echo "plugin $3 not found in marketplace" >&2
+  grep -qx "${last%@*}" "$dir/marketplaces/${last##*@}/catalog" 2>/dev/null || {
+    echo "plugin $last not found in marketplace" >&2
     exit 1
   }
-  mkdir -p "$dir/cache/$3"
-  jq --arg p "$3" --arg l "$dir/cache/$3" \
+  mkdir -p "$dir/cache/$last"
+  jq --arg p "$last" --arg l "$dir/cache/$last" \
     'map(select(.id != $p)) + [{id: $p, scope: "user", installPath: $l}]' "$plugins" >"$plugins.tmp" && mv "$plugins.tmp" "$plugins"
   ;;
 esac
@@ -167,7 +168,7 @@ expect_skipped() {
 }
 
 version=$(grep -oP '^SAFE_CHAIN_VERSION="\K[^"]+' "$SCRIPT")
-INSTALL_ALPHA="claude plugins install alpha@plugins-mp"
+INSTALL_ALPHA="claude plugins install --scope user -- alpha@plugins-mp"
 
 echo "=== fresh workspace installs everything ==="
 run
@@ -175,10 +176,10 @@ expect_called "npm install -g --ignore-scripts @aikidosec/safe-chain@$version" "
 expect_called "safe-chain setup-ci" "safe-chain setup-ci not run"
 expect_called "curl" "Claude Code not installed"
 expect_called "pre-commit install --install-hooks" "pre-commit hooks not installed"
-expect_called "claude plugins marketplace add owner/plugins-mp" "marketplace not added"
+expect_called "claude plugins marketplace add --scope user -- owner/plugins-mp" "marketplace not added"
 expect_called "timeout --foreground 120 claude plugins marketplace add" "marketplace add has no timeout"
-expect_called "timeout --foreground 120 claude plugins install alpha@plugins-mp" "plugin install has no timeout"
-[[ $(call_count "claude plugins marketplace add owner/plugins-mp") -eq 1 ]] || fail "marketplace shared by two settings keys added twice"
+expect_called "timeout --foreground 120 claude plugins install --scope user -- alpha@plugins-mp" "plugin install has no timeout"
+[[ $(call_count "claude plugins marketplace add --scope user -- owner/plugins-mp") -eq 1 ]] || fail "marketplace shared by two settings keys added twice"
 [[ $(call_count "claude plugins marketplace list --json") -eq 1 ]] || fail "marketplace list re-queried after an add"
 expect_called "$INSTALL_ALPHA" "plugin not installed"
 expect_called "docker run" "podman verification skipped on first run"
@@ -241,12 +242,12 @@ jq --arg w "$WORKSPACE" --arg l "$ROOT/delta" '. + [{id: "delta@plugins-mp", sco
 mv "$ROOT/plugins.json" "$HOME/.claude/plugins/stub-plugins.json"
 echo '{"enabledPlugins": {"delta@plugins-mp": true}}' >"$WORKSPACE/.claude/settings.json"
 run
-expect_skipped "claude plugins install delta@plugins-mp" "project-scope plugin reinstalled at user scope"
+expect_skipped "claude plugins install --scope user -- delta@plugins-mp" "project-scope plugin reinstalled at user scope"
 [[ $(call_count "claude plugins list --json") -eq 1 ]] || fail "plugin list queried once per settings file"
 jq '.enabledPlugins["delta@plugins-mp"] = true' "$HOME/.claude/settings.json" >"$ROOT/settings.json"
 mv "$ROOT/settings.json" "$HOME/.claude/settings.json"
 run
-expect_called "claude plugins install delta@plugins-mp" "project-scope install trusted for user settings"
+expect_called "claude plugins install --scope user -- delta@plugins-mp" "project-scope install trusted for user settings"
 jq '.enabledPlugins |= del(.["delta@plugins-mp"])' "$HOME/.claude/settings.json" >"$ROOT/settings.json"
 mv "$ROOT/settings.json" "$HOME/.claude/settings.json"
 echo '{}' >"$WORKSPACE/.claude/settings.json"
@@ -256,10 +257,10 @@ echo "=== plugin published after the marketplace was cloned ==="
 jq '.enabledPlugins["gamma@plugins-mp"] = true | .enabledPlugins["omega@plugins-mp"] = true' "$HOME/.claude/settings.json" >"$ROOT/settings.json"
 mv "$ROOT/settings.json" "$HOME/.claude/settings.json"
 run
-[[ $(call_count "claude plugins marketplace update plugins-mp") -eq 1 ]] || fail "marketplace refreshed more than once in a run"
+[[ $(call_count "claude plugins marketplace update -- plugins-mp") -eq 1 ]] || fail "marketplace refreshed more than once in a run"
 echo gamma >>"$STUB_CATALOG"
 run
-expect_called "timeout --foreground 120 claude plugins marketplace update plugins-mp" "stale marketplace not refreshed under a timeout"
+expect_called "timeout --foreground 120 claude plugins marketplace update -- plugins-mp" "stale marketplace not refreshed under a timeout"
 jq -e 'any(.[]; .id == "gamma@plugins-mp")' "$HOME/.claude/plugins/stub-plugins.json" >/dev/null || fail "newly published plugin not installed"
 rm -rf "$HOME/.claude/plugins/marketplaces"
 run
@@ -285,7 +286,7 @@ echo "lost shims: OK"
 echo "=== lost plugin cache is restored ==="
 rm -rf "$HOME/.claude/plugins/cache" "$HOME/.claude/plugins/marketplaces"
 run
-expect_called "claude plugins marketplace add owner/plugins-mp" "marketplace with missing files trusted"
+expect_called "claude plugins marketplace add --scope user -- owner/plugins-mp" "marketplace with missing files trusted"
 expect_called "$INSTALL_ALPHA" "plugin with missing files trusted"
 echo "lost cache: OK"
 
@@ -300,7 +301,7 @@ echo "=== marketplace found by repo when settings key differs ==="
 jq '.extraKnownMarketplaces["alias"] = {source: {source: "github", repo: "owner/other-mp"}}' "$HOME/.claude/settings.json" >"$ROOT/settings.json"
 mv "$ROOT/settings.json" "$HOME/.claude/settings.json"
 run
-expect_called "claude plugins marketplace add owner/other-mp" "aliased marketplace not added"
+expect_called "claude plugins marketplace add --scope user -- owner/other-mp" "aliased marketplace not added"
 run
 expect_skipped "claude plugins marketplace add" "aliased marketplace re-added"
 echo "aliased marketplace: OK"
@@ -309,7 +310,7 @@ echo "=== marketplace repo change in settings is added ==="
 cp "$HOME/.claude/settings.json" "$ROOT/settings.orig.json"
 jq '.extraKnownMarketplaces["plugins-mp"].source.repo = "owner/fork-mp"' "$ROOT/settings.orig.json" >"$HOME/.claude/settings.json"
 run
-expect_called "claude plugins marketplace add owner/fork-mp" "changed marketplace repo trusted by name"
+expect_called "claude plugins marketplace add --scope user -- owner/fork-mp" "changed marketplace repo trusted by name"
 mv "$ROOT/settings.orig.json" "$HOME/.claude/settings.json"
 echo "changed marketplace repo: OK"
 
@@ -332,7 +333,7 @@ echo "=== new plugin installs only the new one ==="
 jq '.enabledPlugins["beta@plugins-mp"] = true' "$HOME/.claude/settings.json" >"$ROOT/settings.json"
 mv "$ROOT/settings.json" "$HOME/.claude/settings.json"
 run
-expect_called "claude plugins install beta@plugins-mp" "new plugin not installed"
+expect_called "claude plugins install --scope user -- beta@plugins-mp" "new plugin not installed"
 expect_skipped "$INSTALL_ALPHA" "existing plugin reinstalled"
 echo "new plugin: OK"
 

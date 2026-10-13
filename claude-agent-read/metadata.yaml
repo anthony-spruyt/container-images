@@ -1,3 +1,6 @@
 ---
 free-disk: true
+# assets/claude-plugins-bootstrap.sh is a copy of devcontainer-common's; test.sh fails when they differ.
+watch:
+  - devcontainer-common/assets/claude-plugins-bootstrap.sh
 test-command: bash ./claude-agent-read/test.sh "$IMAGE_REF"
