@@ -1,0 +1,32 @@
+#!/bin/bash
+set -euo pipefail
+
+# Usage: ap-mcp-headers [server]   (server defaults to $CLAUDE_CODE_MCP_SERVER_NAME)
+# MCP headersHelper: prints the auth headers of one server as JSON.
+# Builtins only: printf never forks, so a key stays out of every argv.
+
+server="${1:-${CLAUDE_CODE_MCP_SERVER_NAME:-}}"
+
+case "$server" in
+agentplatform)
+  name="Authorization"
+  key="${AP_MCP_SESSION_KEY:-}"
+  ;;
+litellm)
+  name="x-litellm-api-key"
+  key="${AP_LITELLM_API_KEY:-}"
+  ;;
+*)
+  echo "ap-mcp-headers: unknown MCP server '${server}'" >&2
+  exit 1
+  ;;
+esac
+
+if [[ -z "$key" || "$key" == *[[:cntrl:]]* ]]; then
+  echo "ap-mcp-headers: no usable key for '${server}'" >&2
+  exit 1
+fi
+
+key="${key//\\/\\\\}"
+key="${key//\"/\\\"}"
+printf '{"%s":"Bearer %s"}\n' "$name" "$key"
