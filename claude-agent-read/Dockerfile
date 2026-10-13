@@ -1,7 +1,6 @@
 # renovate: depName=ubuntu datasource=docker versioning=ubuntu
 FROM ubuntu:resolute@sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7
 
-# Ephemeral agent pod — lifespan managed by n8n spawner
 HEALTHCHECK NONE
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -39,7 +38,6 @@ RUN ARCH="$(dpkg --print-architecture)" \
   && tar -xJ --strip-components=1 -C /usr/local -f "/tmp/${TARBALL}" \
   && rm -f "/tmp/${TARBALL}"
 
-# GitHub CLI
 # renovate: depName=cli/cli datasource=github-releases
 ARG GH_VERSION="2.102.0"
 RUN ARCH="$(dpkg --print-architecture)" \
@@ -47,7 +45,6 @@ RUN ARCH="$(dpkg --print-architecture)" \
   && dpkg -i /tmp/gh.deb \
   && rm /tmp/gh.deb
 
-# ripgrep
 # renovate: depName=BurntSushi/ripgrep datasource=github-releases
 ARG RIPGREP_VERSION="15.2.0"
 RUN ARCH="$(dpkg --print-architecture)" \
@@ -65,6 +62,9 @@ RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}" \
   && if getent passwd 1000 >/dev/null; then userdel -r "$(getent passwd 1000 | cut -d: -f1)"; fi \
   && useradd -m -u 1000 -s /bin/bash node
 
+# BuildKit gives COPY --chmod's mode to the parent dirs it creates
+RUN install -d -m 0755 /etc/claude-code
+
 # Set up safe-chain shims for node user before any npm/pip calls
 USER 1000
 RUN safe-chain setup && safe-chain setup-ci
@@ -80,5 +80,4 @@ COPY --chmod=0644 assets/managed-settings.json /etc/claude-code/managed-settings
 COPY --chmod=0755 assets/ap-mcp-headers /usr/local/bin/ap-mcp-headers
 COPY --chmod=0755 assets/claude-plugins-bootstrap.sh /usr/local/bin/claude-plugins-bootstrap
 
-# Working directory
 WORKDIR /workspace

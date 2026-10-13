@@ -100,7 +100,10 @@ cat >"$WORKSPACE/.claude/settings.json" <<'JSON'
 }
 JSON
 
-calls() { grep -cF -- "$1" "$STUB_LOG" || true; }
+calls() {
+  local pattern="$1"
+  grep -cF -- "$pattern" "$STUB_LOG" || true
+}
 
 : >"$STUB_LOG"
 claude-plugins-bootstrap "$WORKSPACE"

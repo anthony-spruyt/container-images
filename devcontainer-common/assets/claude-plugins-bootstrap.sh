@@ -26,7 +26,8 @@ problem() {
 }
 # Values from settings must not parse as options or local paths
 unsafe_value() {
-  [[ "$1" == -* || "$1" == /* ]]
+  local value="$1"
+  [[ "$value" == -* || "$value" == /* ]]
 }
 
 if command -v claude &>/dev/null && command -v jq &>/dev/null; then
@@ -67,7 +68,7 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
   }
   bootstrap_claude_plugins() {
     local settings_file="$1" project_scope_counts="$2" marketplaces plugins name repo plugin
-    [ -f "$settings_file" ] || return 0
+    [[ -f "$settings_file" ]] || return 0
     jq empty "$settings_file" 2>/dev/null || {
       problem "  " "invalid JSON in $settings_file, skipping"
       return 0
