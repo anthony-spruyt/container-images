@@ -24,7 +24,8 @@ docker run --rm "$IMAGE_REF" bash -c '
   [[ "$(podman --version | grep -oE "[0-9]+" | head -1)" -ge 5 ]] &&
   echo "=== Scripts ===" &&
   test -x /usr/local/bin/agent-run && echo "agent-run: OK" &&
-  test -x /usr/local/bin/devcontainer-post-create && echo "devcontainer-post-create: OK"
+  test -x /usr/local/bin/devcontainer-post-create && echo "devcontainer-post-create: OK" &&
+  test -x /usr/local/bin/devcontainer-claude-plugins && echo "devcontainer-claude-plugins: OK"
 '
 
 echo "=== Build leftovers ==="
