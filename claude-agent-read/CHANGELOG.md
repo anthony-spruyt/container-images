@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.0.110...claude-agent-read-1.1.0) (2026-10-13)
+
+
+### Features
+
+* **claude-agent-read:** add managed settings, plugin bootstrap and MCP header helper ([#2315](https://github.com/anthony-spruyt/container-images/issues/2315)) ([d77e22a](https://github.com/anthony-spruyt/container-images/commit/d77e22a8c243d12984ec27bb5f36c2dafbc4b8a9))
+
 ## [1.0.110](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.0.109...claude-agent-read-1.0.110) (2026-10-12)
 
 

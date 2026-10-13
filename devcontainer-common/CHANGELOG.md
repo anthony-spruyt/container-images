@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.0](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.3.5...devcontainer-common-2.4.0) (2026-10-13)
+
+
+### Features
+
+* **claude-agent-read:** add managed settings, plugin bootstrap and MCP header helper ([#2315](https://github.com/anthony-spruyt/container-images/issues/2315)) ([d77e22a](https://github.com/anthony-spruyt/container-images/commit/d77e22a8c243d12984ec27bb5f36c2dafbc4b8a9))
+
 ## [2.3.5](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.3.4...devcontainer-common-2.3.5) (2026-10-12)
 
 
