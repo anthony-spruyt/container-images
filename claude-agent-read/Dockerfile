@@ -7,8 +7,7 @@ HEALTHCHECK NONE
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # System deps. xz-utils is required to extract the node .tar.xz tarball below
-# (node:24-slim provided it implicitly; ubuntu minimal does not). bubblewrap and socat are
-# the sandbox runtime that CLAUDE_CODE_SUBPROCESS_ENV_SCRUB starts Bash in.
+# (node:24-slim provided it implicitly; ubuntu minimal does not).
 # archive.ubuntu.com times out intermittently on GitHub runners. Without
 # Error-Mode=any, apt-get update only warns on an unreachable mirror and the
 # install fails later with a confusing "has no installation candidate".
@@ -25,8 +24,7 @@ RUN { echo 'Acquire::Retries "5";'; \
   done; \
   [[ -n "${ok}" ]] \
   && apt-get install -y --no-install-recommends \
-  bubblewrap ca-certificates curl git jq openssh-client python3 python3-pip \
-  socat xz-utils \
+  ca-certificates curl git jq openssh-client python3 python3-pip xz-utils \
   && rm -rf /var/lib/apt/lists/*
 
 # Node.js (prebuilt binary tarball — Renovate tracks via node-version datasource)

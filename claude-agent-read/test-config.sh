@@ -20,8 +20,7 @@ jq -e '. == {
   },
   env: {
     DISABLE_AUTOUPDATER: "1",
-    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
-    CLAUDE_CODE_SUBPROCESS_ENV_SCRUB: "1"
+    CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1"
   }
 }' "$settings" >/dev/null || fail "managed settings differ from the expected content"
 echo "OK: managed settings"

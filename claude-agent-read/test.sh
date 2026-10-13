@@ -16,7 +16,7 @@ echo "OK: copy is current"
 docker run --rm "$IMAGE" bash -c '
 set -euo pipefail
 
-for bin in claude node python3 git npm jq gh rg bwrap socat claude-plugins-bootstrap ap-mcp-headers; do
+for bin in claude node python3 git npm jq gh rg claude-plugins-bootstrap ap-mcp-headers; do
   if ! command -v "$bin" &>/dev/null; then
     echo "FAIL: $bin not found"
     exit 1

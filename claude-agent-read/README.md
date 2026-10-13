@@ -18,17 +18,14 @@ Minimal runtime image for read-only Claude Code agents running as Kubernetes pod
 | Aikido safe-chain | npm supply chain security  |
 | gh CLI            | GitHub API operations      |
 | ripgrep           | Fast recursive code search |
-| bubblewrap, socat | Bash sandbox runtime       |
 
 ## Runtime configuration
 
-- `/etc/claude-code/managed-settings.json`: agent policy. `bypassPermissions` default mode, `/workspace/pr` as an extra directory, `Read(//proc/**)` denied, updates and nonessential traffic off, subprocess environment scrub on.
+- `/etc/claude-code/managed-settings.json`: agent policy. `bypassPermissions` default mode, `/workspace/pr` as an extra directory, `Read(//proc/**)` denied, updates and nonessential traffic off.
 - `claude-plugins-bootstrap <workspace-dir>`: init-container script that installs the plugins named in the user, project and local Claude Code settings of that checkout, at user scope into `$HOME/.claude`.
 - `ap-mcp-headers [server]`: MCP `headersHelper` that prints the auth headers of `agentplatform` or `litellm` (the server named by `CLAUDE_CODE_MCP_SERVER_NAME`) as JSON, from `AP_MCP_SESSION_KEY` or `AP_LITELLM_API_KEY`.
 
 `claude-plugins-bootstrap` is a copy of `devcontainer-common/assets/claude-plugins-bootstrap.sh`; `test.sh` fails when they differ.
-
-With the subprocess environment scrub on, Claude Code runs Bash inside bubblewrap, which needs a pod that allows it to mount `/proc`.
 
 ## Build
 
