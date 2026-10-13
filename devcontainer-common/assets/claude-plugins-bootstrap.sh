@@ -3,13 +3,30 @@ set -euo pipefail
 
 # Usage: claude-plugins-bootstrap <workspace-dir>
 # Installs the plugins named by user, project and local Claude Code settings at user scope.
-# claude-agent-read/assets/claude-plugins-bootstrap.sh is a copy of this file; keep them equal.
+# Identical copies in devcontainer-common/assets and claude-agent-read/assets; claude-agent-read/test.sh compares them.
+# CLAUDE_PLUGINS_STRICT=1 (pod mode): any failure exits non-zero and settings.local.json is not read.
 
 WORKSPACE="${1:?Usage: claude-plugins-bootstrap <workspace-dir>}"
 
 export PATH="$HOME/.local/bin:$PATH"
+STRICT=false
+[[ "${CLAUDE_PLUGINS_STRICT:-}" == "1" ]] && STRICT=true
+FAILED=false
 claude_with_timeout() {
   timeout --foreground 120 claude "$@" </dev/null
+}
+# problem <indent> <message>: a warning by default, a recorded failure in strict mode
+problem() {
+  if $STRICT; then
+    echo "$1ERROR: $2" >&2
+    FAILED=true
+  else
+    echo "$1WARNING: $2"
+  fi
+}
+# Values from settings must not parse as options or local paths
+unsafe_value() {
+  [[ "$1" == -* || "$1" == /* ]]
 }
 
 if command -v claude &>/dev/null && command -v jq &>/dev/null; then
@@ -41,46 +58,54 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
   }
   install_plugin() {
     local plugin="$1" marketplace="${1##*@}"
-    claude_with_timeout plugins install "$plugin" --scope user && return 0
+    claude_with_timeout plugins install --scope user -- "$plugin" && return 0
     # A marketplace clone kept from an earlier run can predate the plugin
     grep -qxF -- "$marketplace" <<<"$REFRESHED_MARKETPLACES" && return 1
     REFRESHED_MARKETPLACES+="$marketplace"$'\n'
     echo "    refreshing marketplace '$marketplace' and retrying"
-    claude_with_timeout plugins marketplace update "$marketplace" && claude_with_timeout plugins install "$plugin" --scope user
+    claude_with_timeout plugins marketplace update -- "$marketplace" && claude_with_timeout plugins install --scope user -- "$plugin"
   }
   bootstrap_claude_plugins() {
     local settings_file="$1" project_scope_counts="$2" marketplaces plugins name repo plugin
     [ -f "$settings_file" ] || return 0
     jq empty "$settings_file" 2>/dev/null || {
-      echo "  WARNING: invalid JSON in $settings_file, skipping"
+      problem "  " "invalid JSON in $settings_file, skipping"
       return 0
     }
     echo "  reading $settings_file"
     marketplaces=$(jq -r '.extraKnownMarketplaces // {} | to_entries[] | select(.key != "claude-plugins-official") | select(.value.source != null and .value.source.repo != null) | "\(.key)\t\(.value.source.repo)"' "$settings_file" 2>/dev/null) || {
-      echo "    WARNING: unexpected extraKnownMarketplaces shape in $settings_file, skipping marketplaces"
+      problem "    " "unexpected extraKnownMarketplaces shape in $settings_file, skipping marketplaces"
       marketplaces=""
     }
     if [[ -n "$marketplaces" ]]; then
       while IFS=$'\t' read -r -u 3 name repo; do
+        if unsafe_value "$repo"; then
+          problem "    " "marketplace '$name' skipped: value starts with '-' or '/'"
+          continue
+        fi
         if marketplace_known "$repo"; then
           echo "    marketplace: $name (already added)"
           continue
         fi
         echo "    marketplace: $name ($repo)"
-        if claude_with_timeout plugins marketplace add "$repo" --scope user; then
+        if claude_with_timeout plugins marketplace add --scope user -- "$repo"; then
           ADDED_REPOS+="$repo"$'\n'
           REFRESHED_MARKETPLACES+="$name"$'\n'
         else
-          echo "    WARNING: failed to add marketplace '$name'"
+          problem "    " "failed to add marketplace '$name'"
         fi
       done 3<<<"$marketplaces"
     fi
     plugins=$(jq -r '.enabledPlugins // {} | to_entries[] | select(.value == true or .value == "true") | select(.key | endswith("@claude-plugins-official") | not) | .key' "$settings_file" 2>/dev/null) || {
-      echo "    WARNING: unexpected enabledPlugins shape in $settings_file, skipping plugins"
+      problem "    " "unexpected enabledPlugins shape in $settings_file, skipping plugins"
       plugins=""
     }
     [[ -n "$plugins" ]] || return 0
     while IFS= read -r -u 3 plugin; do
+      if unsafe_value "$plugin"; then
+        problem "    " "plugin '$plugin' skipped: value starts with '-' or '/'"
+        continue
+      fi
       if plugin_installed "$plugin" "$project_scope_counts"; then
         echo "    install: $plugin (already installed)"
         continue
@@ -89,7 +114,7 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
       if install_plugin "$plugin"; then
         NEW_PLUGINS+="$plugin"$'\n'
       else
-        echo "    WARNING: failed to install '$plugin'"
+        problem "    " "failed to install '$plugin'"
       fi
     done 3<<<"$plugins"
   }
@@ -97,5 +122,9 @@ if command -v claude &>/dev/null && command -v jq &>/dev/null; then
   # Settings precedence: user → project → local
   bootstrap_claude_plugins "$HOME/.claude/settings.json" false
   bootstrap_claude_plugins "$WORKSPACE/.claude/settings.json" true
-  bootstrap_claude_plugins "$WORKSPACE/.claude/settings.local.json" true
+  $STRICT || bootstrap_claude_plugins "$WORKSPACE/.claude/settings.local.json" true
+  ! $FAILED || exit 1
+elif $STRICT; then
+  echo "ERROR: claude and jq are required" >&2
+  exit 1
 fi

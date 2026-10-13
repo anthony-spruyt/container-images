@@ -76,7 +76,6 @@ ARG CLAUDE_VERSION="2.1.296"
 RUN curl -fsSL https://claude.ai/install.sh | bash -s -- "$CLAUDE_VERSION"
 ENV PATH="/home/node/.local/bin:${PATH}"
 
-# Agent runtime config. The managed settings are read-only to the agent user.
 COPY --chmod=0644 assets/managed-settings.json /etc/claude-code/managed-settings.json
 COPY --chmod=0755 assets/ap-mcp-headers /usr/local/bin/ap-mcp-headers
 COPY --chmod=0755 assets/claude-plugins-bootstrap.sh /usr/local/bin/claude-plugins-bootstrap
