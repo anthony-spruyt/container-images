@@ -22,7 +22,7 @@ RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
 
 COPY pyproject.toml uv.lock ./
 RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
-    uv sync --locked --no-dev --inexact --group cpu
+    uv sync --locked --no-build --no-dev --inexact --group cpu
 
 COPY app/ .
 
