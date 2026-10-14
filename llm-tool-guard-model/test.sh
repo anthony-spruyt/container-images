@@ -46,7 +46,7 @@ echo "  $PINNED OK"
 
 echo "Test 2: the snapshot holds exactly the files the scanner loads..."
 SNAPSHOT="$OUT/$MODEL_DIR/snapshots/$PINNED"
-mapfile -t FOUND < <(ls -1 "$SNAPSHOT")
+mapfile -t FOUND < <(LC_ALL=C ls -1 "$SNAPSHOT")
 if [[ "${FOUND[*]}" != "${FILES[*]}" ]]; then
   echo "  ERROR: snapshot holds '${FOUND[*]}', expected '${FILES[*]}'" >&2
   exit 1

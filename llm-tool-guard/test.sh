@@ -157,7 +157,7 @@ docker start "$VALKEY" >/dev/null
 HF_MOUNT=(--tmpfs /app/.cache/huggingface:mode=1777 -v "$HUB:/app/.cache/huggingface/hub:ro")
 start_guard -e HF_HUB_OFFLINE=1
 wait_for "$BASE/readyz" 120
-if docker exec "$GUARD" touch /app/.cache/huggingface/hub/probe 2>/dev/null; then
+if docker exec -u 0 "$GUARD" touch /app/.cache/huggingface/hub/probe 2>/dev/null; then
   echo "  ERROR: the model cache is writable" >&2
   exit 1
 fi
