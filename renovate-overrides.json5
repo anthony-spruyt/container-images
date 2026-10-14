@@ -1,54 +1,55 @@
 // Repo-specific Renovate overrides
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  // List every uv lock here and in the pip_requirements rule below.
+  // List every pip-compile lock here and in the pip_requirements rule below.
   "pip-compile": {
-    "managerFilePatterns": [
-      "llm-tool-guard-model/requirements.txt",
-      "llm-guard/app/requirements-cpu.txt",
-      "llm-guard/app/requirements-cuda.txt",
-      "llm-guard/app/requirements.txt",
-      "llm-tool-guard/app/requirements-cpu.txt",
-      "llm-tool-guard/app/requirements.txt",
-    ],
+    "managerFilePatterns": ["llm-tool-guard-model/requirements.txt"],
     "lockFileMaintenance": {
       "schedule": ["before 4am on the first day of the month"],
     },
   },
+  "pep621": {
+    "lockFileMaintenance": {
+      "enabled": true,
+      "schedule": ["before 4am on the first day of the month"],
+    },
+  },
   "packageRules": [
-    // pip-compile owns these files and updates them with hashes; pip_requirements
+    // pip-compile owns this file and updates it with hashes; pip_requirements
     // would also match the lock file and open a second, hash-less PR.
     {
       "description": "Leave pip-compile lock files to the pip-compile manager",
       "matchManagers": ["pip_requirements"],
-      "matchFileNames": [
-        "llm-tool-guard-model/requirements.txt",
-        "llm-guard/app/requirements-cpu.txt",
-        "llm-guard/app/requirements-cuda.txt",
-        "llm-guard/app/requirements.txt",
-        "llm-tool-guard/app/requirements-cpu.txt",
-        "llm-tool-guard/app/requirements.txt",
-      ],
+      "matchFileNames": ["llm-tool-guard-model/requirements.txt"],
       "enabled": false,
     },
-    // pip-compile reads the torch pyproject.toml files as its source; pep621
-    // would also match them and bump torch there without regenerating the lock.
-    {
-      "description": "Leave the torch pyproject.toml lock sources to the pip-compile manager",
-      "matchManagers": ["pep621"],
-      "matchFileNames": ["llm-guard/torch/*/pyproject.toml", "llm-tool-guard/torch/*/pyproject.toml"],
-      "enabled": false,
-    },
-    // The torch pins differ by local version (+cpu vs +cu130), so Renovate would
-    // open one PR per file; they must move together or the images drift apart.
+    // The torch pins differ by local version (+cpu vs +cu130) and live in two
+    // apps, so Renovate would open one PR per variant; they must move together.
     {
       "description": "Group torch CPU and CUDA variant updates into one PR",
-      "matchManagers": ["pip-compile"],
+      "matchManagers": ["pep621"],
       "matchPackageNames": ["torch"],
       "groupName": "torch",
       "group": {
         "commitMessageTopic": "torch (cpu + cuda)",
       },
+    },
+    // pep621 hands every torch pin all the indexes uv.sources lists, so the CPU pin
+    // would look up (and move to) a CUDA build; pin each variant to its own index.
+    // Moving to another CUDA variant is a manual edit of pyproject.toml and this rule.
+    {
+      "description": "Look up CPU torch pins on the CPU index",
+      "matchManagers": ["pep621"],
+      "matchPackageNames": ["torch"],
+      "matchCurrentValue": "/\\+cpu$/",
+      "registryUrls": ["https://download.pytorch.org/whl/cpu"],
+    },
+    {
+      "description": "Look up CUDA 13.0 torch pins on the CUDA 13.0 index",
+      "matchManagers": ["pep621"],
+      "matchPackageNames": ["torch"],
+      "matchCurrentValue": "/\\+cu130$/",
+      "registryUrls": ["https://download.pytorch.org/whl/cu130"],
     },
     {
       "description": "Label toolchain pins in MegaLinter language definitions like flavor pins",

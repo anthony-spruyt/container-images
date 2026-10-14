@@ -1,8 +1,0 @@
-# Compiled with the torch lock as a constraint, so a package that torch also needs locks to one version.
-fastapi==0.142.2
-uvicorn[standard]==0.54.0
-transformers==5.19.0
-tokenizers==0.23.3
-pydantic==2.14.1
-redis==8.1.0
-prometheus-client==0.26.0

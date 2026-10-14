@@ -58,4 +58,4 @@ Scans still running when `SHUTDOWN_DRAIN_SECONDS` ends stop at their next window
 
 ## Download tooling
 
-The Python dependencies are locked with hashes in [app/requirements.txt](app/requirements.txt) and [app/requirements-cpu.txt](app/requirements-cpu.txt), installed with `--require-hashes`, and kept current by Renovate. To bump by hand, edit [app/requirements.in](app/requirements.in) or [torch/cpu/pyproject.toml](torch/cpu/pyproject.toml), then re-run the lock's header command from the repo root.
+The Python dependencies are pinned in [pyproject.toml](pyproject.toml) and locked with hashes in [uv.lock](uv.lock), installed with `uv sync --locked`, and kept current by Renovate. To bump by hand, edit [pyproject.toml](pyproject.toml), then run `uv lock` in this directory and commit both files. torch is the `cpu` dependency group and comes from the PyTorch CPU index; everything else comes from PyPI.
