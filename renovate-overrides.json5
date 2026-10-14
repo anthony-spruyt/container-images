@@ -20,14 +20,6 @@
       "matchFileNames": ["megalinter-factory/base.yaml", "megalinter-factory/languages/*.yaml"],
       "addLabels": ["renovate/megalinter-flavor"],
     },
-    // The weights image builds identical layers from the same revision, so a
-    // base-image or tooling bump needs no release; `build` has no changelog
-    // section, so release-please skips it.
-    {
-      "description": "Build-tool bumps in the weights image release nothing",
-      "matchFileNames": ["llm-tool-guard-model/**"],
-      "semanticCommitType": "build",
-    },
     // release-please writes a CHANGELOG.md per image directory. Without
     // sourceDirectory Renovate looks for release notes at the repo root and
     // finds none, so updates to our own images render with an empty body.
