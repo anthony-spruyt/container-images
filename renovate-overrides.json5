@@ -1,10 +1,14 @@
 // Repo-specific Renovate overrides
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  // pip-compile reads uv's header in each lock file for the command, then
-  // updates the sibling requirements.in. List every locked requirements.txt here.
+  // List every uv-locked requirements.txt here.
   "pip-compile": {
-    "managerFilePatterns": ["llm-tool-guard-model/requirements.txt"],
+    "managerFilePatterns": [
+      "llm-tool-guard-model/requirements.txt",
+      "llm-guard/app/requirements-cpu.txt",
+      "llm-guard/app/requirements-cuda.txt",
+      "llm-guard/app/requirements.txt",
+    ],
     "lockFileMaintenance": {
       "schedule": ["before 4am on the first day of the month"],
     },
@@ -15,15 +19,32 @@
     {
       "description": "Leave pip-compile lock files to the pip-compile manager",
       "matchManagers": ["pip_requirements"],
-      "matchFileNames": ["llm-tool-guard-model/requirements.txt"],
+      "matchFileNames": [
+        "llm-tool-guard-model/requirements.txt",
+        "llm-guard/app/requirements-cpu.txt",
+        "llm-guard/app/requirements-cuda.txt",
+        "llm-guard/app/requirements.txt",
+      ],
       "enabled": false,
     },
-    // torch is pinned per-variant from a different PyTorch index (+cpu vs
-    // +cu130), so Renovate sees two packages and opens two PRs. The pins must
-    // move together or the CPU and CUDA images drift apart.
+    // pip-compile reads the torch pyproject.toml files as its source; pep621
+    // would also match them and bump torch there without regenerating the lock.
+    {
+      "description": "Leave the torch pyproject.toml lock sources to the pip-compile manager",
+      "matchManagers": ["pep621"],
+      "matchFileNames": ["llm-guard/torch/*/pyproject.toml", "llm-tool-guard/torch/*/pyproject.toml"],
+      "enabled": false,
+    },
+    {
+      "description": "Label pip-compile updates like the other Python managers",
+      "matchManagers": ["pip-compile"],
+      "addLabels": ["renovate/python"],
+    },
+    // The torch pins differ by local version (+cpu vs +cu130), so Renovate would
+    // open one PR per file; they must move together or the images drift apart.
     {
       "description": "Group torch CPU and CUDA variant updates into one PR",
-      "matchManagers": ["pip_requirements"],
+      "matchManagers": ["pip-compile"],
       "matchPackageNames": ["torch"],
       "groupName": "torch",
       "group": {

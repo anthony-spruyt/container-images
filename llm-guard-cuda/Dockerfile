@@ -4,22 +4,16 @@ FROM python:${PYTHON_VERSION}
 
 WORKDIR /app
 
-# Built from the llm-guard/ build context (metadata.yaml build_context), so
-# app/ is shared with the CPU image and only the torch requirements file
-# differs. torch is installed first and from its own requirements file:
-# --index-url replaces PyPI wholesale, and the PyTorch index does not serve
-# fastapi, uvicorn, transformers or pyyaml. Torch first also keeps the
-# largest, most cache-stable layer at the bottom.
-#
-# --only-binary :all: refuses source distributions outright: every dependency
-# here publishes a cp314/abi3 manylinux wheel, so a missing wheel means a
-# resolution mistake and should fail the build rather than silently run an
-# arbitrary setup.py at image-build time.
+# Built from the llm-guard/ build context (metadata.yaml build_context): app/ is shared with the CPU image, only the torch lock differs.
+# torch is installed first, from its own lock, so an app dependency bump does not re-pull its layer.
+# --only-binary :all: fails the build on a missing wheel instead of running a setup.py.
+# --extra-index-url is safe only because --require-hashes pins exact files; keep the URL equal to torch/cuda/pyproject.toml.
 COPY app/requirements-cuda.txt .
-RUN pip install --no-cache-dir --only-binary :all: -r requirements-cuda.txt
+RUN pip install --no-cache-dir --only-binary :all: --require-hashes \
+    --extra-index-url https://download.pytorch.org/whl/cu130 -r requirements-cuda.txt
 
 COPY app/requirements.txt .
-RUN pip install --no-cache-dir --only-binary :all: -r requirements.txt
+RUN pip install --no-cache-dir --only-binary :all: --require-hashes -r requirements.txt
 
 COPY app/ .
 

@@ -4,20 +4,15 @@ FROM python:${PYTHON_VERSION}
 
 WORKDIR /app
 
-# torch is installed first and from its own requirements file: --index-url
-# replaces PyPI wholesale, and the PyTorch index does not serve fastapi,
-# uvicorn, transformers or pyyaml. Torch first also keeps the largest, most
-# cache-stable layer at the bottom and splits what used to be one 2.7GB layer
-# into two, which containerd can pull in parallel.
-# --only-binary :all: refuses source distributions outright: every dependency
-# here publishes a cp314/abi3 manylinux wheel, so a missing wheel means a
-# resolution mistake and should fail the build rather than silently run an
-# arbitrary setup.py at image-build time.
+# torch is installed first, from its own lock, so an app dependency bump does not re-pull its layer.
+# --only-binary :all: fails the build on a missing wheel instead of running a setup.py.
+# --extra-index-url is safe only because --require-hashes pins exact files; keep the URL equal to torch/cpu/pyproject.toml.
 COPY app/requirements-cpu.txt .
-RUN pip install --no-cache-dir --only-binary :all: -r requirements-cpu.txt
+RUN pip install --no-cache-dir --only-binary :all: --require-hashes \
+    --extra-index-url https://download.pytorch.org/whl/cpu -r requirements-cpu.txt
 
 COPY app/requirements.txt .
-RUN pip install --no-cache-dir --only-binary :all: -r requirements.txt
+RUN pip install --no-cache-dir --only-binary :all: --require-hashes -r requirements.txt
 
 COPY app/ .
 
