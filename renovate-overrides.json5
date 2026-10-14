@@ -1,7 +1,23 @@
 // Repo-specific Renovate overrides
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  // pip-compile reads uv's header in each lock file for the command, then
+  // updates the sibling requirements.in. List every locked requirements.txt here.
+  "pip-compile": {
+    "managerFilePatterns": ["llm-tool-guard-model/requirements.txt"],
+    "lockFileMaintenance": {
+      "schedule": ["before 4am on the first day of the month"],
+    },
+  },
   "packageRules": [
+    // pip-compile owns these files and updates them with hashes; pip_requirements
+    // would also match the lock file and open a second, hash-less PR.
+    {
+      "description": "Leave pip-compile lock files to the pip-compile manager",
+      "matchManagers": ["pip_requirements"],
+      "matchFileNames": ["llm-tool-guard-model/requirements.txt"],
+      "enabled": false,
+    },
     // torch is pinned per-variant from a different PyTorch index (+cpu vs
     // +cu130), so Renovate sees two packages and opens two PRs. The pins must
     // move together or the CPU and CUDA images drift apart.
@@ -82,6 +98,12 @@
       "matchDatasources": ["docker"],
       "matchPackageNames": ["ghcr.io/anthony-spruyt/llm-tool-guard"],
       "sourceDirectory": "llm-tool-guard",
+    },
+    {
+      "description": "Release notes for own images: llm-tool-guard-model",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/anthony-spruyt/llm-tool-guard-model"],
+      "sourceDirectory": "llm-tool-guard-model",
     },
     {
       "description": "Release notes for own images: ssh-key-rotation",
