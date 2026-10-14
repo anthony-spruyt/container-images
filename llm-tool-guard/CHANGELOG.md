@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.1.1...llm-tool-guard-1.2.0) (2026-10-14)
+
+
+### Features
+
+* **llm-tool-guard-model:** ship the scanner model as its own weights image ([19739df](https://github.com/anthony-spruyt/container-images/commit/19739dfc09ff29f7c7c0445c937b0a68f4e27d9e))
+
 ## [1.1.1](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.1.0...llm-tool-guard-1.1.1) (2026-10-12)
 
 
