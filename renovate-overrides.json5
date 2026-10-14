@@ -1,25 +1,6 @@
 // Repo-specific Renovate overrides
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  // enabledManagers does not merge across presets, so this repeats the shared
-  // list from repo-operator's managers.json5 with pip-compile added. Keep it in sync.
-  "enabledManagers": [
-    "custom.regex",
-    "devcontainer",
-    "dockerfile",
-    "flux",
-    "github-actions",
-    "gomod",
-    "helm-values",
-    "kubernetes",
-    "npm",
-    "nuget",
-    "pep621",
-    "pip-compile",
-    "pip_requirements",
-    "pre-commit",
-    "terraform",
-  ],
   // pip-compile reads uv's header in each lock file for the command, then
   // updates the sibling requirements.in. List every locked requirements.txt here.
   "pip-compile": {
