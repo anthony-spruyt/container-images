@@ -4,7 +4,7 @@ The model weights for [llm-tool-guard](../llm-tool-guard/README.md), as an image
 
 The files sit at the image root, laid out as a hub cache (huggingface_hub 2.x): `models--Horizon-Labs--prompt-injection-guard-base/` with `snapshots/<revision>/`, `refs/main` holding the revision, and `blobs/`. In the snapshot each file links to `models--…/blobs/<id>`, and the large files link on to the top-level `blobs/<xx>/<sha256>`, so mount the whole image with no `subPath`.
 
-The image has no shell and no command; it only supplies files. The same revision always builds byte-identical layers, so Renovate bumps to the build tooling in this directory release nothing.
+The image has no shell and no command; it only supplies files. The same revision always builds byte-identical layers, so a release from a build-tooling bump costs nodes no new download.
 
 ## Usage
 
