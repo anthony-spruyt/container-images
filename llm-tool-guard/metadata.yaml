@@ -1,6 +1,8 @@
 ---
 free-disk: true
 # app/scanner_types.py is a copy of llm-guard's; test.sh fails when they differ.
+# test.sh also mounts the llm-tool-guard-model weights, so a weights change re-runs it.
 watch:
   - llm-guard/app/scanner_types.py
+  - llm-tool-guard-model
 test-command: bash ./llm-tool-guard/test.sh "$IMAGE_REF"

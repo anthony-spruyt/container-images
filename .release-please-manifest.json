@@ -9,6 +9,7 @@
   "llm-guard": "1.1.1",
   "llm-guard-cuda": "1.1.1",
   "llm-tool-guard": "1.1.1",
+  "llm-tool-guard-model": "0.0.0",
   "megalinter-base": "1.0.1",
   "megalinter-cpp": "1.1.1",
   "megalinter-go": "2.1.1",
