@@ -12,23 +12,18 @@ RUN pip install --no-cache-dir --only-binary :all: --require-hashes \
     --extra-index-url https://download.pytorch.org/whl/cpu -r requirements-cpu.txt
 
 COPY app/requirements.txt .
-RUN pip install --no-cache-dir --only-binary :all: --require-hashes -r requirements.txt
+# The torch lock is not re-locked when this one changes, so pip check fails the build if the two layers disagree.
+RUN pip install --no-cache-dir --only-binary :all: --require-hashes -r requirements.txt \
+    && pip check
 
 COPY app/ .
 
-# Model weights are NOT baked in. The scanner downloads them into HF_HOME on
-# first load (transformers pipeline() pulls from the Hub when the cache misses)
-# and reuses the cache thereafter. Mount a persistent volume at HF_HOME so the
-# download survives restarts. Keeping weights out of the image avoids a ~2.9GB
-# layer and the slow cold pull it caused on every tag bump.
+# Model weights are not baked in: mount a persistent volume at HF_HOME so the first-load download survives restarts.
 ENV HF_HOME=/app/.cache/huggingface
 
 RUN useradd -u 1000 -m appuser && chown -R 1000:1000 /app
 USER 1000:1000
 
-# Scanner pipeline is configured via CONFIG_FILE (required). Default to the
-# baked-in single-scanner config; override by mounting a file and setting
-# CONFIG_FILE to its path (e.g. /config/scanners.yml).
 ENV CONFIG_FILE=/app/default-scanners.yml
 ENV LISTEN_HOST=0.0.0.0
 ENV LISTEN_PORT=8080

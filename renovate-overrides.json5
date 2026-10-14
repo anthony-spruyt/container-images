@@ -1,7 +1,7 @@
 // Repo-specific Renovate overrides
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  // List every uv-locked requirements.txt here.
+  // List every uv lock here and in the pip_requirements rule below.
   "pip-compile": {
     "managerFilePatterns": [
       "llm-tool-guard-model/requirements.txt",

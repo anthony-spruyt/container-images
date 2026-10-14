@@ -12,7 +12,9 @@ RUN pip install --no-cache-dir --only-binary :all: --require-hashes \
     --extra-index-url https://download.pytorch.org/whl/cpu -r requirements-cpu.txt
 
 COPY app/requirements.txt .
-RUN pip install --no-cache-dir --only-binary :all: --require-hashes -r requirements.txt
+# The torch lock is not re-locked when this one changes, so pip check fails the build if the two layers disagree.
+RUN pip install --no-cache-dir --only-binary :all: --require-hashes -r requirements.txt \
+    && pip check
 
 COPY app/ .
 

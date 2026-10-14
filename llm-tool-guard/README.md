@@ -55,3 +55,7 @@ Verdicts are cached in Valkey under a namespace derived from the model and its r
 A scan that runs past `SCAN_TIMEOUT_SECONDS` is flagged, not cached, and counted as `llm_tool_guard_scans_total{verdict="timeout"}`. A model call already running cannot be interrupted, so the budget is checked before each window and the worker is freed at the next window boundary.
 
 Scans still running when `SHUTDOWN_DRAIN_SECONDS` ends stop at their next window, are not cached, and are counted as `llm_tool_guard_scans_total{verdict="stopped"}`.
+
+## Download tooling
+
+The Python dependencies are locked with hashes in [app/requirements.txt](app/requirements.txt) and [app/requirements-cpu.txt](app/requirements-cpu.txt), installed with `--require-hashes`, and kept current by Renovate. To bump by hand, edit [app/requirements.in](app/requirements.in) or [torch/cpu/pyproject.toml](torch/cpu/pyproject.toml), then re-run the lock's header command from the repo root.

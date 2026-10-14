@@ -1,5 +1,4 @@
-# Compiled with the torch locks as constraints
-# so a package both sides need locks to one version.
+# Compiled with the torch locks as constraints, so a package that torch also needs locks to one version.
 fastapi==0.142.2
 uvicorn[standard]==0.54.0
 transformers==5.19.0
