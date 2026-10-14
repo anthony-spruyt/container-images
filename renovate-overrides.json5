@@ -1,8 +1,7 @@
 // Repo-specific Renovate overrides
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  // pip-compile reads uv's header in each lock file for the command, then
-  // updates the sibling requirements.in. List every locked requirements.txt here.
+  // List every pip-compile lock here and in the pip_requirements rule below.
   "pip-compile": {
     "managerFilePatterns": ["llm-tool-guard-model/requirements.txt"],
     "lockFileMaintenance": {
@@ -10,7 +9,7 @@
     },
   },
   "packageRules": [
-    // pip-compile owns these files and updates them with hashes; pip_requirements
+    // pip-compile owns this file and updates it with hashes; pip_requirements
     // would also match the lock file and open a second, hash-less PR.
     {
       "description": "Leave pip-compile lock files to the pip-compile manager",
@@ -18,17 +17,32 @@
       "matchFileNames": ["llm-tool-guard-model/requirements.txt"],
       "enabled": false,
     },
-    // torch is pinned per-variant from a different PyTorch index (+cpu vs
-    // +cu130), so Renovate sees two packages and opens two PRs. The pins must
-    // move together or the CPU and CUDA images drift apart.
+    // The torch pins differ by local version (+cpu vs +cu130) and live in two
+    // apps, so Renovate would open one PR per variant; they must move together.
     {
       "description": "Group torch CPU and CUDA variant updates into one PR",
-      "matchManagers": ["pip_requirements"],
+      "matchManagers": ["pep621"],
       "matchPackageNames": ["torch"],
       "groupName": "torch",
       "group": {
         "commitMessageTopic": "torch (cpu + cuda)",
       },
+    },
+    // pep621 gives every torch pin all the indexes uv.sources lists, so a CPU pin
+    // would move to a CUDA build; each variant is looked up on its own index.
+    {
+      "description": "Look up CPU torch pins on the CPU index",
+      "matchManagers": ["pep621"],
+      "matchPackageNames": ["torch"],
+      "matchCurrentValue": "/\\+cpu$/",
+      "registryUrls": ["https://download.pytorch.org/whl/cpu"],
+    },
+    {
+      "description": "Look up CUDA 13.0 torch pins on the CUDA 13.0 index; a new CUDA variant needs its own rule here and in pyproject.toml",
+      "matchManagers": ["pep621"],
+      "matchPackageNames": ["torch"],
+      "matchCurrentValue": "/\\+cu130$/",
+      "registryUrls": ["https://download.pytorch.org/whl/cu130"],
     },
     {
       "description": "Label toolchain pins in MegaLinter language definitions like flavor pins",
