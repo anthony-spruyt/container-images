@@ -17,6 +17,7 @@ cpu = ["torch==2.14.1+cpu"]
 
 [tool.uv]
 package = false
+no-build = true
 environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
 
 [tool.uv.sources]

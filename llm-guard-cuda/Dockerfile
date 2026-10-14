@@ -1,20 +1,27 @@
 # renovate: datasource=docker depName=python
 ARG PYTHON_VERSION=3.14-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170
 FROM ghcr.io/astral-sh/uv:0.13.1@sha256:4a1f3666816dafadd20ceb71eac9a7d56d7ef30279f7d64048519ab901ada336 AS uv
+FROM python:${PYTHON_VERSION} AS torch-lock
+WORKDIR /lock
+# Built from the llm-guard/ build context (metadata.yaml build_context): pyproject.toml, uv.lock and app/ are shared with the CPU image.
+COPY pyproject.toml uv.lock ./
+# Hashed export of only cu130 torch and its dependencies: unchanged while app pins change, so the torch layer stays cached.
+RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
+    uv export --locked --no-dev --only-group cu130 --format pylock.toml --output-file pylock.torch.toml
+
 FROM python:${PYTHON_VERSION}
 
 WORKDIR /app
 
-# Built from the llm-guard/ build context (metadata.yaml build_context): pyproject.toml, uv.lock and app/ are shared with the CPU image.
+# Build-time only (ARG): uv installs into the image's Python, and --inexact keeps that Python's pip.
+ARG UV_PROJECT_ENVIRONMENT=/usr/local UV_PYTHON_DOWNLOADS=never UV_NO_CACHE=1 UV_LINK_MODE=copy UV_COMPILE_BYTECODE=1
 
-# Installs into the image's Python (--inexact keeps its pip); UV_NO_BUILD fails on a missing wheel instead of running a build script.
-ENV UV_PROJECT_ENVIRONMENT=/usr/local UV_PYTHON_DOWNLOADS=never UV_NO_CACHE=1 UV_LINK_MODE=copy UV_COMPILE_BYTECODE=1 UV_NO_BUILD=1
+COPY --from=torch-lock /lock/pylock.torch.toml /tmp/pylock.torch.toml
+RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
+    uv pip install --system --require-hashes --no-build --no-deps -r /tmp/pylock.torch.toml \
+    && rm /tmp/pylock.torch.toml
 
 COPY pyproject.toml uv.lock ./
-# torch gets its own layer, ahead of the app dependencies.
-RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
-    uv sync --locked --no-dev --inexact --only-group cu130
-# hadolint ignore=DL3059
 RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
     uv sync --locked --no-dev --inexact --group cu130
 

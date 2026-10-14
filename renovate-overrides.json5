@@ -8,12 +8,6 @@
       "schedule": ["before 4am on the first day of the month"],
     },
   },
-  "pep621": {
-    "lockFileMaintenance": {
-      "enabled": true,
-      "schedule": ["before 4am on the first day of the month"],
-    },
-  },
   "packageRules": [
     // pip-compile owns this file and updates it with hashes; pip_requirements
     // would also match the lock file and open a second, hash-less PR.
@@ -34,9 +28,8 @@
         "commitMessageTopic": "torch (cpu + cuda)",
       },
     },
-    // pep621 hands every torch pin all the indexes uv.sources lists, so the CPU pin
-    // would look up (and move to) a CUDA build; pin each variant to its own index.
-    // Moving to another CUDA variant is a manual edit of pyproject.toml and this rule.
+    // pep621 gives every torch pin all the indexes uv.sources lists, so a CPU pin
+    // would move to a CUDA build; each variant is looked up on its own index.
     {
       "description": "Look up CPU torch pins on the CPU index",
       "matchManagers": ["pep621"],
@@ -45,7 +38,7 @@
       "registryUrls": ["https://download.pytorch.org/whl/cpu"],
     },
     {
-      "description": "Look up CUDA 13.0 torch pins on the CUDA 13.0 index",
+      "description": "Look up CUDA 13.0 torch pins on the CUDA 13.0 index; a new CUDA variant needs its own rule here and in pyproject.toml",
       "matchManagers": ["pep621"],
       "matchPackageNames": ["torch"],
       "matchCurrentValue": "/\\+cu130$/",
