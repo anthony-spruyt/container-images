@@ -1,17 +1,28 @@
 # renovate: datasource=docker depName=python
 ARG PYTHON_VERSION=3.14-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170
+FROM ghcr.io/astral-sh/uv:0.13.1@sha256:4a1f3666816dafadd20ceb71eac9a7d56d7ef30279f7d64048519ab901ada336 AS uv
+FROM python:${PYTHON_VERSION} AS torch-lock
+WORKDIR /lock
+COPY pyproject.toml uv.lock ./
+# Hashed export of only cpu torch and its dependencies: unchanged while app pins change, so the torch layer stays cached.
+RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
+    uv export --locked --no-dev --only-group cpu --format pylock.toml --output-file pylock.torch.toml
+
 FROM python:${PYTHON_VERSION}
 
 WORKDIR /app
 
-# torch comes from its own requirements file because --index-url replaces PyPI,
-# and the PyTorch index does not serve the other dependencies.
-# --only-binary :all: fails the build on a missing wheel instead of running a setup.py.
-COPY app/requirements-cpu.txt .
-RUN pip install --no-cache-dir --only-binary :all: -r requirements-cpu.txt
+# Build-time only (ARG): uv installs into the image's Python, and --inexact keeps that Python's pip.
+ARG UV_PROJECT_ENVIRONMENT=/usr/local UV_PYTHON_DOWNLOADS=never UV_NO_CACHE=1 UV_LINK_MODE=copy UV_COMPILE_BYTECODE=1
 
-COPY app/requirements.txt .
-RUN pip install --no-cache-dir --only-binary :all: -r requirements.txt
+COPY --from=torch-lock /lock/pylock.torch.toml /tmp/pylock.torch.toml
+RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
+    uv pip install --system --require-hashes --no-build --no-deps -r /tmp/pylock.torch.toml \
+    && rm /tmp/pylock.torch.toml
+
+COPY pyproject.toml uv.lock ./
+RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
+    uv sync --locked --no-build --no-dev --inexact --group cpu
 
 COPY app/ .
 

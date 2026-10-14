@@ -1,0 +1,30 @@
+[project]
+name = "llm-tool-guard"
+version = "0.0.0"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi==0.142.2",
+    "uvicorn[standard]==0.54.0",
+    "transformers==5.19.0",
+    "tokenizers==0.23.3",
+    "pydantic==2.14.1",
+    "redis==8.1.0",
+    "prometheus-client==0.26.0",
+]
+
+[dependency-groups]
+cpu = ["torch==2.14.1+cpu"]
+
+[tool.uv]
+package = false
+no-build = true
+environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu", group = "cpu" }
+
+# explicit: only torch comes from this index, whose copies of other packages carry no hashes.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

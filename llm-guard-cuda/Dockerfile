@@ -1,41 +1,38 @@
 # renovate: datasource=docker depName=python
 ARG PYTHON_VERSION=3.14-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170
+FROM ghcr.io/astral-sh/uv:0.13.1@sha256:4a1f3666816dafadd20ceb71eac9a7d56d7ef30279f7d64048519ab901ada336 AS uv
+FROM python:${PYTHON_VERSION} AS torch-lock
+WORKDIR /lock
+# Built from the llm-guard/ build context (metadata.yaml build_context): pyproject.toml, uv.lock and app/ are shared with the CPU image.
+COPY pyproject.toml uv.lock ./
+# Hashed export of only cu130 torch and its dependencies: unchanged while app pins change, so the torch layer stays cached.
+RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
+    uv export --locked --no-dev --only-group cu130 --format pylock.toml --output-file pylock.torch.toml
+
 FROM python:${PYTHON_VERSION}
 
 WORKDIR /app
 
-# Built from the llm-guard/ build context (metadata.yaml build_context), so
-# app/ is shared with the CPU image and only the torch requirements file
-# differs. torch is installed first and from its own requirements file:
-# --index-url replaces PyPI wholesale, and the PyTorch index does not serve
-# fastapi, uvicorn, transformers or pyyaml. Torch first also keeps the
-# largest, most cache-stable layer at the bottom.
-#
-# --only-binary :all: refuses source distributions outright: every dependency
-# here publishes a cp314/abi3 manylinux wheel, so a missing wheel means a
-# resolution mistake and should fail the build rather than silently run an
-# arbitrary setup.py at image-build time.
-COPY app/requirements-cuda.txt .
-RUN pip install --no-cache-dir --only-binary :all: -r requirements-cuda.txt
+# Build-time only (ARG): uv installs into the image's Python, and --inexact keeps that Python's pip.
+ARG UV_PROJECT_ENVIRONMENT=/usr/local UV_PYTHON_DOWNLOADS=never UV_NO_CACHE=1 UV_LINK_MODE=copy UV_COMPILE_BYTECODE=1
 
-COPY app/requirements.txt .
-RUN pip install --no-cache-dir --only-binary :all: -r requirements.txt
+COPY --from=torch-lock /lock/pylock.torch.toml /tmp/pylock.torch.toml
+RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
+    uv pip install --system --require-hashes --no-build --no-deps -r /tmp/pylock.torch.toml \
+    && rm /tmp/pylock.torch.toml
+
+COPY pyproject.toml uv.lock ./
+RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
+    uv sync --locked --no-build --no-dev --inexact --group cu130
 
 COPY app/ .
 
-# Model weights are NOT baked in. The scanner downloads them into HF_HOME on
-# first load (transformers pipeline() pulls from the Hub when the cache misses)
-# and reuses the cache thereafter. Mount a persistent volume at HF_HOME so the
-# download survives restarts. Keeping weights out of the image avoids a ~2.9GB
-# layer and the slow cold pull it caused on every tag bump.
+# Model weights are not baked in: mount a persistent volume at HF_HOME so the first-load download survives restarts.
 ENV HF_HOME=/app/.cache/huggingface
 
 RUN useradd -u 1000 -m appuser && chown -R 1000:1000 /app
 USER 1000:1000
 
-# Scanner pipeline is configured via CONFIG_FILE (required). Default to the
-# baked-in single-scanner config; override by mounting a file and setting
-# CONFIG_FILE to its path (e.g. /config/scanners.yml).
 ENV CONFIG_FILE=/app/default-scanners.yml
 ENV LISTEN_HOST=0.0.0.0
 ENV LISTEN_PORT=8080
