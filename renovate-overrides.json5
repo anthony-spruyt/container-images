@@ -1,7 +1,42 @@
 // Repo-specific Renovate overrides
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  // enabledManagers does not merge across presets, so this repeats the shared
+  // list from repo-operator's managers.json5 with pip-compile added. Keep it in sync.
+  "enabledManagers": [
+    "custom.regex",
+    "devcontainer",
+    "dockerfile",
+    "flux",
+    "github-actions",
+    "gomod",
+    "helm-values",
+    "kubernetes",
+    "npm",
+    "nuget",
+    "pep621",
+    "pip-compile",
+    "pip_requirements",
+    "pre-commit",
+    "terraform",
+  ],
+  // pip-compile reads uv's header in each lock file for the command, then
+  // updates the sibling requirements.in. List every locked requirements.txt here.
+  "pip-compile": {
+    "managerFilePatterns": ["llm-tool-guard-model/requirements.txt"],
+    "lockFileMaintenance": {
+      "schedule": ["before 4am on the first day of the month"],
+    },
+  },
   "packageRules": [
+    // pip-compile owns these files and updates them with hashes; pip_requirements
+    // would also match the lock file and open a second, hash-less PR.
+    {
+      "description": "Leave pip-compile lock files to the pip-compile manager",
+      "matchManagers": ["pip_requirements"],
+      "matchFileNames": ["llm-tool-guard-model/requirements.txt"],
+      "enabled": false,
+    },
     // torch is pinned per-variant from a different PyTorch index (+cpu vs
     // +cu130), so Renovate sees two packages and opens two PRs. The pins must
     // move together or the CPU and CUDA images drift apart.

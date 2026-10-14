@@ -24,3 +24,7 @@ In Kubernetes this is an `image` volume mounted at `$HF_HOME/hub`, with an `empt
 `MODEL_REVISION` in the [Dockerfile](Dockerfile) pins the model's commit sha by hand, with the sha256 of each file in [SHA256SUMS](SHA256SUMS), which the build checks; Renovate does not track Hugging Face. The scanner takes its revision from `refs/main` and derives its verdict-cache namespace from it, so moving the pin starts a fresh cache namespace: change it on purpose.
 
 `llm-tool-guard` lists this directory under `watch` in its `metadata.yaml`, and its `test.sh` builds this image and starts the scanner on it. A weights change therefore re-runs the scanner test.
+
+## Download tooling
+
+[requirements.txt](requirements.txt) locks `huggingface_hub` and every dependency of it with hashes, and the build installs it with `--require-hashes`. Renovate keeps it current. To bump by hand, edit [requirements.in](requirements.in) and re-run the command in the header of `requirements.txt`.

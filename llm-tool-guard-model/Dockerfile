@@ -5,7 +5,7 @@ FROM python:${PYTHON_VERSION} AS download
 WORKDIR /build
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir --only-binary :all: -r requirements.txt
+RUN pip install --no-cache-dir --only-binary :all: --require-hashes -r requirements.txt
 
 # Pinned by hand: a new revision starts a fresh verdict-cache namespace in llm-tool-guard, so move it on purpose. Update SHA256SUMS with it.
 ARG MODEL=Horizon-Labs/prompt-injection-guard-base
