@@ -11,6 +11,9 @@ NETWORK="llm-tool-guard-test-$SUFFIX"
 VALKEY="llm-tool-guard-valkey-$SUFFIX"
 GUARD="llm-tool-guard-test-$SUFFIX"
 VOLUME="llm-tool-guard-hf-$SUFFIX"
+WEIGHTS="llm-tool-guard-weights-$SUFFIX"
+WEIGHTS_IMAGE="llm-tool-guard-model-test:$SUFFIX"
+HUB="$(mktemp -d)"
 TOKEN="test-token-$SUFFIX"
 # renovate: datasource=docker depName=docker.io/valkey/valkey
 VALKEY_IMAGE="docker.io/valkey/valkey:9.1.2@sha256:418652cfb58ef879d4978c33553735d7147016032d5aefaa14c828e611eb9dfd"
@@ -18,23 +21,29 @@ VALKEY_IMAGE="docker.io/valkey/valkey:9.1.2@sha256:418652cfb58ef879d4978c3355373
 # Uncompressed image ceiling: fails loudly if a CUDA torch wheel or model weights land in the image.
 MAX_IMAGE_BYTES=$((2000 * 1000 * 1000))
 
-# cleanup removes the test containers, network and model cache volume, ignoring any that are already gone.
+# cleanup removes the test containers, network, model cache volume and weights copy, ignoring any that are already gone.
 cleanup() {
   echo "Cleaning up..."
-  docker rm -f "$GUARD" "$VALKEY" >/dev/null 2>&1 || true
+  docker rm -f "$GUARD" "$VALKEY" "$WEIGHTS" >/dev/null 2>&1 || true
   docker network rm "$NETWORK" >/dev/null 2>&1 || true
   docker volume rm "$VOLUME" >/dev/null 2>&1 || true
+  docker rmi "$WEIGHTS_IMAGE" >/dev/null 2>&1 || true
+  chmod -R u+w "$HUB" >/dev/null 2>&1 || true
+  rm -rf "$HUB" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
-# start_guard runs the scanner against Valkey with the shared model cache volume; extra args are passed to docker run.
+# Mount arguments that put the model cache at HF_HOME; Test 11 swaps them for the weights image layout.
+HF_MOUNT=(-v "$VOLUME:/app/.cache/huggingface")
+
+# start_guard runs the scanner against Valkey with the HF_MOUNT model cache; extra args are passed to docker run.
 start_guard() {
   docker rm -f "$GUARD" >/dev/null 2>&1 || true
   docker run -d \
     --name "$GUARD" \
     --network "$NETWORK" \
     -p 127.0.0.1::8080 \
-    -v "$VOLUME:/app/.cache/huggingface" \
+    "${HF_MOUNT[@]}" \
     -e VALKEY_URL="redis://$VALKEY:6379/0" \
     -e AUTH_TOKEN="$TOKEN" \
     "$@" \
@@ -136,6 +145,30 @@ docker run --rm \
     --only-binary :all: --require-hashes -r /tests/requirements-test.txt \
     && python -m pytest -p no:cacheprovider -q /tests'
 echo "  unit tests OK"
+
+echo "Test 11: starts and scans offline with the weights image read-only at HF_HOME/hub..."
+MODEL_REVISION=$(sed -n 's/^ARG MODEL_REVISION=//p' "$DIR/../llm-tool-guard-model/Dockerfile")
+docker build -q -t "$WEIGHTS_IMAGE" "$DIR/../llm-tool-guard-model" >/dev/null
+# The image has no shell or command; the name given to create is never run.
+docker create --name "$WEIGHTS" "$WEIGHTS_IMAGE" none >/dev/null
+docker cp "$WEIGHTS:/." "$HUB/"
+chmod 755 "$HUB"
+docker start "$VALKEY" >/dev/null
+HF_MOUNT=(--tmpfs /app/.cache/huggingface:mode=1777 -v "$HUB:/app/.cache/huggingface/hub:ro")
+start_guard -e HF_HUB_OFFLINE=1
+wait_for "$BASE/readyz" 120
+if docker exec "$GUARD" touch /app/.cache/huggingface/hub/probe 2>/dev/null; then
+  echo "  ERROR: the model cache is writable" >&2
+  exit 1
+fi
+echo "  model cache is read-only OK"
+python3 "$DIR/tests/smoke.py" "$BASE" "$TOKEN" scan
+if ! docker logs "$GUARD" 2>&1 | grep -qF "model revision $MODEL_REVISION"; then
+  echo "  ERROR: scanner did not report model revision $MODEL_REVISION" >&2
+  docker logs "$GUARD"
+  exit 1
+fi
+echo "  model revision $MODEL_REVISION OK"
 
 echo ""
 echo "=== All tests passed ==="
