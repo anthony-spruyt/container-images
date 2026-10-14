@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/anthony-spruyt/container-images/compare/megalinter-python-1.1.1...megalinter-python-1.1.2) (2026-10-14)
+
+
+### Dependencies
+
+* **megalinter:** weekly linter version refresh ([#2339](https://github.com/anthony-spruyt/container-images/issues/2339)) ([c61b202](https://github.com/anthony-spruyt/container-images/commit/c61b2025a1371018fef988b2345576107d7f4ed6))
+
 ## [1.1.1](https://github.com/anthony-spruyt/container-images/compare/megalinter-python-1.1.0...megalinter-python-1.1.1) (2026-10-12)
 
 
