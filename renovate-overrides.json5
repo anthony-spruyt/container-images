@@ -39,11 +39,6 @@
       "matchFileNames": ["llm-guard/torch/*/pyproject.toml", "llm-tool-guard/torch/*/pyproject.toml"],
       "enabled": false,
     },
-    {
-      "description": "Label pip-compile updates like the other Python managers",
-      "matchManagers": ["pip-compile"],
-      "addLabels": ["renovate/python"],
-    },
     // The torch pins differ by local version (+cpu vs +cu130), so Renovate would
     // open one PR per file; they must move together or the images drift apart.
     {
