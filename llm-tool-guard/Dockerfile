@@ -4,14 +4,15 @@ FROM python:${PYTHON_VERSION}
 
 WORKDIR /app
 
-# torch comes from its own requirements file because --index-url replaces PyPI,
-# and the PyTorch index does not serve the other dependencies.
+# torch is installed first, from its own lock, so an app dependency bump does not re-pull its layer.
 # --only-binary :all: fails the build on a missing wheel instead of running a setup.py.
+# --extra-index-url is safe only because --require-hashes pins exact files; keep the URL equal to torch/cpu/pyproject.toml.
 COPY app/requirements-cpu.txt .
-RUN pip install --no-cache-dir --only-binary :all: -r requirements-cpu.txt
+RUN pip install --no-cache-dir --only-binary :all: --require-hashes \
+    --extra-index-url https://download.pytorch.org/whl/cpu -r requirements-cpu.txt
 
 COPY app/requirements.txt .
-RUN pip install --no-cache-dir --only-binary :all: -r requirements.txt
+RUN pip install --no-cache-dir --only-binary :all: --require-hashes -r requirements.txt
 
 COPY app/ .
 

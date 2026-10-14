@@ -8,6 +8,8 @@
       "llm-guard/app/requirements-cpu.txt",
       "llm-guard/app/requirements-cuda.txt",
       "llm-guard/app/requirements.txt",
+      "llm-tool-guard/app/requirements-cpu.txt",
+      "llm-tool-guard/app/requirements.txt",
     ],
     "lockFileMaintenance": {
       "schedule": ["before 4am on the first day of the month"],
@@ -24,6 +26,8 @@
         "llm-guard/app/requirements-cpu.txt",
         "llm-guard/app/requirements-cuda.txt",
         "llm-guard/app/requirements.txt",
+        "llm-tool-guard/app/requirements-cpu.txt",
+        "llm-tool-guard/app/requirements.txt",
       ],
       "enabled": false,
     },
