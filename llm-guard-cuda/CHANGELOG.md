@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/anthony-spruyt/container-images/compare/llm-guard-cuda-1.1.1...llm-guard-cuda-1.1.2) (2026-10-14)
+
+
+### Bug Fixes
+
+* install the guard images from uv lock files ([#2331](https://github.com/anthony-spruyt/container-images/issues/2331)) ([288db27](https://github.com/anthony-spruyt/container-images/commit/288db27601b69de63709c965508f6814a7d7ac26))
+
 ## [1.1.1](https://github.com/anthony-spruyt/container-images/compare/llm-guard-cuda-1.1.0...llm-guard-cuda-1.1.1) (2026-10-12)
 
 
