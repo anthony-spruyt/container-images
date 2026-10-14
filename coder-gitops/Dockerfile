@@ -14,7 +14,7 @@ HEALTHCHECK NONE
 # is what Coder's own install.sh follows for --stable. Bare semver, no leading
 # "v" — the tag is reassembled below.
 # renovate: datasource=custom.coder-stable depName=coder
-ARG CODER_VERSION=2.36.6
+ARG CODER_VERSION=2.36.7
 
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
 ARG KUBECTL_VERSION=v1.37.1
