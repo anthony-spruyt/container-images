@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.105](https://github.com/anthony-spruyt/container-images/compare/claude-agent-write-1.0.104...claude-agent-write-1.0.105) (2026-10-15)
+
+
+### Continuous Integration
+
+* **image:** block image job egress to an allowlist ([#2359](https://github.com/anthony-spruyt/container-images/issues/2359)) ([35c8d90](https://github.com/anthony-spruyt/container-images/commit/35c8d9064338427de7bff0f779748cbebfbcd115))
+
 ## [1.0.104](https://github.com/anthony-spruyt/container-images/compare/claude-agent-write-1.0.103...claude-agent-write-1.0.104) (2026-10-14)
 
 

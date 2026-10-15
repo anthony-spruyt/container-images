@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/anthony-spruyt/container-images/compare/llm-guard-cuda-1.1.2...llm-guard-cuda-1.1.3) (2026-10-15)
+
+
+### Continuous Integration
+
+* **image:** block image job egress to an allowlist ([#2359](https://github.com/anthony-spruyt/container-images/issues/2359)) ([35c8d90](https://github.com/anthony-spruyt/container-images/commit/35c8d9064338427de7bff0f779748cbebfbcd115))
+
 ## [1.1.2](https://github.com/anthony-spruyt/container-images/compare/llm-guard-cuda-1.1.1...llm-guard-cuda-1.1.2) (2026-10-14)
 
 

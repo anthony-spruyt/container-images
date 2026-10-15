@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.2](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.2.1...llm-tool-guard-1.2.2) (2026-10-15)
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.142.3 ([#2354](https://github.com/anthony-spruyt/container-images/issues/2354)) ([555c23b](https://github.com/anthony-spruyt/container-images/commit/555c23b9b7ce9bf3dfa69085d2f06964a0080635))
+* **deps:** update dependency fastapi to v0.142.4 ([#2357](https://github.com/anthony-spruyt/container-images/issues/2357)) ([d116bef](https://github.com/anthony-spruyt/container-images/commit/d116bef5469e0b411385cd4b87f2ccf408debbaa))
+* **test:** read docker logs before grep -q under pipefail ([#2362](https://github.com/anthony-spruyt/container-images/issues/2362)) ([9b0ec83](https://github.com/anthony-spruyt/container-images/commit/9b0ec8376da28bcfa8d5f9805ac4606596e46581))
+
+
+### Continuous Integration
+
+* **image:** block image job egress to an allowlist ([#2359](https://github.com/anthony-spruyt/container-images/issues/2359)) ([35c8d90](https://github.com/anthony-spruyt/container-images/commit/35c8d9064338427de7bff0f779748cbebfbcd115))
+
 ## [1.2.1](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.2.0...llm-tool-guard-1.2.1) (2026-10-14)
 
 
