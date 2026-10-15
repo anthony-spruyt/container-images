@@ -1,3 +1,7 @@
 ---
 free-disk: true
 test-command: bash ./chrony/test.sh "$IMAGE_REF"
+egress:
+  - dl-cdn.alpinelinux.org:443
+  - time.cloudflare.com:123
+  - time.cloudflare.com:4460

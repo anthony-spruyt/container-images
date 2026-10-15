@@ -1,3 +1,8 @@
 ---
 free-disk: true
 test-command: bash ./happy-server/test.sh "$IMAGE_REF"
+egress:
+  - binaries.prisma.sh:443
+  - checkpoint.prisma.io:443
+  - deb.debian.org:80
+  - registry.npmjs.org:443

@@ -1,3 +1,7 @@
 ---
 free-disk: true
 test-command: bash ./coder-gitops/test.sh "$IMAGE_REF"
+egress:
+  - dl-cdn.alpinelinux.org:443
+  - dl.k8s.io:443
+  - release-assets.githubusercontent.com:443

@@ -4,3 +4,12 @@ free-disk: true
 watch:
   - devcontainer-common/assets/claude-plugins-bootstrap.sh
 test-command: bash ./claude-agent-read/test.sh "$IMAGE_REF"
+egress:
+  - archive.ubuntu.com:80
+  - claude.ai:443
+  - downloads.claude.ai:443
+  - malware-list.aikido.dev:443
+  - nodejs.org:443
+  - registry.npmjs.org:443
+  - release-assets.githubusercontent.com:443
+  - security.ubuntu.com:80
