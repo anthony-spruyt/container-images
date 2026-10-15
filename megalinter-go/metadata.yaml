@@ -6,3 +6,10 @@ prepare-command: >-
   pip install -q --require-hashes --only-binary :all: -r megalinter-factory/requirements.txt
   && python megalinter-factory/generate.py megalinter-go
 test-command: bash ./megalinter-go/test.sh "$IMAGE_REF"
+egress:
+  - dl-cdn.alpinelinux.org:443
+  - files.pythonhosted.org:443
+  - golangci-lint.run:443
+  - pypi.org:443
+  - registry.npmjs.org:443
+  - release-assets.githubusercontent.com:443

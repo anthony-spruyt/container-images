@@ -140,7 +140,7 @@ if [[ "$(docker inspect --format='{{.State.Running}}' "$CONTAINER_NAME_NTS")" !=
   exit 1
 fi
 
-if docker logs "$CONTAINER_NAME_NTS" 2>&1 | grep -qi "Missing NTS support"; then
+if grep -qi "Missing NTS support" <<<"$(docker logs "$CONTAINER_NAME_NTS" 2>&1)"; then
   echo "  ERROR: chronyd reported 'Missing NTS support'" >&2
   docker logs "$CONTAINER_NAME_NTS" >&2
   exit 1

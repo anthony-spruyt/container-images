@@ -1,3 +1,13 @@
 ---
 free-disk: true
 test-command: bash ./claude-agent-write/test.sh "$IMAGE_REF"
+egress:
+  - archive.ubuntu.com:80
+  - dl.google.com:443
+  - files.pythonhosted.org:443
+  - go.dev:443
+  - malware-list.aikido.dev:443
+  - nodejs.org:443
+  - pypi.org:443
+  - registry.npmjs.org:443
+  - security.ubuntu.com:80

@@ -1,3 +1,11 @@
 ---
 free-disk: true
 test-command: bash ./claude-agent-spruyt-labs/test.sh "$IMAGE_REF"
+egress:
+  - dl.k8s.io:443
+  - files.pythonhosted.org:443
+  - get.helm.sh:443
+  - nodejs.org:443
+  - pypi.org:443
+  - registry.npmjs.org:443
+  - release-assets.githubusercontent.com:443
