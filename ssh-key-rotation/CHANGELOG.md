@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.11](https://github.com/anthony-spruyt/container-images/compare/ssh-key-rotation-2.0.10...ssh-key-rotation-2.0.11) (2026-10-15)
+
+
+### Continuous Integration
+
+* **image:** block image job egress to an allowlist ([#2359](https://github.com/anthony-spruyt/container-images/issues/2359)) ([35c8d90](https://github.com/anthony-spruyt/container-images/commit/35c8d9064338427de7bff0f779748cbebfbcd115))
+
 ## [2.0.10](https://github.com/anthony-spruyt/container-images/compare/ssh-key-rotation-2.0.9...ssh-key-rotation-2.0.10) (2026-10-03)
 
 

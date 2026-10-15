@@ -1,5 +1,17 @@
 # Changelog
 
+## [5.0.7](https://github.com/anthony-spruyt/container-images/compare/chrony-5.0.6...chrony-5.0.7) (2026-10-15)
+
+
+### Bug Fixes
+
+* **test:** read docker logs before grep -q under pipefail ([#2362](https://github.com/anthony-spruyt/container-images/issues/2362)) ([9b0ec83](https://github.com/anthony-spruyt/container-images/commit/9b0ec8376da28bcfa8d5f9805ac4606596e46581))
+
+
+### Continuous Integration
+
+* **image:** block image job egress to an allowlist ([#2359](https://github.com/anthony-spruyt/container-images/issues/2359)) ([35c8d90](https://github.com/anthony-spruyt/container-images/commit/35c8d9064338427de7bff0f779748cbebfbcd115))
+
 ## [5.0.6](https://github.com/anthony-spruyt/container-images/compare/chrony-5.0.5...chrony-5.0.6) (2026-09-30)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.3](https://github.com/anthony-spruyt/container-images/compare/megalinter-base-1.0.2...megalinter-base-1.0.3) (2026-10-15)
+
+
+### Dependencies
+
+* **megalinter:** weekly linter version refresh ([#2364](https://github.com/anthony-spruyt/container-images/issues/2364)) ([8be0113](https://github.com/anthony-spruyt/container-images/commit/8be0113ee6b5a43d0469df8cff64477dec88c138))
+
+
+### Continuous Integration
+
+* **image:** block image job egress to an allowlist ([#2359](https://github.com/anthony-spruyt/container-images/issues/2359)) ([35c8d90](https://github.com/anthony-spruyt/container-images/commit/35c8d9064338427de7bff0f779748cbebfbcd115))
+
 ## [1.0.2](https://github.com/anthony-spruyt/container-images/compare/megalinter-base-1.0.1...megalinter-base-1.0.2) (2026-10-14)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.118](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.117...claude-agent-spruyt-labs-1.0.118) (2026-10-15)
+
+
+### Dependencies
+
+* **deps:** update container image ghcr.io/anthony-spruyt/claude-agent-write to v1.0.104 ([#2342](https://github.com/anthony-spruyt/container-images/issues/2342)) ([f11dfc1](https://github.com/anthony-spruyt/container-images/commit/f11dfc19d50c46d93a238f6c8df525e60fe19739))
+
+
+### Continuous Integration
+
+* **image:** block image job egress to an allowlist ([#2359](https://github.com/anthony-spruyt/container-images/issues/2359)) ([35c8d90](https://github.com/anthony-spruyt/container-images/commit/35c8d9064338427de7bff0f779748cbebfbcd115))
+
 ## [1.0.117](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.116...claude-agent-spruyt-labs-1.0.117) (2026-10-14)
 
 

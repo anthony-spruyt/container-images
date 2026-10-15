@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.2](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.1.1...claude-agent-read-1.1.2) (2026-10-15)
+
+
+### Dependencies
+
+* **deps:** update dependency @anthropic-ai/claude-code to v2.1.300 ([#2353](https://github.com/anthony-spruyt/container-images/issues/2353)) ([05bd990](https://github.com/anthony-spruyt/container-images/commit/05bd990a7c849d63e18b7cf94b1bffb17d2eacae))
+
+
+### Continuous Integration
+
+* **image:** block image job egress to an allowlist ([#2359](https://github.com/anthony-spruyt/container-images/issues/2359)) ([35c8d90](https://github.com/anthony-spruyt/container-images/commit/35c8d9064338427de7bff0f779748cbebfbcd115))
+
 ## [1.1.1](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.1.0...claude-agent-read-1.1.1) (2026-10-14)
 
 

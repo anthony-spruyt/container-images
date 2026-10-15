@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.29](https://github.com/anthony-spruyt/container-images/compare/coder-gitops-1.0.28...coder-gitops-1.0.29) (2026-10-15)
+
+
+### Continuous Integration
+
+* **image:** block image job egress to an allowlist ([#2359](https://github.com/anthony-spruyt/container-images/issues/2359)) ([35c8d90](https://github.com/anthony-spruyt/container-images/commit/35c8d9064338427de7bff0f779748cbebfbcd115))
+
 ## [1.0.28](https://github.com/anthony-spruyt/container-images/compare/coder-gitops-1.0.27...coder-gitops-1.0.28) (2026-10-03)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.4...happy-server-1.0.5) (2026-10-15)
+
+
+### Continuous Integration
+
+* **image:** block image job egress to an allowlist ([#2359](https://github.com/anthony-spruyt/container-images/issues/2359)) ([35c8d90](https://github.com/anthony-spruyt/container-images/commit/35c8d9064338427de7bff0f779748cbebfbcd115))
+
 ## [1.0.4](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.3...happy-server-1.0.4) (2026-10-06)
 
 
