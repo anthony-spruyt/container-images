@@ -163,7 +163,7 @@ if docker exec -u 0 "$GUARD" touch /app/.cache/huggingface/hub/probe 2>/dev/null
 fi
 echo "  model cache is read-only OK"
 python3 "$DIR/tests/smoke.py" "$BASE" "$TOKEN" scan
-if ! docker logs "$GUARD" 2>&1 | grep -qF "model revision $MODEL_REVISION"; then
+if ! grep -qF "model revision $MODEL_REVISION" <<<"$(docker logs "$GUARD" 2>&1)"; then
   echo "  ERROR: scanner did not report model revision $MODEL_REVISION" >&2
   docker logs "$GUARD"
   exit 1
