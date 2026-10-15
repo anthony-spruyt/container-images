@@ -79,7 +79,7 @@ The synced `.github/workflows/container-retention.yaml` calls repo-operator's `_
 
 ## Commits
 
-Never commit or push directly to the `main` branch. Always create a feature branch and open a PR unless explicitly told otherwise.
+Never commit or push directly to the `main` branch; changes land through a PR.
 
 ## Linters
 
