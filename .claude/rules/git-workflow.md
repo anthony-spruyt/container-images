@@ -4,27 +4,15 @@ This repository has branch protection enabled on `main`. Direct pushes are block
 
 ## Making Changes
 
-1. **Create a feature branch** from the current commit:
-
-   ```bash
-   git checkout -b <branch-name>
-   ```
-
-2. **Push the branch** to origin:
-
-   ```bash
-   git push -u origin <branch-name>
-   ```
-
-3. **Create a pull request**:
+1. **Create a pull request**:
 
    ```bash
    gh pr create --title "<type>(<scope>): <description>" --body "Description here"
    ```
 
-4. **Wait for status checks** (MegaLinter must pass)
+2. **Wait for status checks** (MegaLinter must pass)
 
-5. **Merge** after approval (or user self-approves if they have permission)
+3. **Merge** after approval (or user self-approves if they have permission)
 
 ## Branch Naming
 
