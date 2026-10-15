@@ -32,7 +32,14 @@ jobs:
       - name: Harden Runner
         uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >-
+            api.github.com:443
+            files.pythonhosted.org:443
+            github.com:443
+            pypi.org:443
+            results-receiver.actions.githubusercontent.com:443
+            *.blob.core.windows.net:443
 
       # App token: a GITHUB_TOKEN PR triggers no status checks, so it could never merge
       - name: Mint app token
