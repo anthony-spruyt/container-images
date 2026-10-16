@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.2.2...llm-tool-guard-1.3.0) (2026-10-16)
+
+
+### Features
+
+* **llm-tool-guard:** return and cache the model score ([#2375](https://github.com/anthony-spruyt/container-images/issues/2375)) ([bcc6e07](https://github.com/anthony-spruyt/container-images/commit/bcc6e07adec0affd440ba76c25f992c5d4837f5e))
+
 ## [1.2.2](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.2.1...llm-tool-guard-1.2.2) (2026-10-15)
 
 
