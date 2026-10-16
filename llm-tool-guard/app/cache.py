@@ -4,9 +4,10 @@ import hashlib
 import importlib.metadata
 import json
 import logging
+import math
 from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from redis.exceptions import RedisError
 
@@ -15,8 +16,33 @@ from metrics import Metrics
 logger = logging.getLogger(__name__)
 
 _PREFIX = "llm-tool-guard"
-_VALUES = {"1": True, "0": False}
+_FLAGS = {"1": True, "0": False}
 _LIBRARIES = ("transformers", "tokenizers", "torch")
+
+
+class Verdict(NamedTuple):
+    """The model's decision on a text and the score behind it; flagged is stored, never derived from score."""
+
+    flagged: bool
+    score: float
+
+
+def _encode(verdict: Verdict) -> str:
+    return f"{'1' if verdict.flagged else '0'}:{verdict.score!r}"
+
+
+def _decode(value: str | bytes | None) -> Verdict | None:
+    """Parse a stored "<0|1>:<score>"; anything else, including a non-finite score, is a miss."""
+    if value is None:
+        return None
+    flag, sep, raw = (value.decode() if isinstance(value, bytes) else value).partition(":")
+    if not sep or flag not in _FLAGS:
+        return None
+    try:
+        score = float(raw)
+    except ValueError:
+        return None
+    return Verdict(_FLAGS[flag], score) if math.isfinite(score) else None
 
 
 def runtime_fingerprint(
@@ -75,8 +101,8 @@ class VerdictCache:
         self._metrics.cache_up.set(0)
         logger.warning("verdict cache %s failed: %s", operation, type(exc).__name__)
 
-    async def get_many(self, hashes: Iterable[str]) -> dict[str, bool]:
-        """Return the cached verdict (True = flagged) for each hash that has one."""
+    async def get_many(self, hashes: Iterable[str]) -> dict[str, Verdict]:
+        """Return the cached verdict for each hash that has one."""
         hashes = list(hashes)
         if not hashes or self._client is None:
             self._metrics.cache_misses.inc(len(hashes))
@@ -90,19 +116,19 @@ class VerdictCache:
         self._metrics.cache_up.set(1)
         verdicts = {}
         for hash_, value in zip(hashes, values, strict=True):
-            verdict = _VALUES.get(value.decode() if isinstance(value, bytes) else value)
+            verdict = _decode(value)
             if verdict is not None:
                 verdicts[hash_] = verdict
         self._metrics.cache_hits.inc(len(verdicts))
         self._metrics.cache_misses.inc(len(hashes) - len(verdicts))
         return verdicts
 
-    async def put(self, hash_: str, *, flagged: bool) -> None:
+    async def put(self, hash_: str, verdict: Verdict) -> None:
         """Store a verdict for ttl_seconds."""
         if self._client is None:
             return
         try:
-            await self._client.set(self._key(hash_), "1" if flagged else "0", ex=self._ttl)
+            await self._client.set(self._key(hash_), _encode(verdict), ex=self._ttl)
         except (RedisError, OSError) as exc:
             self._failed("set", exc)
             return

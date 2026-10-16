@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from api import create_app
 from cache import VerdictCache
 from config import Settings
-from fakes import INJECTION, FakeScanner, FakeValkey, digest, sample
+from fakes import FLAGGED_SCORE, FLAGGED_VALUE, INJECTION, FakeScanner, FakeValkey, digest, sample
 from guard import ToolGuard
 
 
@@ -53,7 +53,11 @@ def test_scan_returns_flagged_and_unknown(client):
     response = client.post("/v1/scan", json=body(["clean", f"{INJECTION} me"], [digest("never seen")]))
 
     assert response.status_code == 200
-    assert response.json() == {"flagged": [digest(f"{INJECTION} me")], "unknown": [digest("never seen")]}
+    assert response.json() == {
+        "flagged": [digest(f"{INJECTION} me")],
+        "unknown": [digest("never seen")],
+        "scores": {digest(f"{INJECTION} me"): FLAGGED_SCORE},
+    }
 
 
 def test_known_lookup_after_scan_uses_the_cache(client):
@@ -61,7 +65,11 @@ def test_known_lookup_after_scan_uses_the_cache(client):
 
     response = client.post("/v1/scan", json=body(known=[digest(f"{INJECTION} me"), digest("clean")]))
 
-    assert response.json() == {"flagged": [digest(f"{INJECTION} me")], "unknown": []}
+    assert response.json() == {
+        "flagged": [digest(f"{INJECTION} me")],
+        "unknown": [],
+        "scores": {digest(f"{INJECTION} me"): FLAGGED_SCORE},
+    }
 
 
 @pytest.mark.parametrize("payload", [{}, {"new": []}, {"known": []}, {"new": [], "known": [], "extra": 1}])
@@ -69,7 +77,7 @@ def test_missing_lists_default_to_empty(client, payload):
     response = client.post("/v1/scan", json=payload)
 
     assert response.status_code == 200
-    assert response.json() == {"flagged": [], "unknown": []}
+    assert response.json() == {"flagged": [], "unknown": [], "scores": {}}
 
 
 @pytest.mark.parametrize(
@@ -101,15 +109,36 @@ def test_lone_surrogates_in_json_hash_like_the_middleware(client):
 
     response = client.post("/v1/scan", content=raw.encode(), headers={"Content-Type": "application/json"})
 
-    assert response.json() == {"flagged": [], "unknown": []}
+    assert response.json() == {"flagged": [], "unknown": [], "scores": {}}
 
 
-def test_forged_hash_is_flagged(client):
+def test_forged_hash_is_flagged_without_a_score(client):
     victim = digest(f"{INJECTION} hidden")
 
     response = client.post("/v1/scan", json={"new": [{"hash": victim, "text": "benign"}]})
 
     assert response.json()["flagged"] == [victim]
+    assert response.json()["scores"] == {}
+
+
+def test_scan_error_is_flagged_without_a_score(metrics):
+    guard = make_guard(metrics, FakeValkey(), FakeScanner(error=RuntimeError("model failed")))
+
+    with client_for(metrics, guard=guard) as client:
+        response = client.post("/v1/scan", json=body(["fine"]))
+
+    assert response.json() == {"flagged": [digest("fine")], "unknown": [], "scores": {}}
+
+
+def test_scores_cover_only_the_model_flags_in_a_mixed_request(metrics):
+    with client_for(metrics, guard=make_guard(metrics, FakeValkey(), MAX_TEXT_BYTES="40")) as client:
+        response = client.post("/v1/scan", json=body([f"{INJECTION} x", "clean", "y" * 41]))
+
+    assert response.json() == {
+        "flagged": [digest(f"{INJECTION} x"), digest("y" * 41)],
+        "unknown": [],
+        "scores": {digest(f"{INJECTION} x"): FLAGGED_SCORE},
+    }
 
 
 def test_body_over_the_limit_is_rejected(metrics):
@@ -194,7 +223,7 @@ def test_text_over_the_item_limit_is_flagged(metrics):
     with client_for(metrics, guard=make_guard(metrics, FakeValkey(), MAX_TEXT_BYTES="10")) as client:
         response = client.post("/v1/scan", json=body(["x" * 11, "short"]))
 
-    assert response.json() == {"flagged": [digest("x" * 11)], "unknown": []}
+    assert response.json() == {"flagged": [digest("x" * 11)], "unknown": [], "scores": {}}
 
 
 def test_auth_not_required_without_a_token(client):
@@ -328,7 +357,7 @@ def test_shutdown_waits_for_scans_in_flight_and_caches_them(metrics, background)
         assert scanner.started.wait(timeout=5)
         threading.Timer(0.2, scanner.release).start()
 
-    assert list(valkey.data.values()) == ["1"]
+    assert list(valkey.data.values()) == [FLAGGED_VALUE]
 
 
 def test_shutdown_stops_waiting_after_the_drain_budget(metrics, background):
@@ -406,5 +435,5 @@ def test_a_request_whose_client_disconnects_frees_its_slot_while_its_scan_still_
             return lookup
 
     assert asyncio.run(run()) == 200
-    assert valkey.data == {f"llm-tool-guard:ns:{digest(abandoned)}": "1"}
+    assert valkey.data == {f"llm-tool-guard:ns:{digest(abandoned)}": FLAGGED_VALUE}
     assert sample(metrics, "llm_tool_guard_over_limit_total", limit="requests") == 0

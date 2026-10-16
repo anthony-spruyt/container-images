@@ -11,10 +11,11 @@ Prompt-injection scanner for tool results. The LiteLLM tool-guard middleware sen
 ```
 
 ```json
-{ "flagged": ["sha256:..."], "unknown": ["sha256:..."] }
+{ "flagged": ["sha256:..."], "unknown": ["sha256:..."], "scores": { "sha256:...": 0.9731 } }
 ```
 
 - `new` items are checked against the content hash, looked up in the verdict cache and scanned on a miss. A text whose hash does not match, is over `MAX_TEXT_BYTES`, exceeds `SCAN_TIMEOUT_SECONDS`, cannot be scanned, or finds no room in the scan queue is flagged and not cached.
+- `scores` holds the model's score for each hash the model flagged, and is `{}` when there are none. A flagged hash without a score was flagged for another reason: a scan error or timeout, a full scan queue, an oversized text or a hash mismatch. Scores are the scanner's, rounded to 4 decimal places.
 - `known` hashes are looked up only. Hashes without a verdict come back in `unknown`.
 - `503` means the model is still loading, or `MAX_CONCURRENT_REQUESTS` requests are already in flight. The cap is checked before the body is read. A request holds its slot only while its client is connected: when the client disconnects the slot is released, and the scans it started still finish and are cached.
 
@@ -23,6 +24,8 @@ Prompt-injection scanner for tool results. The LiteLLM tool-guard middleware sen
 ## Verdict cache
 
 Verdicts are cached in Valkey under a namespace derived from the model and its revision, the label and threshold, the window settings, the digests of `scanner_types.py` and `classifier.py`, and the installed `transformers`, `tokenizers` and `torch` versions. Changing any of them starts a fresh namespace.
+
+A value is `<verdict>:<score>`, such as `1:0.9731` for flagged and `0:0.0123` for clean. The verdict is the decision made when the text was scanned and is served as stored, never recomputed from the score; a value in any other form is a miss.
 
 ## Configuration
 

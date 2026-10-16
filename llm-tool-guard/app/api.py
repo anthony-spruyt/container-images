@@ -116,7 +116,7 @@ class _Service:
         return Response(generate_latest(self._metrics.registry), media_type=CONTENT_TYPE_LATEST)
 
     async def scan(self, request: Request):
-        """Return the hashes to flag and the known hashes without a verdict."""
+        """Return the hashes to flag, the known hashes without a verdict and the model score of each hash it flagged."""
         with self._metrics.request_seconds.time():
             try:
                 guard = self._admit(request)
@@ -138,8 +138,8 @@ class _Service:
             await asyncio.wait({check, gone}, return_when=asyncio.FIRST_COMPLETED)
             if not check.done():
                 return _error(499, "client disconnected")
-            flagged, unknown = check.result()
-            return {"flagged": flagged, "unknown": unknown}
+            flagged, unknown, scores = check.result()
+            return {"flagged": flagged, "unknown": unknown, "scores": scores}
         finally:
             gone.cancel()
             check.cancel()
