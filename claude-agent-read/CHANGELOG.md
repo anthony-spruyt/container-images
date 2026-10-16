@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.1.2...claude-agent-read-1.1.3) (2026-10-16)
+
+
+### Dependencies
+
+* **deps:** update dependency @anthropic-ai/claude-code to v2.1.301 ([#2373](https://github.com/anthony-spruyt/container-images/issues/2373)) ([cb3fddc](https://github.com/anthony-spruyt/container-images/commit/cb3fddcd8810b611ab0178dfd5a3e8af66a2367f))
+
 ## [1.1.2](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.1.1...claude-agent-read-1.1.2) (2026-10-15)
 
 

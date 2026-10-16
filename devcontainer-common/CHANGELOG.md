@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.2](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.1...devcontainer-common-2.4.2) (2026-10-16)
+
+
+### Dependencies
+
+* **deps:** update dependency pre-commit to v4.7.0 ([#2352](https://github.com/anthony-spruyt/container-images/issues/2352)) ([4612315](https://github.com/anthony-spruyt/container-images/commit/461231529f6145327ec70fd1ca9d6343a3ec66f5))
+
 ## [2.4.1](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.0...devcontainer-common-2.4.1) (2026-10-15)
 
 
