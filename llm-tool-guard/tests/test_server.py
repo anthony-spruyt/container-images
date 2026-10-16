@@ -13,7 +13,7 @@ import uvicorn
 from api import create_app
 from cache import VerdictCache
 from config import Settings
-from fakes import INJECTION, FakeScanner, FakeValkey, digest
+from fakes import FLAGGED_SCORE, INJECTION, FakeScanner, FakeValkey, digest
 from guard import ToolGuard
 from metrics import Metrics
 
@@ -109,5 +109,8 @@ def test_a_client_that_gives_up_frees_the_request_slot_and_its_scan_still_lands_
     served.scanner.release()
     wait_until(lambda: served.cached(abandoned), "the abandoned scan cached")
 
-    assert answers == [(200, {"flagged": [digest(cached)], "unknown": []})]
-    assert served.scan(known=[digest(abandoned)]) == (200, {"flagged": [digest(abandoned)], "unknown": []})
+    assert answers == [(200, {"flagged": [digest(cached)], "unknown": [], "scores": {digest(cached): FLAGGED_SCORE}})]
+    assert served.scan(known=[digest(abandoned)]) == (
+        200,
+        {"flagged": [digest(abandoned)], "unknown": [], "scores": {digest(abandoned): FLAGGED_SCORE}},
+    )

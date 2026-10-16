@@ -6,7 +6,7 @@ from importlib.metadata import PackageNotFoundError
 
 import pytest
 
-from cache import VerdictCache, cache_namespace, runtime_fingerprint
+from cache import Verdict, VerdictCache, cache_namespace, runtime_fingerprint
 from fakes import FakeValkey, digest, sample
 
 BASE = {
@@ -113,9 +113,9 @@ def test_keys_carry_the_namespace_and_hash(metrics, valkey):
     cache = VerdictCache(valkey, namespace="n1", ttl_seconds=60, metrics=metrics)
     hash_ = digest("x")
 
-    asyncio.run(cache.put(hash_, flagged=True))
+    asyncio.run(cache.put(hash_, Verdict(flagged=True, score=0.97312)))
 
-    assert valkey.data == {f"llm-tool-guard:n1:{hash_}": "1"}
+    assert valkey.data == {f"llm-tool-guard:n1:{hash_}": "1:0.97312"}
     assert valkey.ttls == {f"llm-tool-guard:n1:{hash_}": 60}
 
 
@@ -123,7 +123,7 @@ def test_verdicts_from_another_namespace_are_not_read(metrics, valkey):
     old = VerdictCache(valkey, namespace="old", ttl_seconds=60, metrics=metrics)
     new = VerdictCache(valkey, namespace="new", ttl_seconds=60, metrics=metrics)
     hash_ = digest("x")
-    asyncio.run(old.put(hash_, flagged=False))
+    asyncio.run(old.put(hash_, Verdict(flagged=False, score=0.1)))
 
     assert asyncio.run(new.get_many([hash_])) == {}
 
@@ -131,10 +131,10 @@ def test_verdicts_from_another_namespace_are_not_read(metrics, valkey):
 def test_get_many_returns_stored_verdicts_only(metrics, valkey):
     cache = VerdictCache(valkey, namespace="n", ttl_seconds=60, metrics=metrics)
     a, b, c = digest("a"), digest("b"), digest("c")
-    asyncio.run(cache.put(a, flagged=True))
-    asyncio.run(cache.put(b, flagged=False))
+    asyncio.run(cache.put(a, Verdict(flagged=True, score=0.97312)))
+    asyncio.run(cache.put(b, Verdict(flagged=False, score=0.01234)))
 
-    assert asyncio.run(cache.get_many([a, b, c])) == {a: True, b: False}
+    assert asyncio.run(cache.get_many([a, b, c])) == {a: Verdict(True, 0.97312), b: Verdict(False, 0.01234)}
     assert sample(metrics, "llm_tool_guard_cache_hits_total") == 2
     assert sample(metrics, "llm_tool_guard_cache_misses_total") == 1
 
@@ -146,20 +146,32 @@ def test_get_many_of_nothing_skips_valkey(metrics, valkey):
     assert valkey.mget_calls == []
 
 
-def test_unexpected_stored_value_is_a_miss(metrics, valkey):
+def test_verdict_and_score_round_trip_exactly(metrics, valkey):
+    cache = VerdictCache(valkey, namespace="n", ttl_seconds=60, metrics=metrics)
+    just_under = Verdict(flagged=False, score=0.8999999)
+    hash_ = digest("a")
+
+    asyncio.run(cache.put(hash_, just_under))
+
+    assert asyncio.run(cache.get_many([hash_])) == {hash_: just_under}
+
+
+@pytest.mark.parametrize("value", ["maybe", "1", "0", "", "2:0.5", "1:", "1:high", "1:nan", "1:inf", "0:0.5:1", ":0.5"])
+def test_unexpected_stored_value_is_a_miss(metrics, valkey, value):
     cache = VerdictCache(valkey, namespace="n", ttl_seconds=60, metrics=metrics)
     hash_ = digest("a")
-    valkey.data[f"llm-tool-guard:n:{hash_}"] = "maybe"
+    valkey.data[f"llm-tool-guard:n:{hash_}"] = value
 
     assert asyncio.run(cache.get_many([hash_])) == {}
+    assert sample(metrics, "llm_tool_guard_cache_misses_total") == 1
 
 
 def test_bytes_values_are_read(metrics, valkey):
     cache = VerdictCache(valkey, namespace="n", ttl_seconds=60, metrics=metrics)
     hash_ = digest("a")
-    valkey.data[f"llm-tool-guard:n:{hash_}"] = b"1"
+    valkey.data[f"llm-tool-guard:n:{hash_}"] = b"1:0.5"
 
-    assert asyncio.run(cache.get_many([hash_])) == {hash_: True}
+    assert asyncio.run(cache.get_many([hash_])) == {hash_: Verdict(True, 0.5)}
 
 
 def test_errors_count_and_mark_the_cache_down_until_it_answers(metrics):
@@ -169,7 +181,7 @@ def test_errors_count_and_mark_the_cache_down_until_it_answers(metrics):
     valkey.down = True
 
     assert asyncio.run(cache.get_many([hash_])) == {}
-    asyncio.run(cache.put(hash_, flagged=False))
+    asyncio.run(cache.put(hash_, Verdict(flagged=False, score=0.1)))
     assert sample(metrics, "llm_tool_guard_cache_errors_total", operation="get") == 1
     assert sample(metrics, "llm_tool_guard_cache_errors_total", operation="set") == 1
     assert sample(metrics, "llm_tool_guard_cache_up") == 0
@@ -195,6 +207,6 @@ def test_no_client_means_every_lookup_misses_without_errors(metrics):
     cache = VerdictCache(None, namespace="n", ttl_seconds=60, metrics=metrics)
 
     assert asyncio.run(cache.get_many([digest("a")])) == {}
-    asyncio.run(cache.put(digest("a"), flagged=True))
+    asyncio.run(cache.put(digest("a"), Verdict(flagged=True, score=0.9)))
     assert sample(metrics, "llm_tool_guard_cache_errors_total", operation="get") == 0
     assert sample(metrics, "llm_tool_guard_cache_up") == 0

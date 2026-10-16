@@ -24,7 +24,7 @@ def _hub_lookup(model: str, filename: str) -> Any:
 
 
 class Classifier:
-    """Blocking scan function over a PromptInjectionScanner: True means flagged."""
+    """Blocking scan function over a PromptInjectionScanner, returning (flagged, score)."""
 
     def __init__(
         self,
@@ -72,11 +72,12 @@ class Classifier:
 
         pipe.forward = bounded
 
-    def __call__(self, text: str) -> bool:
-        """Return True when the scanner finds text unsafe."""
+    def __call__(self, text: str) -> tuple[bool, float]:
+        """Return (flagged, score): flagged when the scanner finds text unsafe, score as the scanner reports it."""
         if self._budget is not None:
             self._local.deadline = time.monotonic() + self._budget
         try:
-            return not self._scanner.scan(model_input(text)).is_safe
+            result = self._scanner.scan(model_input(text))
+            return not result.is_safe, float(result.score)
         finally:
             self._local.deadline = None

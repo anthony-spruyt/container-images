@@ -3,12 +3,17 @@
 import asyncio
 import hashlib
 import threading
+from collections.abc import Callable
 
 from redis.exceptions import ConnectionError as ValkeyConnectionError
 
 from metrics import Metrics
 
 INJECTION = "INJECT"
+FLAGGED_SCORE = 0.97312
+CLEAN_SCORE = 0.01234
+FLAGGED_VALUE = f"1:{FLAGGED_SCORE}"
+CLEAN_VALUE = f"0:{CLEAN_SCORE}"
 
 
 def digest(text: str) -> str:
@@ -58,6 +63,7 @@ class FakeScanner:
         self.peak = 0
         self._lock = threading.Lock()
         self._error = error
+        self.verdict: Callable[[str], tuple[bool, float]] | None = None
         if not gated:
             self.gate.set()
 
@@ -65,8 +71,8 @@ class FakeScanner:
         """Let held scans finish."""
         self.gate.set()
 
-    def __call__(self, text: str) -> bool:
-        """Return True when text looks like an injection."""
+    def __call__(self, text: str) -> tuple[bool, float]:
+        """Return (flagged, score); flagged when text looks like an injection."""
         with self._lock:
             self.calls.append(text)
             self.active += 1
@@ -77,7 +83,10 @@ class FakeScanner:
                 raise TimeoutError("scan gate never released")
             if self._error is not None:
                 raise self._error
-            return INJECTION in text
+            if self.verdict is not None:
+                return self.verdict(text)
+            flagged = INJECTION in text
+            return flagged, FLAGGED_SCORE if flagged else CLEAN_SCORE
         finally:
             with self._lock:
                 self.active -= 1

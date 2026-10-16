@@ -8,7 +8,7 @@ import time
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 
-from cache import VerdictCache
+from cache import Verdict, VerdictCache
 from metrics import Metrics
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class ToolGuard:
 
     def __init__(  # noqa: PLR0913 - keyword-only limits
         self,
-        scan: Callable[[str], bool],
+        scan: Callable[[str], tuple[bool, float]],
         cache: VerdictCache,
         metrics: Metrics,
         *,
@@ -47,7 +47,7 @@ class ToolGuard:
         scan_workers: int,
         stop_scans: Callable[[], None] | None = None,
     ):
-        """scan is a blocking function returning True when text is flagged; it runs on scan_workers threads.
+        """scan is a blocking function returning (flagged, score) for a text; it runs on scan_workers threads.
 
         stop_scans makes running scans raise ScanStoppedError at their next safe point; close() calls it.
         """
@@ -58,16 +58,19 @@ class ToolGuard:
         self._max_text_bytes = max_text_bytes
         self._max_pending = max_pending_scans
         self._executor = ThreadPoolExecutor(max_workers=scan_workers, thread_name_prefix="scan")
-        self._inflight: dict[str, asyncio.Task[bool | None]] = {}
+        self._inflight: dict[str, asyncio.Task[Verdict | None]] = {}
 
-    async def check(self, new: Sequence[dict], known: Sequence[str]) -> tuple[list[str], list[str]]:
-        """Return (flagged, unknown): hashes to mark, and known hashes without a verdict."""
+    async def check(self, new: Sequence[dict], known: Sequence[str]) -> tuple[list[str], list[str], dict[str, float]]:
+        """Return (flagged, unknown, scores): hashes to mark, known hashes without a verdict, and model scores.
+
+        scores covers the hashes the model flagged; a flagged hash without one failed a scan, a limit or a hash check.
+        """
         texts, flagged = self._verify(new)
         order = [*(item["hash"] for item in new), *known]
         del new
         unknown = [h for h in dict.fromkeys(known) if h not in texts and h not in flagged]
         lookups = [h for h in unknown if _HASH.fullmatch(h)]
-        verdicts: dict[str, bool | None] = dict(
+        verdicts: dict[str, Verdict | None] = dict(
             await self._cache.get_many([*texts, *(h for h in lookups if h not in self._inflight)])
         )
         waits = {h: self._inflight[h] for h in lookups if h not in verdicts and h in self._inflight}
@@ -77,13 +80,18 @@ class ToolGuard:
             results = await asyncio.gather(*(asyncio.shield(t) for t in waits.values()))
             verdicts.update(zip(waits, results, strict=True))
         for hash_, verdict in verdicts.items():
-            if verdict is not False:
+            if verdict is None or verdict.flagged:
                 flagged.setdefault(hash_, "error" if verdict is None else "verdict")
+        scores = {h: v.score for h, v in verdicts.items() if v is not None and v.flagged and flagged[h] == "verdict"}
         for reason in flagged.values():
             self._metrics.flagged.labels(reason).inc()
-        return list(dict.fromkeys(h for h in order if h in flagged)), [h for h in unknown if h not in verdicts]
+        return (
+            list(dict.fromkeys(h for h in order if h in flagged)),
+            [h for h in unknown if h not in verdicts],
+            scores,
+        )
 
-    def _schedule(self, texts: dict[str, str], flagged: dict[str, str]) -> dict[str, asyncio.Task[bool | None]]:
+    def _schedule(self, texts: dict[str, str], flagged: dict[str, str]) -> dict[str, asyncio.Task[Verdict | None]]:
         """Join or start a scan per text; texts beyond the pending limit are flagged instead."""
         tasks = {}
         for hash_, text in texts.items():
@@ -114,7 +122,7 @@ class ToolGuard:
                 texts.setdefault(hash_, text)
         return texts, flagged
 
-    def _start(self, hash_: str, text: str) -> asyncio.Task[bool | None] | None:
+    def _start(self, hash_: str, text: str) -> asyncio.Task[Verdict | None] | None:
         if len(self._inflight) >= self._max_pending:
             return None
         task = asyncio.get_running_loop().create_task(self._scan_and_store(hash_, text))
@@ -127,11 +135,11 @@ class ToolGuard:
         self._inflight.pop(hash_, None)
         self._metrics.pending_scans.set(len(self._inflight))
 
-    async def _scan_and_store(self, hash_: str, text: str) -> bool | None:
+    async def _scan_and_store(self, hash_: str, text: str) -> Verdict | None:
         loop = asyncio.get_running_loop()
         start = time.perf_counter()
         try:
-            flagged = await loop.run_in_executor(self._executor, self._timed, text)
+            verdict = await loop.run_in_executor(self._executor, self._timed, text)
         except ScanStoppedError:
             self._metrics.scans.labels("stopped").inc()
             return None
@@ -143,20 +151,21 @@ class ToolGuard:
             self._metrics.scans.labels("error").inc()
             logger.exception("scan of %s failed", hash_[:23])
             return None
-        self._metrics.scans.labels("flagged" if flagged else "clean").inc()
+        self._metrics.scans.labels("flagged" if verdict.flagged else "clean").inc()
         logger.info(
-            "scanned %s: flagged=%s bytes=%d seconds=%.3f",
+            "scanned %s: flagged=%s score=%.4f bytes=%d seconds=%.3f",
             hash_[:23],
-            flagged,
+            verdict.flagged,
+            verdict.score,
             len(_encode(text)),
             time.perf_counter() - start,
         )
-        await self._cache.put(hash_, flagged=flagged)
-        return flagged
+        await self._cache.put(hash_, verdict)
+        return verdict
 
-    def _timed(self, text: str) -> bool:
+    def _timed(self, text: str) -> Verdict:
         with self._metrics.scan_seconds.time():
-            return self._scan(text)
+            return Verdict(*self._scan(text))
 
     async def drain(self, max_wait: float | None = None) -> None:
         """Wait for scans in flight to finish and be cached, for at most max_wait seconds; they are not cancelled."""
