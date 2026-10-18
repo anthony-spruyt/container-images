@@ -18,6 +18,7 @@ cu130 = ["torch==2.14.1+cu130"]
 
 [tool.uv]
 package = false
+exclude-newer = "7 days"
 no-build = true
 conflicts = [[{ group = "cpu" }, { group = "cu130" }]]
 environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
