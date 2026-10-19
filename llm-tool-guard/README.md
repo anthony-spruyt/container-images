@@ -61,4 +61,4 @@ Scans still running when `SHUTDOWN_DRAIN_SECONDS` ends stop at their next window
 
 ## Download tooling
 
-The Python dependencies are pinned in [pyproject.toml](pyproject.toml) and locked with hashes in [uv.lock](uv.lock), installed with `uv sync --locked`, and kept current by Renovate. To bump by hand, edit [pyproject.toml](pyproject.toml), then run `uv lock` in this directory and commit both files. torch is the `cpu` dependency group and comes from the PyTorch CPU index; everything else comes from PyPI.
+The Python dependencies are pinned in [pyproject.toml](pyproject.toml) and locked with hashes in [uv.lock](uv.lock), installed with `uv sync --locked`, and kept current by Renovate. To bump by hand, edit [pyproject.toml](pyproject.toml), then run `uv lock` in this directory and commit both files. `uv lock` resolves only releases uploaded at least 7 days ago (`exclude-newer` in [pyproject.toml](pyproject.toml)), so pinning a release younger than that fails to resolve. torch is the `cpu` dependency group and comes from the PyTorch CPU index; everything else comes from PyPI.

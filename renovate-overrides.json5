@@ -1,10 +1,16 @@
-// Repo-specific Renovate overrides
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   // List every pip-compile lock here and in the pip_requirements rule below.
   "pip-compile": {
     "managerFilePatterns": ["llm-tool-guard-model/requirements.txt"],
     "lockFileMaintenance": {
+      "schedule": ["before 4am on the first day of the month"],
+    },
+  },
+  // Manager level on purpose: a packageRule can't enable lock file maintenance, as Renovate checks `enabled` before packageRules run.
+  "pep621": {
+    "lockFileMaintenance": {
+      "enabled": true,
       "schedule": ["before 4am on the first day of the month"],
     },
   },
