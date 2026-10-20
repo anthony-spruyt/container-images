@@ -36,6 +36,7 @@ class ScanRequest(BaseModel):
 
     new: list[NewItem] = []
     known: list[str] = []
+    jev: bool = False
 
 
 class _RequestError(Exception):
@@ -47,15 +48,15 @@ def _error(status: int, detail: str, headers: dict | None = None) -> JSONRespons
     return JSONResponse(status_code=status, content={"detail": detail}, headers=headers)
 
 
-def _parse(raw: bytes) -> tuple[list[dict], list[str]]:
-    """Return the items to scan and the hashes to look up, holding nothing else of the body."""
+def _parse(raw: bytes) -> tuple[list[dict], list[str], bool]:
+    """Return the items to scan, the hashes to look up and whether the caller wants Jev's answers, holding no more."""
     try:
         body = ScanRequest.model_validate(json.loads(raw))
     except ValidationError:
         raise _RequestError(_error(422, "body does not match the scan request schema")) from None
     except ValueError:
         raise _RequestError(_error(400, "body is not valid JSON")) from None
-    return [item.model_dump() for item in body.new], body.known
+    return [item.model_dump() for item in body.new], body.known, body.jev
 
 
 async def _wait_for_disconnect(request: Request) -> None:
@@ -98,6 +99,7 @@ class _Service:
             if self.guard is not None:
                 await self.guard.drain(self._settings.shutdown_drain_seconds)
                 self.guard.close()
+                await self.guard.aclose()
 
     def healthz(self):
         """Liveness: fails only when the model could not load."""
@@ -116,7 +118,10 @@ class _Service:
         return Response(generate_latest(self._metrics.registry), media_type=CONTENT_TYPE_LATEST)
 
     async def scan(self, request: Request):
-        """Return the hashes to flag, the known hashes without a verdict and the model score of each hash it flagged."""
+        """Return the hashes to flag, the known hashes without a verdict and the model score of each hash it flagged.
+
+        With "jev": true the response also lists the hashes Jev blocked and cleared and the answer it gave for each.
+        """
         with self._metrics.request_seconds.time():
             try:
                 guard = self._admit(request)
@@ -129,16 +134,21 @@ class _Service:
 
     async def _answer(self, guard: ToolGuard, request: Request):
         try:
-            check = asyncio.create_task(guard.check(*_parse(await self._read_body(request))))
+            new, known, jev = _parse(await self._read_body(request))
         except _RequestError as exc:
             return exc.response
+        check = asyncio.create_task(guard.check_with_jev(new, known) if jev else guard.check(new, known))
+        del new
         gone = asyncio.create_task(_wait_for_disconnect(request))
         try:
             # Cancelling check drops only this request's wait; the scans it started are shielded and still get cached
             await asyncio.wait({check, gone}, return_when=asyncio.FIRST_COMPLETED)
             if not check.done():
                 return _error(499, "client disconnected")
-            flagged, unknown, scores = check.result()
+            result = check.result()
+            if jev:
+                return result._asdict()
+            flagged, unknown, scores = result
             return {"flagged": flagged, "unknown": unknown, "scores": scores}
         finally:
             gone.cancel()

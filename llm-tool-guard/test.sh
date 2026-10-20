@@ -46,6 +46,7 @@ start_guard() {
     "${HF_MOUNT[@]}" \
     -e VALKEY_URL="redis://$VALKEY:6379/0" \
     -e AUTH_TOKEN="$TOKEN" \
+    -e JEV_MODE=off \
     "$@" \
     "$IMAGE_REF" >/dev/null
   BASE="http://$(docker port "$GUARD" 8080/tcp | head -n 1)"

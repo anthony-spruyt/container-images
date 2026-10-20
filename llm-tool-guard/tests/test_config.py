@@ -26,6 +26,12 @@ def test_defaults():
     assert settings.max_concurrent_requests == 8
     assert settings.scan_timeout_seconds == 300
     assert settings.shutdown_drain_seconds == 20
+    assert settings.jev_mode == "off"
+    assert settings.typesafe_api_base == "https://api.typesafe.ai"
+    assert settings.jev_model == "jev-1.13.0"
+    assert (settings.jev_block_at, settings.jev_clear_below) == (0.90, 0.08)
+    assert settings.jev_timeout_seconds == 10
+    assert settings.jev_max_text_bytes == 16384
 
 
 def test_overrides():
@@ -125,3 +131,96 @@ def test_repr_hides_secrets():
 
     for secret in (url_password, password, token):
         assert secret not in repr(settings)
+
+
+JEV_ENFORCE = {"JEV_MODE": "enforce", "TYPESAFE_API_KEY": "key"}
+
+
+def test_jev_overrides():
+    settings = Settings.from_env(
+        {
+            **JEV_ENFORCE,
+            "TYPESAFE_API_BASE": "https://typesafe.example/",
+            "JEV_MODEL": "jev-9.9.9",
+            "JEV_BLOCK_AT": "0.95",
+            "JEV_CLEAR_BELOW": "0.05",
+            "JEV_TIMEOUT_SECONDS": "2.5",
+            "JEV_MAX_TEXT_BYTES": "4096",
+        }
+    )
+
+    assert settings.jev_mode == "enforce"
+    assert settings.typesafe_api_key == "key"
+    assert settings.typesafe_api_base == "https://typesafe.example"
+    assert settings.jev_model == "jev-9.9.9"
+    assert (settings.jev_block_at, settings.jev_clear_below) == (0.95, 0.05)
+    assert settings.jev_timeout_seconds == 2.5
+    assert settings.jev_max_text_bytes == 4096
+
+
+def test_jev_enforce_without_a_key_fails_at_load():
+    with pytest.raises(ValueError, match="TYPESAFE_API_KEY"):
+        Settings.from_env({"JEV_MODE": "enforce"})
+
+
+def test_jev_off_needs_no_key():
+    assert Settings.from_env({"JEV_MODE": "off"}).typesafe_api_key == ""
+
+
+@pytest.mark.parametrize("mode", ["off", "enforce"])
+@pytest.mark.parametrize("key", ["s3cr3t\n", "s3cr3t\r\n", " s3cr3t", "s3c r3t", "s3c\tr3t", "s3cr3té", "s3cr3t\x00"])
+def test_a_key_that_is_not_printable_ascii_fails_at_load_without_echoing_it(mode, key):
+    with pytest.raises(ValueError, match="TYPESAFE_API_KEY") as caught:
+        Settings.from_env({"JEV_MODE": mode, "TYPESAFE_API_KEY": key})
+
+    assert "s3c" not in str(caught.value)
+    assert "r3t" not in str(caught.value)
+
+
+def test_a_key_of_printable_ascii_is_accepted():
+    key = "ts_Abc-123.xyz~!#"
+
+    assert Settings.from_env({**JEV_ENFORCE, "TYPESAFE_API_KEY": key}).typesafe_api_key == key
+
+
+def test_jev_clear_below_may_not_exceed_block_at():
+    with pytest.raises(ValueError, match="JEV_CLEAR_BELOW"):
+        Settings.from_env({"JEV_CLEAR_BELOW": "0.5", "JEV_BLOCK_AT": "0.4"})
+
+
+def test_jev_thresholds_are_checked_even_when_off():
+    with pytest.raises(ValueError, match="JEV_CLEAR_BELOW"):
+        Settings.from_env({"JEV_MODE": "off", "JEV_CLEAR_BELOW": "0.95"})
+
+
+def test_jev_thresholds_may_meet():
+    settings = Settings.from_env({"JEV_CLEAR_BELOW": "0.5", "JEV_BLOCK_AT": "0.5"})
+
+    assert settings.jev_clear_below == settings.jev_block_at == 0.5
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("JEV_MODE", "shadow"),
+        ("JEV_MODE", "ENFORCE"),
+        ("JEV_BLOCK_AT", "0"),
+        ("JEV_BLOCK_AT", "1.5"),
+        ("JEV_BLOCK_AT", "nan"),
+        ("JEV_CLEAR_BELOW", "-0.1"),
+        ("JEV_CLEAR_BELOW", "x"),
+        ("JEV_TIMEOUT_SECONDS", "0"),
+        ("JEV_MAX_TEXT_BYTES", "0"),
+        ("TYPESAFE_API_BASE", "api.typesafe.ai"),
+        ("TYPESAFE_API_BASE", "ftp://api.typesafe.ai"),
+    ],
+)
+def test_invalid_jev_values_are_rejected_by_name(name, value):
+    with pytest.raises(ValueError, match=name):
+        Settings.from_env({**JEV_ENFORCE, name: value})
+
+
+def test_repr_hides_the_typesafe_key():
+    key = secrets.token_hex(8)
+
+    assert key not in repr(Settings.from_env({"JEV_MODE": "enforce", "TYPESAFE_API_KEY": key}))
