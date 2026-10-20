@@ -9,15 +9,20 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api import create_app
-from cache import VerdictCache
+from cache import JevCache, VerdictCache
 from config import Settings
-from fakes import FLAGGED_SCORE, FLAGGED_VALUE, INJECTION, FakeScanner, FakeValkey, digest, sample
+from fakes import FLAGGED_SCORE, FLAGGED_VALUE, INJECTION, FakeJudge, FakeScanner, FakeValkey, digest, sample
 from guard import ToolGuard
+from second_check import SecondCheck
 
 
-def make_guard(metrics, valkey=None, scanner=None, **settings_env) -> ToolGuard:
+def make_guard(metrics, valkey=None, scanner=None, judge=None, **settings_env) -> ToolGuard:
     settings = Settings.from_env(settings_env)
     cache = VerdictCache(valkey, namespace="ns", ttl_seconds=60, metrics=metrics)
+    second = None
+    if judge is not None:
+        jev_cache = JevCache(valkey, namespace="jns", ttl_seconds=60, metrics=metrics)
+        second = SecondCheck(judge, jev_cache, metrics, block_at=0.9, clear_below=0.08, max_text_bytes=1024)
     return ToolGuard(
         scanner or FakeScanner(),
         cache,
@@ -25,6 +30,7 @@ def make_guard(metrics, valkey=None, scanner=None, **settings_env) -> ToolGuard:
         max_text_bytes=settings.max_text_bytes,
         max_pending_scans=settings.max_pending_scans,
         scan_workers=settings.scan_workers,
+        second_check=second,
     )
 
 
@@ -45,8 +51,8 @@ def fixture_client(metrics):
         yield client
 
 
-def body(new=(), known=()) -> dict:
-    return {"new": [{"hash": digest(t), "text": t} for t in new], "known": list(known)}
+def body(new=(), known=(), **extra) -> dict:
+    return {"new": [{"hash": digest(t), "text": t} for t in new], "known": list(known), **extra}
 
 
 def test_scan_returns_flagged_and_unknown(client):
@@ -298,6 +304,83 @@ def test_failed_model_load_fails_liveness(metrics):
         assert client.get("/readyz").status_code == 503
 
 
+def jev_client(metrics, judge, **env):
+    return client_for(metrics, guard=make_guard(metrics, FakeValkey(), judge=judge), **env)
+
+
+def test_the_response_has_only_the_three_fields_unless_the_request_opts_in(metrics):
+    judge = FakeJudge(0.99)
+    with jev_client(metrics, judge) as client:
+        plain = client.post("/v1/scan", json=body([f"{INJECTION} me"]))
+        declined = client.post("/v1/scan", json=body([f"{INJECTION} me"], jev=False))
+
+    assert set(plain.json()) == set(declined.json()) == {"flagged", "unknown", "scores"}
+    assert plain.json()["flagged"] == [digest(f"{INJECTION} me")]
+    assert judge.calls == []
+
+
+def test_an_opted_in_request_gets_blocked_cleared_and_jev_scores(metrics):
+    judge = FakeJudge(0.5)
+    blocked, cleared, middle = f"{INJECTION} block", f"{INJECTION} clear", f"{INJECTION} middle"
+    judge.answers = {blocked: 0.99, cleared: 0.01}
+    with jev_client(metrics, judge) as client:
+        response = client.post("/v1/scan", json=body([blocked, cleared, middle, "clean"], jev=True))
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "flagged": [digest(blocked), digest(middle)],
+        "unknown": [],
+        "scores": {digest(t): FLAGGED_SCORE for t in (blocked, cleared, middle)},
+        "blocked": [digest(blocked)],
+        "cleared": [digest(cleared)],
+        "jev_scores": {digest(blocked): 0.99, digest(cleared): 0.01, digest(middle): 0.5},
+    }
+
+
+def test_known_hashes_get_the_same_fields_from_the_caches(metrics):
+    judge = FakeJudge(0.01)
+    text = f"{INJECTION} me"
+    with jev_client(metrics, judge) as client:
+        client.post("/v1/scan", json=body([text], jev=True))
+        response = client.post("/v1/scan", json=body(known=[digest(text), digest("unseen")], jev=True))
+
+    assert response.json() == {
+        "flagged": [],
+        "unknown": [digest("unseen")],
+        "scores": {digest(text): FLAGGED_SCORE},
+        "blocked": [],
+        "cleared": [digest(text)],
+        "jev_scores": {digest(text): 0.01},
+    }
+    assert judge.calls == [text]
+
+
+def test_with_jev_off_an_opted_in_request_gets_empty_fields_and_every_flag(client):
+    response = client.post("/v1/scan", json=body([f"{INJECTION} me"], jev=True))
+
+    assert response.json() == {
+        "flagged": [digest(f"{INJECTION} me")],
+        "unknown": [],
+        "scores": {digest(f"{INJECTION} me"): FLAGGED_SCORE},
+        "blocked": [],
+        "cleared": [],
+        "jev_scores": {},
+    }
+
+
+@pytest.mark.parametrize("value", ["true", 1, None, [], {}])
+def test_a_jev_field_that_is_not_a_boolean_is_rejected(client, value):
+    assert client.post("/v1/scan", json={"new": [], "jev": value}).status_code == 422
+
+
+def test_shutdown_closes_the_jev_client(metrics):
+    judge = FakeJudge()
+    with jev_client(metrics, judge):
+        assert judge.closed is False
+
+    assert judge.closed is True
+
+
 def test_metrics_endpoint_exposes_the_service_metrics(client):
     client.post("/v1/scan", json=body([f"{INJECTION} me"], [digest("unseen")]))
 
@@ -315,6 +398,8 @@ def test_metrics_endpoint_exposes_the_service_metrics(client):
         "llm_tool_guard_pending_scans",
         "llm_tool_guard_over_limit_total",
         "llm_tool_guard_ready",
+        "llm_tool_guard_jev_requests_total",
+        "llm_tool_guard_jev_duration_seconds",
     ):
         assert name in text
 

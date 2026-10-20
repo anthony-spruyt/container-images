@@ -18,6 +18,7 @@ from config import Settings
 from guard import ToolGuard
 from metrics import Metrics
 from scanner_types import PromptInjectionScanner
+from second_check import build_second_check
 
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO").upper(),
@@ -78,6 +79,7 @@ def build(settings: Settings, metrics: Metrics):
             max_pending_scans=settings.max_pending_scans,
             scan_workers=settings.scan_workers,
             stop_scans=classifier.stop,
+            second_check=build_second_check(settings, client, metrics),
         )
 
     return load

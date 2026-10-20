@@ -30,6 +30,7 @@ class FakeValkey:
         self.ttls: dict[str, int] = {}
         self.down = False
         self.mget_calls: list[list[str]] = []
+        self.set_calls: list[tuple] = []
 
     def _check(self):
         if self.down:
@@ -42,13 +43,17 @@ class FakeValkey:
         self.mget_calls.append(list(keys))
         return [self.data.get(k) for k in keys]
 
-    async def set(self, key, value, ex=None):
-        """Store value with its TTL."""
+    async def set(self, key, value, ex=None, nx=False, get=False):
+        """Store value with its TTL; with nx an existing key is kept, and with get the previous value is returned."""
         await asyncio.sleep(0)
         self._check()
+        self.set_calls.append((key, value, ex, nx, get))
+        previous = self.data.get(key)
+        if nx and previous is not None:
+            return previous if get else None
         self.data[key] = value
         self.ttls[key] = ex
-        return True
+        return previous if get else True
 
 
 class FakeScanner:
@@ -90,6 +95,39 @@ class FakeScanner:
         finally:
             with self._lock:
                 self.active -= 1
+
+
+class FakeJudge:
+    """Stand-in for the Jev client: answers per text from a table, records calls and can hold them on a gate."""
+
+    def __init__(self, default: float | Exception = 0.5, *, gated: bool = False):
+        """default answers every text not in answers; an Exception is raised instead of returned."""
+        self.default = default
+        self.answers: dict[str, float | Exception] = {}
+        self.calls: list[str] = []
+        self.started = asyncio.Event()
+        self.gate = asyncio.Event()
+        self.closed = False
+        if not gated:
+            self.gate.set()
+
+    def release(self):
+        """Let held asks finish."""
+        self.gate.set()
+
+    async def ask(self, text: str) -> float:
+        """Return the scripted probability for text, or raise the scripted error."""
+        self.calls.append(text)
+        self.started.set()
+        await self.gate.wait()
+        answer = self.answers.get(text, self.default)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    async def aclose(self):
+        """Record the close."""
+        self.closed = True
 
 
 def sample(metrics: Metrics, name: str, **labels) -> float:
