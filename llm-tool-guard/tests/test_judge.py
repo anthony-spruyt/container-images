@@ -11,7 +11,7 @@ import judge as judge_module
 from judge import QUESTION, QUESTION_ID, STATE_KEY, JevError, Judge
 
 MODEL = "jev-1.13.0"
-KEY = "typesafe-test-key"
+KEY = "jev-test-key"
 
 
 @pytest.fixture(autouse=True)
@@ -115,6 +115,73 @@ def test_request_the_service_refuses_is_permanent_and_not_retried(status):
 
     assert (error.permanent, error.retryable) == (True, False)
     assert len(typesafe.requests) == 1
+
+
+GATEWAY_ERROR = {"error": {"message": "Budget has been exceeded", "type": "budget_exceeded", "param": None}}
+
+
+@pytest.mark.parametrize(
+    ("status", "body"),
+    [
+        (422, {**GATEWAY_ERROR, "call_id": "call-1"}),
+        (413, {"error": "Request size is too large"}),
+        (413, {"error": {"message": "too large", "type": "invalid_request_error", "code": "413"}}),
+    ],
+)
+def test_a_413_or_422_in_a_gateway_error_envelope_is_transient_and_not_retried(status, body):
+    service = Typesafe(httpx2.Response(status, json=body))
+
+    error = error_of(service)
+
+    assert (error.permanent, error.retryable) == (False, False)
+    assert len(service.requests) == 1
+
+
+@pytest.mark.parametrize("status", [413, 422])
+@pytest.mark.parametrize("content", ["Request Entity Too Large", '["no"]', '{"detail": [{"msg": "bad"}]}'])
+def test_a_413_or_422_without_a_gateway_error_envelope_is_permanent(status, content):
+    error = error_of(Typesafe(httpx2.Response(status, content=content)))
+
+    assert (error.permanent, error.retryable) == (True, False)
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        httpx2.Response(400, json={"error": {"message": "max_tokens_exceeded", "type": "max_tokens_exceeded"}}),
+        httpx2.Response(400, json={"error": {"code": "max_tokens_exceeded", "error_type": "max_tokens_exceeded"}}),
+        httpx2.Response(400, json={"error": "max_tokens_exceeded", "call_id": "call-1"}),
+    ],
+)
+def test_a_gateway_error_that_mentions_the_length_error_code_is_transient(response):
+    service = Typesafe(response)
+
+    error = error_of(service)
+
+    assert (error.permanent, error.retryable) == (False, False)
+    assert len(service.requests) == 1
+
+
+def test_a_gateway_call_id_beside_the_service_error_keeps_the_length_error_permanent():
+    body = {"detail": {"error_type": "max_tokens_exceeded", "message": "too long"}, "call_id": "call-1"}
+    service = Typesafe(httpx2.Response(400, json=body))
+
+    error = error_of(service)
+
+    assert (error.permanent, error.retryable) == (True, False)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"error": {"message": "Response blocked by guardrail", "type": "content_filter"}},
+        {"detail": "Not Found"},
+    ],
+)
+def test_an_error_body_with_status_200_is_a_transient_error(body):
+    error = error_of(Typesafe(httpx2.Response(200, json=body)))
+
+    assert (error.permanent, error.retryable) == (False, False)
 
 
 @pytest.mark.parametrize(

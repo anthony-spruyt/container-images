@@ -9,11 +9,11 @@ import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Self
+from urllib.parse import urlsplit
 
 DEFAULT_MODEL = "Horizon-Labs/prompt-injection-guard-base"
 DEFAULT_INJECTION_LABEL = "INJECTION"
 DEFAULT_THRESHOLD = 0.9
-_TYPESAFE_BASE = "https://api.typesafe.ai"
 _JEV_MODEL = "jev-1.13.0"
 _JEV_MODES = ("off", "enforce")
 _KEY_CHARACTERS = re.compile(r"[!-~]*")
@@ -36,19 +36,41 @@ def _number[T: (int, float)](env: Mapping[str, str], name: str, default: T, pars
     return value
 
 
+def _is_base_url(value: str) -> bool:
+    try:
+        parts = urlsplit(value)
+        port = parts.port
+        return (
+            parts.scheme in ("http", "https")
+            and bool(parts.hostname)
+            and not (parts.query or parts.fragment)
+            and (port is None or port > 0)
+        )
+    except ValueError:
+        return False
+
+
+def _jev_endpoint(env: Mapping[str, str], mode: str) -> tuple[str, str]:
+    """Return the Jev API base URL and key, each required when mode is enforce; neither value is echoed in errors."""
+    key = env.get("JEV_API_KEY", "")
+    if mode == "enforce" and not key:
+        raise ValueError("JEV_API_KEY is required when JEV_MODE=enforce")
+    if not _KEY_CHARACTERS.fullmatch(key):
+        raise ValueError("JEV_API_KEY must be printable ASCII with no spaces or line breaks")
+    api_url = env.get("JEV_API_URL", "")
+    if mode == "enforce" and not api_url:
+        raise ValueError("JEV_API_URL is required when JEV_MODE=enforce")
+    if api_url and not _is_base_url(api_url):
+        raise ValueError("JEV_API_URL must be an absolute http(s) URL with no query or fragment")
+    return api_url.rstrip("/"), key
+
+
 def _jev_settings(env: Mapping[str, str]) -> dict:
     """Read the Jev settings as Settings keyword arguments, checked against each other."""
     mode = env.get("JEV_MODE") or "off"
     if mode not in _JEV_MODES:
         raise ValueError(f"JEV_MODE must be one of {', '.join(_JEV_MODES)}, got {mode!r}")
-    key = env.get("TYPESAFE_API_KEY", "")
-    if mode == "enforce" and not key:
-        raise ValueError("TYPESAFE_API_KEY is required when JEV_MODE=enforce")
-    if not _KEY_CHARACTERS.fullmatch(key):
-        raise ValueError("TYPESAFE_API_KEY must be printable ASCII with no spaces or line breaks")
-    base = (env.get("TYPESAFE_API_BASE") or _TYPESAFE_BASE).rstrip("/")
-    if not base.startswith(("https://", "http://")):
-        raise ValueError(f"TYPESAFE_API_BASE must be an http(s) URL, got {base!r}")
+    api_url, key = _jev_endpoint(env, mode)
     block_at = _number(env, "JEV_BLOCK_AT", 0.90, float, 0.0)
     if not 0 < block_at <= 1:
         raise ValueError(f"JEV_BLOCK_AT must be in (0, 1], got {block_at}")
@@ -57,8 +79,8 @@ def _jev_settings(env: Mapping[str, str]) -> dict:
         raise ValueError(f"JEV_CLEAR_BELOW must not exceed JEV_BLOCK_AT, got {clear_below} above {block_at}")
     return {
         "jev_mode": mode,
-        "typesafe_api_key": key,
-        "typesafe_api_base": base,
+        "jev_api_key": key,
+        "jev_api_url": api_url,
         "jev_model": env.get("JEV_MODEL") or _JEV_MODEL,
         "jev_block_at": block_at,
         "jev_clear_below": clear_below,
@@ -94,8 +116,8 @@ class Settings:
     cache_ttl_seconds: int
     auth_token: str = field(repr=False)
     jev_mode: str
-    typesafe_api_key: str = field(repr=False)
-    typesafe_api_base: str
+    jev_api_key: str = field(repr=False)
+    jev_api_url: str
     jev_model: str
     jev_block_at: float
     jev_clear_below: float

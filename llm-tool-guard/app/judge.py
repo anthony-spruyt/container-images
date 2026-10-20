@@ -67,17 +67,32 @@ def _probability(data: Any, model: str) -> float:
     return float(value)
 
 
-def _too_long(response: httpx2.Response) -> bool:
-    """Whether a 400 body names max_tokens_exceeded as its error code, at the top level or under "detail"."""
+def _json_object(response: httpx2.Response) -> dict:
+    """The response's JSON object body, or an empty one when it has none."""
     try:
         body = response.json()
     except ValueError:
-        return False
-    if not isinstance(body, dict):
-        return False
+        return {}
+    return body if isinstance(body, dict) else {}
+
+
+def _too_long(body: dict) -> bool:
+    """Whether body names max_tokens_exceeded as its error code, at the top level or under "detail"."""
     detail = body.get("detail")
     sources = (body, detail) if isinstance(detail, dict) else (body,)
     return any(source.get(key) == _TOO_LONG for source in sources for key in _CODE_KEYS)
+
+
+def _refused(response: httpx2.Response) -> bool:
+    """Whether the service refused this text for good: a 400 for a text too long, or a 413 or 422.
+
+    A top-level "error" in the body is an error envelope of the call itself, as a gateway in front of the service
+    sends, so a 413 or 422 carrying one says nothing about the text.
+    """
+    body = _json_object(response)
+    if response.status_code == HTTPStatus.BAD_REQUEST:
+        return _too_long(body)
+    return response.status_code in _PERMANENT and "error" not in body
 
 
 class Judge:
@@ -121,7 +136,7 @@ class Judge:
         except httpx2.TransportError as exc:
             raise JevError(f"request failed ({type(exc).__name__})", retryable=True) from None
         status = response.status_code
-        if status in _PERMANENT or (status == HTTPStatus.BAD_REQUEST and _too_long(response)):
+        if _refused(response):
             raise JevError(f"status {status}", permanent=True)
         if status == HTTPStatus.TOO_MANY_REQUESTS or status >= HTTPStatus.INTERNAL_SERVER_ERROR:
             raise JevError(f"status {status}", retryable=True)
