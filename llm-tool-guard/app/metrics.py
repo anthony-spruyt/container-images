@@ -3,6 +3,7 @@
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram
 
 _SCAN_BUCKETS = (0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300)
+_JEV_BUCKETS = (0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10)
 _REQUEST_BUCKETS = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30)
 
 
@@ -50,6 +51,18 @@ class Metrics:
             buckets=_REQUEST_BUCKETS,
             registry=registry,
         )
+        self.jev_requests = Counter(
+            "llm_tool_guard_jev_requests_total",
+            "Jev questions by outcome (blocked, cleared, middle, error, skipped)",
+            ["outcome"],
+            registry=registry,
+        )
+        self.jev_seconds = Histogram(
+            "llm_tool_guard_jev_duration_seconds",
+            "Time Jev took to answer a question",
+            buckets=_JEV_BUCKETS,
+            registry=registry,
+        )
         self.pending_scans = Gauge("llm_tool_guard_pending_scans", "Texts queued or being scanned", registry=registry)
         self.ready = Gauge("llm_tool_guard_ready", "1 once the model has loaded", registry=registry)
         for verdict in ("clean", "flagged", "error", "timeout", "stopped"):
@@ -58,5 +71,7 @@ class Metrics:
             self.flagged.labels(reason)
         for limit in ("text_bytes", "queue", "body", "requests"):
             self.over_limit.labels(limit)
+        for outcome in ("blocked", "cleared", "middle", "error", "skipped"):
+            self.jev_requests.labels(outcome)
         for operation in ("get", "set"):
             self.cache_errors.labels(operation)

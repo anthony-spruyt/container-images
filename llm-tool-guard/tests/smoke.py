@@ -92,10 +92,24 @@ def scan(base: str, token: str) -> None:
         verdicts(body) == {"flagged": [digest(INJECTION)], "unknown": []}, "known hashes answered from the cache", body
     )
     expect(body["scores"] == {digest(INJECTION): score}, "cached flag keeps its score", body)
+    status, body = post(base, token, {"new": new, "known": [digest(CLEAN)], "jev": True})
+    expect(
+        body["flagged"] == [digest(INJECTION)] and body["unknown"] == [],
+        "with Jev off an opted-in request still gets every model flag",
+        body,
+    )
+    expect(
+        (body["blocked"], body["cleared"], body["jev_scores"]) == ([], [], {}),
+        "with Jev off the opt-in fields are empty",
+        body,
+    )
+    status, body = post(base, token, {"new": new, "known": [], "jev": False})
+    expect(set(body) == {"flagged", "unknown", "scores"}, "without the opt-in the response has no Jev fields", body)
     forged = digest("text the scanner never saw")
     status, body = post(base, token, {"new": [{"hash": forged, "text": CLEAN}]})
     expect(body["flagged"] == [forged], "hash that does not match its text is flagged", body)
     expect(body["scores"] == {}, "hash mismatch has no score", body)
+    expect(metric(base, 'llm_tool_guard_jev_requests_total{outcome="blocked"}') == 0, "no Jev requests while off")
     expect(metric(base, "llm_tool_guard_cache_up") == 1, "cache_up is 1")
     expect(metric(base, "llm_tool_guard_cache_hits_total") >= len(new), "cache hits counted")
 

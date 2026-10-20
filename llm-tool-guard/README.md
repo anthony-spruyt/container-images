@@ -1,22 +1,42 @@
 # llm-tool-guard
 
-Prompt-injection scanner for tool results. The LiteLLM tool-guard middleware sends each tool result's text to `POST /v1/scan`, and the service answers with the hashes to wrap. The model is loaded from a Hugging Face cache mounted at `HF_HOME`; weights are not baked into the image.
+Prompt-injection scanner for tool results. The LiteLLM tool-guard middleware sends each tool result's text to `POST /v1/scan`, and the service answers with the hashes to wrap. The model is loaded from a Hugging Face cache mounted at `HF_HOME`; weights are not baked into the image. With `JEV_MODE=enforce`, a result the model flags can be put to Jev, TypeSafe's System One model, as a second check.
 
 ## API
 
 `POST /v1/scan`
 
 ```json
-{ "new": [{ "hash": "sha256:...", "text": "..." }], "known": ["sha256:..."] }
+{ "new": [{ "hash": "sha256:...", "text": "..." }], "known": ["sha256:..."], "jev": true }
 ```
 
 ```json
 { "flagged": ["sha256:..."], "unknown": ["sha256:..."], "scores": { "sha256:...": 0.9731 } }
 ```
 
+With `"jev": true`, the response also carries the second check's verdicts:
+
+```json
+{
+  "flagged": ["sha256:..."],
+  "unknown": ["sha256:..."],
+  "scores": { "sha256:...": 0.9731 },
+  "blocked": ["sha256:..."],
+  "cleared": ["sha256:..."],
+  "jev_scores": { "sha256:...": 0.97 }
+}
+```
+
 - `new` items are checked against the content hash, looked up in the verdict cache and scanned on a miss. A text whose hash does not match, is over `MAX_TEXT_BYTES`, exceeds `SCAN_TIMEOUT_SECONDS`, cannot be scanned, or finds no room in the scan queue is flagged and not cached.
 - `scores` holds the model's score for each hash the model flagged, and is `{}` when there are none. A flagged hash without a score was flagged for another reason: a scan error or timeout, a full scan queue, an oversized text or a hash mismatch. Scores are the scanner's, rounded to 4 decimal places.
 - `known` hashes are looked up only. Hashes without a verdict come back in `unknown`.
+- `jev` is optional and defaults to `false`; it must be a boolean. Without it the response has exactly the three fields above and every model flag is in `flagged`. With it, and `JEV_MODE=enforce`, each hash the model flagged is put to Jev and the response adds:
+  - `blocked`: hashes Jev rated at or above `JEV_BLOCK_AT`. Each is also in `flagged`.
+  - `cleared`: hashes Jev rated below `JEV_CLEAR_BELOW`. They are not in `flagged`.
+  - `jev_scores`: Jev's probability that the text holds an embedded instruction, for every hash it has an answer for.
+  - A model flag Jev rated in between, gave no answer for, or was not asked about stays in `flagged` only. Only flags that carry a model score are asked about, which leaves out scan errors and timeouts, a full queue, oversized texts and hash mismatches. A text over `JEV_MAX_TEXT_BYTES` is not asked about, and a `known` hash is answered only from the caches.
+  - `scores` still holds the model's score for every flagged hash, blocked and cleared included.
+  - With `JEV_MODE=off`, `blocked`, `cleared` and `jev_scores` are present and empty.
 - `503` means the model is still loading, or `MAX_CONCURRENT_REQUESTS` requests are already in flight. The cap is checked before the body is read. A request holds its slot only while its client is connected: when the client disconnects the slot is released, and the scans it started still finish and are cached.
 
 `GET /healthz` fails only when the model could not load, `GET /readyz` passes once it has, and `GET /metrics` serves Prometheus metrics.
@@ -26,6 +46,15 @@ Prompt-injection scanner for tool results. The LiteLLM tool-guard middleware sen
 Verdicts are cached in Valkey under a namespace derived from the model and its revision, the label and threshold, the window settings, the digests of `scanner_types.py` and `classifier.py`, and the installed `transformers`, `tokenizers` and `torch` versions. Changing any of them starts a fresh namespace.
 
 A value is `<verdict>:<score>`, such as `1:0.9731` for flagged and `0:0.0123` for clean. The verdict is the decision made when the text was scanned and is served as stored, never recomputed from the score; a value in any other form is a miss.
+
+## Jev answer cache
+
+Jev's answers are cached in Valkey beside the verdicts, under `llm-tool-guard:jev:<namespace>:<hash>`. The namespace is a digest of `JEV_MODEL`, the question text and `judge.py`, so changing any of them starts fresh answers. The verdict cache and its namespace do not depend on Jev: turning Jev on, off or retuning it never rescans a text.
+
+- A value is Jev's raw probability, such as `0.0312`, or `-` when Jev gave no answer. `JEV_BLOCK_AT` and `JEV_CLEAR_BELOW` are applied when a value is read, so changing them needs no new Jev calls.
+- A value is written with `SET NX EX GET` and the stored value is used, so replicas that ask about one text at the same time serve the same answer.
+- `-` is kept for `CACHE_TTL_SECONDS` when a text is over `JEV_MAX_TEXT_BYTES` or Jev refuses the request (`400`, `413` or `422`), and for one hour, or `CACHE_TTL_SECONDS` if shorter, after any other failure: `429`, `529`, `5xx`, a timeout, a response from a model other than `JEV_MODEL`, or an unusable body. A text with `-` stored is flagged; once it expires the next request asks again.
+- A request cancelled by its client still finishes its ask and stores the answer. An ask stopped by shutdown stores nothing.
 
 ## Configuration
 
@@ -54,10 +83,28 @@ A value is `<verdict>:<score>`, such as `1:0.9731` for flagged and `0:0.0123` fo
 | `VALKEY_PASSWORD`         | empty                                      | Valkey password                                                                                 |
 | `VALKEY_TIMEOUT_SECONDS`  | `0.5`                                      | Connect and read timeout for Valkey                                                             |
 | `CACHE_TTL_SECONDS`       | `2592000`                                  | Lifetime of a cached verdict                                                                    |
+| `JEV_MODE`                | `off`                                      | `off` or `enforce`; `enforce` puts model flags to Jev and needs `TYPESAFE_API_KEY`              |
+| `TYPESAFE_API_KEY`        | empty                                      | TypeSafe API key, sent as a bearer token to Jev                                                 |
+| `TYPESAFE_API_BASE`       | `https://api.typesafe.ai`                  | TypeSafe API base URL; questions are posted to `/v1/systemone`                                  |
+| `JEV_MODEL`               | `jev-1.13.0`                               | Pinned Jev model; an answer from another model counts as an error                               |
+| `JEV_BLOCK_AT`            | `0.9`                                      | Probability at or above which Jev blocks a text, in (0, 1]                                      |
+| `JEV_CLEAR_BELOW`         | `0.08`                                     | Probability below which Jev clears a text; must not exceed `JEV_BLOCK_AT`                       |
+| `JEV_TIMEOUT_SECONDS`     | `10`                                       | Time budget per ask, including one retry on `429`, `5xx` or a timeout                           |
+| `JEV_MAX_TEXT_BYTES`      | `16384`                                    | Largest text put to Jev; larger flagged texts stay flagged                                      |
 
 A scan that runs past `SCAN_TIMEOUT_SECONDS` is flagged, not cached, and counted as `llm_tool_guard_scans_total{verdict="timeout"}`. A model call already running cannot be interrupted, so the budget is checked before each window and the worker is freed at the next window boundary.
 
-Scans still running when `SHUTDOWN_DRAIN_SECONDS` ends stop at their next window, are not cached, and are counted as `llm_tool_guard_scans_total{verdict="stopped"}`.
+Scans still running when `SHUTDOWN_DRAIN_SECONDS` ends stop at their next window, are not cached, and are counted as `llm_tool_guard_scans_total{verdict="stopped"}`. Jev asks still running then are cancelled.
+
+## Second check
+
+The service refuses to start when `JEV_MODE` is not `off` or `enforce`, when `JEV_MODE=enforce` has no `TYPESAFE_API_KEY`, or when `JEV_CLEAR_BELOW` is above `JEV_BLOCK_AT`.
+
+For a model flag in a request with `"jev": true`, the service posts the text to `{TYPESAFE_API_BASE}/v1/systemone` as `{"tool_output": <text>}` with one yes/no question: does the text contain an embedded instruction aimed at whoever processes it? Jev answers with the probability of yes. The call runs on the event loop, not the scan thread, and holds a `MAX_PENDING_SCANS` slot while it waits; a text that finds no slot is flagged and not cached. Texts put to Jev leave the cluster for `TYPESAFE_API_BASE`, so the service needs egress to it.
+
+A `429`, `5xx` or timeout is retried once inside `JEV_TIMEOUT_SECONDS`. Any other failure is final for that ask, and the text stays in `flagged`.
+
+`llm_tool_guard_jev_requests_total{outcome}` counts asks by `blocked`, `cleared`, `middle` (answered in between), `error` and `skipped` (not asked: over `JEV_MAX_TEXT_BYTES`, or no queue slot). `llm_tool_guard_jev_duration_seconds` times the calls to Jev. Answers served from the cache are not counted.
 
 ## Download tooling
 

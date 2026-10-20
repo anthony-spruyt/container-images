@@ -58,7 +58,7 @@ def _encode_answer(answer: JevAnswer) -> str:
 
 
 def _decode_answer(value: str | bytes | None) -> JevAnswer | None:
-    """Parse a stored probability or no-answer marker; anything else, including a probability outside [0, 1], is a miss."""
+    """Parse a stored probability or no-answer marker; anything else, including one outside [0, 1], is a miss."""
     if value is None:
         return None
     raw = value.decode() if isinstance(value, bytes) else value

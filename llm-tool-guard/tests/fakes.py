@@ -97,6 +97,39 @@ class FakeScanner:
                 self.active -= 1
 
 
+class FakeJudge:
+    """Stand-in for the Jev client: answers per text from a table, records calls and can hold them on a gate."""
+
+    def __init__(self, default: float | Exception = 0.5, *, gated: bool = False):
+        """default answers every text not in answers; an Exception is raised instead of returned."""
+        self.default = default
+        self.answers: dict[str, float | Exception] = {}
+        self.calls: list[str] = []
+        self.started = asyncio.Event()
+        self.gate = asyncio.Event()
+        self.closed = False
+        if not gated:
+            self.gate.set()
+
+    def release(self):
+        """Let held asks finish."""
+        self.gate.set()
+
+    async def ask(self, text: str) -> float:
+        """Return the scripted probability for text, or raise the scripted error."""
+        self.calls.append(text)
+        self.started.set()
+        await self.gate.wait()
+        answer = self.answers.get(text, self.default)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    async def aclose(self):
+        """Record the close."""
+        self.closed = True
+
+
 def sample(metrics: Metrics, name: str, **labels) -> float:
     """Read one metric sample, 0.0 when it has not been recorded."""
     value = metrics.registry.get_sample_value(name, labels)

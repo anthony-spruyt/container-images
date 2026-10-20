@@ -6,6 +6,7 @@ The cache namespace of Jev's answers includes this file's digest, so any edit he
 import asyncio
 import math
 import re
+from http import HTTPStatus
 from typing import Any
 
 import httpx2
@@ -106,9 +107,9 @@ class Judge:
         status = response.status_code
         if status in _PERMANENT:
             raise JevError(f"status {status}", permanent=True)
-        if status == 429 or status >= 500:
+        if status == HTTPStatus.TOO_MANY_REQUESTS or status >= HTTPStatus.INTERNAL_SERVER_ERROR:
             raise JevError(f"status {status}", retryable=True)
-        if status != 200:
+        if status != HTTPStatus.OK:
             raise JevError(f"status {status}")
         try:
             data = response.json()
