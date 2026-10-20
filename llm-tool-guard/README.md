@@ -1,6 +1,6 @@
 # llm-tool-guard
 
-Prompt-injection scanner for tool results. The LiteLLM tool-guard middleware sends each tool result's text to `POST /v1/scan`, and the service answers with the hashes to wrap. The model is loaded from a Hugging Face cache mounted at `HF_HOME`; weights are not baked into the image. With `JEV_MODE=enforce`, a result the model flags can be put to Jev, TypeSafe's System One model, as a second check.
+Prompt-injection scanner for tool results. The LiteLLM tool-guard middleware sends each tool result's text to `POST /v1/scan`, and the service answers with the hashes to wrap. The model is loaded from a Hugging Face cache mounted at `HF_HOME`; weights are not baked into the image. With `JEV_MODE=enforce`, a result the model flags can be put to Jev as a second check.
 
 ## API
 
@@ -53,7 +53,7 @@ Jev's answers are cached in Valkey beside the verdicts, under `llm-tool-guard:je
 
 - A value is Jev's raw probability, such as `0.0312`, or `-` when Jev gave no answer. `JEV_BLOCK_AT` and `JEV_CLEAR_BELOW` are applied when a value is read, so changing them needs no new Jev calls.
 - A value is written with `SET NX EX GET` and the stored value is used, so replicas that ask about one text at the same time serve the same answer.
-- `-` is kept for `CACHE_TTL_SECONDS` when Jev refuses the request (`400` with the error code `max_tokens_exceeded`, `413` or `422` without a top-level `error` in its body), and for one hour, or `CACHE_TTL_SECONDS` if shorter, after any other failure, such as `429`, `529`, `5xx`, any other `400`, a `413` or `422` with a top-level `error` (a gateway's error), `401`, `403`, a timeout, a response from a model other than `JEV_MODEL`, or an unusable body. A text with `-` stored is flagged; once it expires, only a request that carries the text asks again.
+- `-` is kept for `CACHE_TTL_SECONDS` when Jev refuses the request (`400` with the error code `max_tokens_exceeded`, `413` or `422` without a top-level `error` in its body), and for one hour, or `CACHE_TTL_SECONDS` if shorter, after any other failure, such as `429`, `529`, `5xx`, any other `400`, a `413` or `422` with a top-level `error` (an error from a proxy in front of the API), `401`, `403`, a timeout, a response from a model other than `JEV_MODEL`, or an unusable body. A text with `-` stored is flagged; once it expires, only a request that carries the text asks again.
 - A text over `JEV_MAX_TEXT_BYTES` is not asked about and nothing is stored for it, so a larger limit applies to it at once.
 - With `VALKEY_URL` set but Valkey unreachable, Jev is still asked, but an answer that cannot be stored is not used: the text stays flagged, so every turn gets the same verdict. Without `VALKEY_URL`, the answer is used for that request only.
 - A request cancelled by its client still gets its ask: one in progress finishes, and one whose scan is still running starts when the scan ends. Either stores the answer. An ask stopped by shutdown stores nothing.
@@ -100,11 +100,11 @@ Scans still running when `SHUTDOWN_DRAIN_SECONDS` ends stop at their next window
 
 ## Second check
 
-The service refuses to start when `JEV_MODE` is not `off` or `enforce`, when `JEV_MODE=enforce` has no `JEV_API_URL` or `JEV_API_KEY`, when `JEV_API_KEY` is not printable ASCII (a trailing newline, for example), when `JEV_API_URL` is not an absolute http(s) URL or has a query or fragment, when `JEV_BLOCK_AT` is outside (0, 1], or when `JEV_CLEAR_BELOW` is above `JEV_BLOCK_AT`. The error names the variable, never its value.
+The service refuses to start when `JEV_MODE` is not `off` or `enforce`, when `JEV_MODE=enforce` has no `JEV_API_URL` or `JEV_API_KEY`, when `JEV_API_KEY` is not printable ASCII (a trailing newline, for example), when `JEV_API_URL` is not an absolute http(s) URL with a valid port, is not printable ASCII (a space or line break, for example), or has user info (the key is sent separately), a query or a fragment, when `JEV_BLOCK_AT` is outside (0, 1], or when `JEV_CLEAR_BELOW` is above `JEV_BLOCK_AT`. The errors never print the key or the URL.
 
-For a model flag in a request with `"jev": true`, the service posts the text to `{JEV_API_URL}/v1/systemone` (for example, a gateway's TypeSafe pass-through) with `Authorization: Bearer <JEV_API_KEY>` as `{"tool_output": <text>}` with one yes/no question: does the text contain an embedded instruction aimed at whoever processes it? Jev answers with the probability of yes. The call runs on the event loop, not the scan thread, and holds a `MAX_PENDING_SCANS` slot while it waits; a text that finds no slot is flagged and not cached. The service needs network access to `JEV_API_URL`; trailing slashes on it are ignored and a path prefix is kept.
+For a model flag in a request with `"jev": true`, the service posts the text to `{JEV_API_URL}/v1/systemone` with `Authorization: Bearer <JEV_API_KEY>` as `{"tool_output": <text>}` with one yes/no question: does the text contain an embedded instruction aimed at whoever processes it? Jev answers with the probability of yes. The call runs on the event loop, not the scan thread, and holds a `MAX_PENDING_SCANS` slot while it waits; a text that finds no slot is flagged and not cached. The service needs network access to `JEV_API_URL`; trailing slashes on it are ignored and a path prefix is kept.
 
-A `429`, `5xx`, a timeout or a dropped connection is retried once inside `JEV_TIMEOUT_SECONDS`. Any other failure, a `4xx` from the API's gateway included, is final for that ask, and the text stays in `flagged`.
+A `429`, `5xx`, a timeout or a dropped connection is retried once inside `JEV_TIMEOUT_SECONDS`. Any other failure, a `4xx` from a proxy in front of the API included, is final for that ask, and the text stays in `flagged`.
 
 `llm_tool_guard_jev_requests_total{outcome}` counts asks by `blocked`, `cleared`, `middle` (answered in between), `error` and `skipped` (not asked: over `JEV_MAX_TEXT_BYTES`, or no queue slot). `llm_tool_guard_jev_duration_seconds` times the calls to Jev. Answers served from the cache are not counted.
 

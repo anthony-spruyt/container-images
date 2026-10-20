@@ -86,7 +86,7 @@ def _too_long(body: dict) -> bool:
 def _refused(response: httpx2.Response) -> bool:
     """Whether the service refused this text for good: a 400 for a text too long, or a 413 or 422.
 
-    A top-level "error" in the body is an error envelope of the call itself, as a gateway in front of the service
+    A top-level "error" in the body is an error envelope of the call itself, as a proxy in front of the service
     sends, so a 413 or 422 carrying one says nothing about the text.
     """
     body = _json_object(response)

@@ -16,7 +16,7 @@ DEFAULT_INJECTION_LABEL = "INJECTION"
 DEFAULT_THRESHOLD = 0.9
 _JEV_MODEL = "jev-1.13.0"
 _JEV_MODES = ("off", "enforce")
-_KEY_CHARACTERS = re.compile(r"[!-~]*")
+_PRINTABLE_ASCII = re.compile(r"[!-~]*")
 SCANNER_DEVICE = os.environ.get("SCANNER_DEVICE", "")
 
 # [CLS] and [SEP]: the tokens each window spends outside the text.
@@ -37,17 +37,19 @@ def _number[T: (int, float)](env: Mapping[str, str], name: str, default: T, pars
 
 
 def _is_base_url(value: str) -> bool:
+    if not _PRINTABLE_ASCII.fullmatch(value) or "?" in value or "#" in value:
+        return False
     try:
         parts = urlsplit(value)
         port = parts.port
-        return (
-            parts.scheme in ("http", "https")
-            and bool(parts.hostname)
-            and not (parts.query or parts.fragment)
-            and (port is None or port > 0)
-        )
     except ValueError:
         return False
+    return (
+        parts.scheme in ("http", "https")
+        and bool(parts.hostname)
+        and "@" not in parts.netloc
+        and (port is None or port > 0)
+    )
 
 
 def _jev_endpoint(env: Mapping[str, str], mode: str) -> tuple[str, str]:
@@ -55,13 +57,16 @@ def _jev_endpoint(env: Mapping[str, str], mode: str) -> tuple[str, str]:
     key = env.get("JEV_API_KEY", "")
     if mode == "enforce" and not key:
         raise ValueError("JEV_API_KEY is required when JEV_MODE=enforce")
-    if not _KEY_CHARACTERS.fullmatch(key):
+    if not _PRINTABLE_ASCII.fullmatch(key):
         raise ValueError("JEV_API_KEY must be printable ASCII with no spaces or line breaks")
     api_url = env.get("JEV_API_URL", "")
     if mode == "enforce" and not api_url:
         raise ValueError("JEV_API_URL is required when JEV_MODE=enforce")
     if api_url and not _is_base_url(api_url):
-        raise ValueError("JEV_API_URL must be an absolute http(s) URL with no query or fragment")
+        raise ValueError(
+            "JEV_API_URL must be an absolute http(s) URL of printable ASCII with no spaces or line breaks, "
+            "a valid port, and no user info, query or fragment"
+        )
     return api_url.rstrip("/"), key
 
 
