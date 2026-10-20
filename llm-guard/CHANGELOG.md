@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.4](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.1.3...llm-guard-1.1.4) (2026-10-20)
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.143.0 ([#2287](https://github.com/anthony-spruyt/container-images/issues/2287)) ([ac6f824](https://github.com/anthony-spruyt/container-images/commit/ac6f824f324b3ad0a1b80617519fa2b94a32f437))
+
+
+### Dependencies
+
+* **deps:** resolve Python lockfiles with a 7-day cooldown ([#2388](https://github.com/anthony-spruyt/container-images/issues/2388)) ([8c56633](https://github.com/anthony-spruyt/container-images/commit/8c566330a3da043e06076b709b13331f1b87811c))
+
 ## [1.1.3](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.1.2...llm-guard-1.1.3) (2026-10-15)
 
 

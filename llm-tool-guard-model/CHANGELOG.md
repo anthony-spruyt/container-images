@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.0.1...llm-tool-guard-model-1.0.2) (2026-10-20)
+
+
+### Dependencies
+
+* **deps:** resolve Python lockfiles with a 7-day cooldown ([#2388](https://github.com/anthony-spruyt/container-images/issues/2388)) ([8c56633](https://github.com/anthony-spruyt/container-images/commit/8c566330a3da043e06076b709b13331f1b87811c))
+
 ## [1.0.1](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.0.0...llm-tool-guard-model-1.0.1) (2026-10-15)
 
 
