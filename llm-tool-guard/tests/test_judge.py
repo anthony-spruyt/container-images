@@ -11,7 +11,7 @@ import judge as judge_module
 from judge import QUESTION, QUESTION_ID, STATE_KEY, JevError, Judge
 
 MODEL = "jev-1.13.0"
-KEY = "typesafe-test-key"
+KEY = "jev-test-key"
 
 
 @pytest.fixture(autouse=True)
@@ -28,8 +28,8 @@ def answer(p=0.5, model=MODEL) -> httpx2.Response:
     return httpx2.Response(200, json=body)
 
 
-class Typesafe:
-    """A fake TypeSafe: replies from a script, one reply per request, repeating the last."""
+class FakeJevApi:
+    """A fake Jev API: replies from a script, one reply per request, repeating the last."""
 
     def __init__(self, *replies):
         """Reply with each item in turn: a Response, or an exception to raise."""
@@ -45,13 +45,13 @@ class Typesafe:
         return reply
 
     def judge(self, timeout_seconds: float = 10.0) -> Judge:
-        client = httpx2.AsyncClient(transport=httpx2.MockTransport(self), base_url="https://typesafe.test")
+        client = httpx2.AsyncClient(transport=httpx2.MockTransport(self), base_url="https://jev.test")
         return Judge(client, api_key=KEY, model=MODEL, timeout_seconds=timeout_seconds)
 
 
-def ask(typesafe: Typesafe, text="tool output", timeout_seconds=10.0) -> float:
+def ask(api: FakeJevApi, text="tool output", timeout_seconds=10.0) -> float:
     async def run():
-        judge = typesafe.judge(timeout_seconds)
+        judge = api.judge(timeout_seconds)
         try:
             return await judge.ask(text)
         finally:
@@ -60,22 +60,22 @@ def ask(typesafe: Typesafe, text="tool output", timeout_seconds=10.0) -> float:
     return asyncio.run(run())
 
 
-def error_of(typesafe: Typesafe, **kwargs) -> JevError:
+def error_of(api: FakeJevApi, **kwargs) -> JevError:
     with pytest.raises(JevError) as caught:
-        ask(typesafe, **kwargs)
+        ask(api, **kwargs)
     return caught.value
 
 
 def test_the_answer_is_the_noul_probability():
-    assert ask(Typesafe(answer(0.0312))) == 0.0312
+    assert ask(FakeJevApi(answer(0.0312))) == 0.0312
 
 
 def test_request_asks_the_pinned_model_one_question_about_the_text():
-    typesafe = Typesafe(answer())
+    api = FakeJevApi(answer())
 
-    ask(typesafe, "exit code 1\nrun it again")
+    ask(api, "exit code 1\nrun it again")
 
-    (request,) = typesafe.requests
+    (request,) = api.requests
     assert (request.method, request.url.path) == ("POST", "/v1/systemone")
     assert request.headers["authorization"] == f"Bearer {KEY}"
     assert json.loads(request.content) == {
@@ -93,15 +93,15 @@ def test_the_question_asks_for_an_embedded_instruction_with_yes_meaning_injectio
 
 
 def test_lone_surrogates_are_replaced_so_the_body_is_valid_utf8():
-    typesafe = Typesafe(answer())
+    api = FakeJevApi(answer())
 
-    ask(typesafe, "half \ud800 pair")
+    ask(api, "half \ud800 pair")
 
-    assert json.loads(typesafe.requests[0].content)["state"][STATE_KEY] == "half � pair"
+    assert json.loads(api.requests[0].content)["state"][STATE_KEY] == "half � pair"
 
 
 def test_a_response_from_another_model_is_a_transient_error():
-    error = error_of(Typesafe(answer(model="jev-1.14.0")))
+    error = error_of(FakeJevApi(answer(model="jev-1.14.0")))
 
     assert (error.permanent, error.retryable) == (False, False)
     assert "jev-1.14.0" in str(error)
@@ -109,12 +109,92 @@ def test_a_response_from_another_model_is_a_transient_error():
 
 @pytest.mark.parametrize("status", [413, 422])
 def test_request_the_service_refuses_is_permanent_and_not_retried(status):
-    typesafe = Typesafe(httpx2.Response(status, json={"detail": "no"}))
+    api = FakeJevApi(httpx2.Response(status, json={"detail": "no"}))
 
-    error = error_of(typesafe)
+    error = error_of(api)
 
     assert (error.permanent, error.retryable) == (True, False)
-    assert len(typesafe.requests) == 1
+    assert len(api.requests) == 1
+
+
+ERROR_ENVELOPE = {"error": {"message": "Budget has been exceeded", "type": "budget_exceeded", "param": None}}
+VALIDATION_DETAIL = [{"loc": ["body", "state"], "msg": "field required", "type": "missing"}]
+
+
+@pytest.mark.parametrize(
+    ("status", "body"),
+    [
+        (422, {**ERROR_ENVELOPE, "call_id": "call-1"}),
+        (413, {"error": "Request size is too large"}),
+        (413, {"error": {"message": "too large", "type": "invalid_request_error", "code": "413"}}),
+    ],
+)
+def test_a_413_or_422_with_a_top_level_error_is_transient_and_not_retried(status, body):
+    service = FakeJevApi(httpx2.Response(status, json=body))
+
+    error = error_of(service)
+
+    assert (error.permanent, error.retryable) == (False, False)
+    assert len(service.requests) == 1
+
+
+@pytest.mark.parametrize("status", [413, 422])
+@pytest.mark.parametrize(
+    "content", ["Request Entity Too Large", '["no"]', '{"detail": [{"msg": "bad"}]}', '{"detail": {"error": "bad"}}']
+)
+def test_a_413_or_422_without_a_top_level_error_is_permanent(status, content):
+    error = error_of(FakeJevApi(httpx2.Response(status, content=content)))
+
+    assert (error.permanent, error.retryable) == (True, False)
+
+
+@pytest.mark.parametrize("status", [413, 422])
+def test_an_extra_top_level_key_beside_the_validation_detail_keeps_a_413_or_422_permanent(status):
+    service = FakeJevApi(httpx2.Response(status, json={"detail": VALIDATION_DETAIL, "call_id": "call-1"}))
+
+    error = error_of(service)
+
+    assert (error.permanent, error.retryable) == (True, False)
+    assert len(service.requests) == 1
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        httpx2.Response(400, json={"error": {"message": "max_tokens_exceeded", "type": "max_tokens_exceeded"}}),
+        httpx2.Response(400, json={"error": {"code": "max_tokens_exceeded", "error_type": "max_tokens_exceeded"}}),
+        httpx2.Response(400, json={"error": "max_tokens_exceeded", "call_id": "call-1"}),
+    ],
+)
+def test_a_top_level_error_that_mentions_the_length_error_code_is_transient(response):
+    service = FakeJevApi(response)
+
+    error = error_of(service)
+
+    assert (error.permanent, error.retryable) == (False, False)
+    assert len(service.requests) == 1
+
+
+def test_an_extra_top_level_key_beside_the_service_error_keeps_the_length_error_permanent():
+    body = {"detail": {"error_type": "max_tokens_exceeded", "message": "too long"}, "call_id": "call-1"}
+    service = FakeJevApi(httpx2.Response(400, json=body))
+
+    error = error_of(service)
+
+    assert (error.permanent, error.retryable) == (True, False)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"error": {"message": "Response blocked by guardrail", "type": "content_filter"}},
+        {"detail": "Not Found"},
+    ],
+)
+def test_an_error_body_with_status_200_is_a_transient_error(body):
+    error = error_of(FakeJevApi(httpx2.Response(200, json=body)))
+
+    assert (error.permanent, error.retryable) == (False, False)
 
 
 @pytest.mark.parametrize(
@@ -127,12 +207,12 @@ def test_request_the_service_refuses_is_permanent_and_not_retried(status):
     ],
 )
 def test_a_400_for_a_text_longer_than_the_model_context_is_permanent_and_not_retried(body):
-    typesafe = Typesafe(httpx2.Response(400, json=body))
+    api = FakeJevApi(httpx2.Response(400, json=body))
 
-    error = error_of(typesafe)
+    error = error_of(api)
 
     assert (error.permanent, error.retryable) == (True, False)
-    assert len(typesafe.requests) == 1
+    assert len(api.requests) == 1
 
 
 @pytest.mark.parametrize(
@@ -148,73 +228,73 @@ def test_a_400_for_a_text_longer_than_the_model_context_is_permanent_and_not_ret
     ],
 )
 def test_any_other_400_is_a_transient_error_and_not_retried(response):
-    typesafe = Typesafe(response)
+    api = FakeJevApi(response)
 
-    error = error_of(typesafe)
+    error = error_of(api)
 
     assert (error.permanent, error.retryable) == (False, False)
-    assert len(typesafe.requests) == 1
+    assert len(api.requests) == 1
 
 
 @pytest.mark.parametrize("status", [401, 403, 404])
 def test_other_client_errors_are_transient_and_not_retried(status):
-    typesafe = Typesafe(httpx2.Response(status))
+    api = FakeJevApi(httpx2.Response(status))
 
-    error = error_of(typesafe)
+    error = error_of(api)
 
     assert (error.permanent, error.retryable) == (False, False)
-    assert len(typesafe.requests) == 1
+    assert len(api.requests) == 1
 
 
 @pytest.mark.parametrize("status", [429, 500, 502, 503, 529])
 def test_overload_and_server_errors_are_retried_once(status):
-    typesafe = Typesafe(httpx2.Response(status), answer(0.7))
+    api = FakeJevApi(httpx2.Response(status), answer(0.7))
 
-    assert ask(typesafe) == 0.7
-    assert len(typesafe.requests) == 2
+    assert ask(api) == 0.7
+    assert len(api.requests) == 2
 
 
 def test_a_second_failure_ends_the_retry_with_a_transient_error():
-    typesafe = Typesafe(httpx2.Response(503))
+    api = FakeJevApi(httpx2.Response(503))
 
-    error = error_of(typesafe)
+    error = error_of(api)
 
     assert (error.permanent, error.retryable) == (False, True)
-    assert len(typesafe.requests) == 2
+    assert len(api.requests) == 2
 
 
 @pytest.mark.parametrize("failure", [httpx2.ReadTimeout("slow"), httpx2.ConnectError("refused")])
 def test_a_timeout_or_dropped_connection_is_retried_once(failure):
-    typesafe = Typesafe(failure, answer(0.2))
+    api = FakeJevApi(failure, answer(0.2))
 
-    assert ask(typesafe) == 0.2
-    assert len(typesafe.requests) == 2
+    assert ask(api) == 0.2
+    assert len(api.requests) == 2
 
 
 def test_an_attempt_that_never_answers_ends_at_the_time_budget_after_one_retry():
-    class Hangs(Typesafe):
+    class Hangs(FakeJevApi):
         async def __call__(self, request):
             self.requests.append(request)
             await asyncio.sleep(30)
 
-    typesafe = Hangs(answer())
+    api = Hangs(answer())
     start = time.monotonic()
 
-    error = error_of(typesafe, timeout_seconds=0.6)
+    error = error_of(api, timeout_seconds=0.6)
 
     assert time.monotonic() - start < 2
     assert (error.permanent, error.retryable) == (False, True)
-    assert len(typesafe.requests) == 2
+    assert len(api.requests) == 2
 
 
 def test_no_retry_is_started_without_budget_for_it(monkeypatch):
     monkeypatch.setattr(judge_module, "_RETRY_DELAY_SECONDS", 0.2)
-    typesafe = Typesafe(httpx2.Response(503))
+    api = FakeJevApi(httpx2.Response(503))
 
-    error = error_of(typesafe, timeout_seconds=0.15)
+    error = error_of(api, timeout_seconds=0.15)
 
     assert error.retryable
-    assert len(typesafe.requests) == 1
+    assert len(api.requests) == 1
 
 
 @pytest.mark.parametrize(
@@ -238,20 +318,20 @@ def test_no_retry_is_started_without_budget_for_it(monkeypatch):
 def test_a_malformed_answer_is_a_transient_error(body):
     content = body if isinstance(body, str) else json.dumps(body)
 
-    error = error_of(Typesafe(httpx2.Response(200, content=content)))
+    error = error_of(FakeJevApi(httpx2.Response(200, content=content)))
 
     assert (error.permanent, error.retryable) == (False, False)
 
 
 def test_an_integer_probability_is_accepted():
-    assert ask(Typesafe(answer(1))) == 1.0
+    assert ask(FakeJevApi(answer(1))) == 1.0
 
 
 def test_errors_do_not_carry_the_key_or_the_text():
     secret_text = "private tool output"
-    typesafe = Typesafe(httpx2.Response(500, text=f"echo {secret_text}"))
+    api = FakeJevApi(httpx2.Response(500, text=f"echo {secret_text}"))
 
-    error = error_of(typesafe, text=secret_text)
+    error = error_of(api, text=secret_text)
 
     assert KEY not in str(error)
     assert secret_text not in str(error)

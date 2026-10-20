@@ -96,14 +96,14 @@ def build_second_check(
 ) -> SecondCheck | None:
     """Return the second check the settings ask for, or None while JEV_MODE is off; valkey may be None.
 
-    transport replaces the network connection to TypeSafe, for tests.
+    transport replaces the network connection to the Jev API, for tests.
     """
     if settings.jev_mode != "enforce":
         return None
-    client = httpx2.AsyncClient(base_url=settings.typesafe_api_base, transport=transport)
+    client = httpx2.AsyncClient(base_url=settings.jev_api_url, transport=transport)
     judge = Judge(
         client,
-        api_key=settings.typesafe_api_key,
+        api_key=settings.jev_api_key,
         model=settings.jev_model,
         timeout_seconds=settings.jev_timeout_seconds,
     )

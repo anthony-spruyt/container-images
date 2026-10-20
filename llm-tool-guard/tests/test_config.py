@@ -27,7 +27,7 @@ def test_defaults():
     assert settings.scan_timeout_seconds == 300
     assert settings.shutdown_drain_seconds == 20
     assert settings.jev_mode == "off"
-    assert settings.typesafe_api_base == "https://api.typesafe.ai"
+    assert (settings.jev_api_url, settings.jev_api_key) == ("", "")
     assert settings.jev_model == "jev-1.13.0"
     assert (settings.jev_block_at, settings.jev_clear_below) == (0.90, 0.08)
     assert settings.jev_timeout_seconds == 10
@@ -133,14 +133,14 @@ def test_repr_hides_secrets():
         assert secret not in repr(settings)
 
 
-JEV_ENFORCE = {"JEV_MODE": "enforce", "TYPESAFE_API_KEY": "key"}
+JEV_ENFORCE = {"JEV_MODE": "enforce", "JEV_API_URL": "https://jev.test", "JEV_API_KEY": "key"}
 
 
 def test_jev_overrides():
     settings = Settings.from_env(
         {
             **JEV_ENFORCE,
-            "TYPESAFE_API_BASE": "https://typesafe.example/",
+            "JEV_API_URL": "https://jev.test/jev/",
             "JEV_MODEL": "jev-9.9.9",
             "JEV_BLOCK_AT": "0.95",
             "JEV_CLEAR_BELOW": "0.05",
@@ -150,8 +150,8 @@ def test_jev_overrides():
     )
 
     assert settings.jev_mode == "enforce"
-    assert settings.typesafe_api_key == "key"
-    assert settings.typesafe_api_base == "https://typesafe.example"
+    assert settings.jev_api_key == "key"
+    assert settings.jev_api_url == "https://jev.test/jev"
     assert settings.jev_model == "jev-9.9.9"
     assert (settings.jev_block_at, settings.jev_clear_below) == (0.95, 0.05)
     assert settings.jev_timeout_seconds == 2.5
@@ -159,19 +159,26 @@ def test_jev_overrides():
 
 
 def test_jev_enforce_without_a_key_fails_at_load():
-    with pytest.raises(ValueError, match="TYPESAFE_API_KEY"):
-        Settings.from_env({"JEV_MODE": "enforce"})
+    with pytest.raises(ValueError, match="JEV_API_KEY"):
+        Settings.from_env({"JEV_MODE": "enforce", "JEV_API_URL": "https://jev.test"})
 
 
-def test_jev_off_needs_no_key():
-    assert Settings.from_env({"JEV_MODE": "off"}).typesafe_api_key == ""
+def test_jev_enforce_without_a_url_fails_at_load():
+    with pytest.raises(ValueError, match="JEV_API_URL"):
+        Settings.from_env({"JEV_MODE": "enforce", "JEV_API_KEY": "key"})
+
+
+def test_jev_off_needs_no_url_or_key():
+    settings = Settings.from_env({"JEV_MODE": "off"})
+
+    assert (settings.jev_api_url, settings.jev_api_key) == ("", "")
 
 
 @pytest.mark.parametrize("mode", ["off", "enforce"])
 @pytest.mark.parametrize("key", ["s3cr3t\n", "s3cr3t\r\n", " s3cr3t", "s3c r3t", "s3c\tr3t", "s3cr3té", "s3cr3t\x00"])
 def test_a_key_that_is_not_printable_ascii_fails_at_load_without_echoing_it(mode, key):
-    with pytest.raises(ValueError, match="TYPESAFE_API_KEY") as caught:
-        Settings.from_env({"JEV_MODE": mode, "TYPESAFE_API_KEY": key})
+    with pytest.raises(ValueError, match="JEV_API_KEY") as caught:
+        Settings.from_env({"JEV_MODE": mode, "JEV_API_KEY": key})
 
     assert "s3c" not in str(caught.value)
     assert "r3t" not in str(caught.value)
@@ -180,7 +187,7 @@ def test_a_key_that_is_not_printable_ascii_fails_at_load_without_echoing_it(mode
 def test_a_key_of_printable_ascii_is_accepted():
     key = "ts_Abc-123.xyz~!#"
 
-    assert Settings.from_env({**JEV_ENFORCE, "TYPESAFE_API_KEY": key}).typesafe_api_key == key
+    assert Settings.from_env({**JEV_ENFORCE, "JEV_API_KEY": key}).jev_api_key == key
 
 
 def test_jev_clear_below_may_not_exceed_block_at():
@@ -211,8 +218,24 @@ def test_jev_thresholds_may_meet():
         ("JEV_CLEAR_BELOW", "x"),
         ("JEV_TIMEOUT_SECONDS", "0"),
         ("JEV_MAX_TEXT_BYTES", "0"),
-        ("TYPESAFE_API_BASE", "api.typesafe.ai"),
-        ("TYPESAFE_API_BASE", "ftp://api.typesafe.ai"),
+        ("JEV_API_URL", "jev.test"),
+        ("JEV_API_URL", "ftp://jev.test"),
+        ("JEV_API_URL", "https://"),
+        ("JEV_API_URL", "https:///jev"),
+        ("JEV_API_URL", "http://[::1"),
+        ("JEV_API_URL", "http://jev.test:abc"),
+        ("JEV_API_URL", "http://jev.test:99999"),
+        ("JEV_API_URL", "http://jev.test:0"),
+        ("JEV_API_URL", "https://jev.test/jev?x=1"),
+        ("JEV_API_URL", "https://jev.test/jev#top"),
+        ("JEV_API_URL", "https://jev.test?"),
+        ("JEV_API_URL", "https://jev.test#"),
+        ("JEV_API_URL", "https://u:pw@jev.test"),
+        ("JEV_API_URL", "https://@jev.test"),
+        ("JEV_API_URL", "https://jev.test "),
+        ("JEV_API_URL", " https://jev.test"),
+        ("JEV_API_URL", "https://jev.test\n"),
+        ("JEV_API_URL", "https://jev.te\tst"),
     ],
 )
 def test_invalid_jev_values_are_rejected_by_name(name, value):
@@ -220,7 +243,36 @@ def test_invalid_jev_values_are_rejected_by_name(name, value):
         Settings.from_env({**JEV_ENFORCE, name: value})
 
 
-def test_repr_hides_the_typesafe_key():
+@pytest.mark.parametrize("scheme", ["ftp", "https"])
+@pytest.mark.parametrize("user_info", ["user:{secret}", "{secret}"])
+def test_a_rejected_url_is_not_echoed(scheme, user_info):
+    secret = secrets.token_hex(8)
+    url = f"{scheme}://{user_info.format(secret=secret)}@jev.test"
+
+    with pytest.raises(ValueError, match="JEV_API_URL") as caught:
+        Settings.from_env({**JEV_ENFORCE, "JEV_API_URL": url})
+
+    assert secret not in str(caught.value)
+    assert "jev.test" not in str(caught.value)
+
+
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        ("https://jev.test", "https://jev.test"),
+        ("https://jev.test/", "https://jev.test"),
+        ("https://jev.test/jev", "https://jev.test/jev"),
+        ("https://jev.test/jev/", "https://jev.test/jev"),
+        ("http://jev.svc:4000/a/b//", "http://jev.svc:4000/a/b"),
+        ("http://jev.test:1", "http://jev.test:1"),
+        ("https://jev.test/a@b", "https://jev.test/a@b"),
+    ],
+)
+def test_the_url_loses_its_trailing_slashes_and_keeps_its_path_prefix(url, expected):
+    assert Settings.from_env({**JEV_ENFORCE, "JEV_API_URL": url}).jev_api_url == expected
+
+
+def test_repr_hides_the_jev_key():
     key = secrets.token_hex(8)
 
-    assert key not in repr(Settings.from_env({"JEV_MODE": "enforce", "TYPESAFE_API_KEY": key}))
+    assert key not in repr(Settings.from_env({**JEV_ENFORCE, "JEV_API_KEY": key}))
