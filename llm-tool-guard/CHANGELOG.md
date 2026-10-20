@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.4.0...llm-tool-guard-1.5.0) (2026-10-20)
+
+
+### Features
+
+* **llm-tool-guard:** reach Jev through a configurable API URL ([#2405](https://github.com/anthony-spruyt/container-images/issues/2405)) ([183f60a](https://github.com/anthony-spruyt/container-images/commit/183f60a9f1714a3c016ab9ec3b23b0a22f1adeac))
+
 ## [1.4.0](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.3.0...llm-tool-guard-1.4.0) (2026-10-20)
 
 
