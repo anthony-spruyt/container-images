@@ -30,6 +30,7 @@ class FakeValkey:
         self.ttls: dict[str, int] = {}
         self.down = False
         self.mget_calls: list[list[str]] = []
+        self.set_calls: list[tuple] = []
 
     def _check(self):
         if self.down:
@@ -42,13 +43,17 @@ class FakeValkey:
         self.mget_calls.append(list(keys))
         return [self.data.get(k) for k in keys]
 
-    async def set(self, key, value, ex=None):
-        """Store value with its TTL."""
+    async def set(self, key, value, ex=None, nx=False, get=False):
+        """Store value with its TTL; with nx an existing key is kept, and with get the previous value is returned."""
         await asyncio.sleep(0)
         self._check()
+        self.set_calls.append((key, value, ex, nx, get))
+        previous = self.data.get(key)
+        if nx and previous is not None:
+            return previous if get else None
         self.data[key] = value
         self.ttls[key] = ex
-        return True
+        return previous if get else True
 
 
 class FakeScanner:

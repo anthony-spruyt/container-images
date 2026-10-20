@@ -12,6 +12,9 @@ from typing import Self
 DEFAULT_MODEL = "Horizon-Labs/prompt-injection-guard-base"
 DEFAULT_INJECTION_LABEL = "INJECTION"
 DEFAULT_THRESHOLD = 0.9
+_TYPESAFE_BASE = "https://api.typesafe.ai"
+_JEV_MODEL = "jev-1.13.0"
+_JEV_MODES = ("off", "enforce")
 SCANNER_DEVICE = os.environ.get("SCANNER_DEVICE", "")
 
 # [CLS] and [SEP]: the tokens each window spends outside the text.
@@ -29,6 +32,35 @@ def _number[T: (int, float)](env: Mapping[str, str], name: str, default: T, pars
     if math.isnan(value) or value < low:
         raise ValueError(f"{name} must be at least {low}, got {raw!r}")
     return value
+
+
+def _jev_settings(env: Mapping[str, str]) -> dict:
+    """Read the Jev settings as Settings keyword arguments, checked against each other."""
+    mode = env.get("JEV_MODE") or "off"
+    if mode not in _JEV_MODES:
+        raise ValueError(f"JEV_MODE must be one of {', '.join(_JEV_MODES)}, got {mode!r}")
+    key = env.get("TYPESAFE_API_KEY", "")
+    if mode == "enforce" and not key:
+        raise ValueError("TYPESAFE_API_KEY is required when JEV_MODE=enforce")
+    base = (env.get("TYPESAFE_API_BASE") or _TYPESAFE_BASE).rstrip("/")
+    if not base.startswith(("https://", "http://")):
+        raise ValueError(f"TYPESAFE_API_BASE must be an http(s) URL, got {base!r}")
+    block_at = _number(env, "JEV_BLOCK_AT", 0.90, float, 0.0)
+    if not 0 < block_at <= 1:
+        raise ValueError(f"JEV_BLOCK_AT must be in (0, 1], got {block_at}")
+    clear_below = _number(env, "JEV_CLEAR_BELOW", 0.08, float, 0.0)
+    if clear_below > block_at:
+        raise ValueError(f"JEV_CLEAR_BELOW must not exceed JEV_BLOCK_AT, got {clear_below} above {block_at}")
+    return {
+        "jev_mode": mode,
+        "typesafe_api_key": key,
+        "typesafe_api_base": base,
+        "jev_model": env.get("JEV_MODEL") or _JEV_MODEL,
+        "jev_block_at": block_at,
+        "jev_clear_below": clear_below,
+        "jev_timeout_seconds": _number(env, "JEV_TIMEOUT_SECONDS", 10.0, float, 0.001),
+        "jev_max_text_bytes": _number(env, "JEV_MAX_TEXT_BYTES", 16 * 1024, int, 1),
+    }
 
 
 @dataclass(frozen=True)
@@ -57,6 +89,14 @@ class Settings:
     valkey_timeout_seconds: float
     cache_ttl_seconds: int
     auth_token: str = field(repr=False)
+    jev_mode: str
+    typesafe_api_key: str = field(repr=False)
+    typesafe_api_base: str
+    jev_model: str
+    jev_block_at: float
+    jev_clear_below: float
+    jev_timeout_seconds: float
+    jev_max_text_bytes: int
 
     @classmethod
     def from_env(cls, env: Mapping[str, str]) -> Self:
@@ -95,4 +135,5 @@ class Settings:
             valkey_timeout_seconds=_number(env, "VALKEY_TIMEOUT_SECONDS", 0.5, float, 0.001),
             cache_ttl_seconds=_number(env, "CACHE_TTL_SECONDS", 30 * 24 * 3600, int, 1),
             auth_token=env.get("AUTH_TOKEN", ""),
+            **_jev_settings(env),
         )
