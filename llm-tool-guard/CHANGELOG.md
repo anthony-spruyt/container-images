@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.4.0](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.3.0...llm-tool-guard-1.4.0) (2026-10-20)
+
+
+### Features
+
+* **llm-tool-guard:** ask Jev about model flags ([#2395](https://github.com/anthony-spruyt/container-images/issues/2395)) ([bdb048c](https://github.com/anthony-spruyt/container-images/commit/bdb048c888f1fd7b0f6eda32ef138335d2db8c76))
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.143.0 ([#2287](https://github.com/anthony-spruyt/container-images/issues/2287)) ([ac6f824](https://github.com/anthony-spruyt/container-images/commit/ac6f824f324b3ad0a1b80617519fa2b94a32f437))
+
+
+### Dependencies
+
+* **deps:** resolve Python lockfiles with a 7-day cooldown ([#2388](https://github.com/anthony-spruyt/container-images/issues/2388)) ([8c56633](https://github.com/anthony-spruyt/container-images/commit/8c566330a3da043e06076b709b13331f1b87811c))
+
 ## [1.3.0](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.2.2...llm-tool-guard-1.3.0) (2026-10-16)
 
 
