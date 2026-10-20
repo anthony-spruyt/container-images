@@ -12,7 +12,7 @@ from fakes import FakeValkey, digest
 from second_check import build_second_check
 
 HASH = digest("flagged text")
-ENFORCE = {"JEV_MODE": "enforce", "TYPESAFE_API_KEY": "typesafe-test-key"}
+ENFORCE = {"JEV_MODE": "enforce", "JEV_API_URL": "https://jev.test", "JEV_API_KEY": "jev-test-key"}
 
 
 def jev_keys(valkey: FakeValkey) -> list[str]:
@@ -46,17 +46,60 @@ def test_nothing_is_built_while_the_mode_is_off(metrics):
 def test_enforce_builds_a_second_check_that_asks_the_configured_service_with_the_key(metrics):
     requests: list[httpx2.Request] = []
     valkey = FakeValkey()
-    env = {**ENFORCE, "TYPESAFE_API_BASE": "https://typesafe.test/", "JEV_MODEL": "jev-9"}
+    env = {**ENFORCE, "JEV_API_URL": "https://jev.test/jev/", "JEV_MODEL": "jev-9"}
     second = build_second_check(Settings.from_env(env), valkey, metrics, transport=answering(0.25, requests))
 
     answer = asyncio.run(second.ask(HASH, "flagged text"))
 
     (request,) = requests
     assert answer.p == 0.25
-    assert str(request.url) == "https://typesafe.test/v1/systemone"
-    assert request.headers["authorization"] == "Bearer typesafe-test-key"
+    assert str(request.url) == "https://jev.test/jev/v1/systemone"
+    assert request.headers["authorization"] == "Bearer jev-test-key"
     assert json.loads(request.content)["model"] == "jev-9"
     assert len(jev_keys(valkey)) == 1
+
+
+@pytest.mark.parametrize(
+    ("api_url", "posted_to"),
+    [
+        ("https://jev.test", "https://jev.test/v1/systemone"),
+        ("https://jev.test/", "https://jev.test/v1/systemone"),
+        ("https://jev.test/jev", "https://jev.test/jev/v1/systemone"),
+        ("https://jev.test/jev/", "https://jev.test/jev/v1/systemone"),
+        ("http://jev.svc:4000/a/b/", "http://jev.svc:4000/a/b/v1/systemone"),
+    ],
+)
+def test_the_question_is_posted_to_the_api_url_with_or_without_a_trailing_slash_or_path_prefix(
+    metrics, api_url, posted_to
+):
+    requests: list[httpx2.Request] = []
+    second = build_second_check(
+        Settings.from_env({**ENFORCE, "JEV_API_URL": api_url}),
+        FakeValkey(),
+        metrics,
+        transport=answering(0.5, requests),
+    )
+
+    asyncio.run(second.ask(HASH, "flagged text"))
+
+    assert [str(request.url) for request in requests] == [posted_to]
+
+
+def test_a_redirect_to_another_host_is_not_followed_and_ends_the_ask_as_a_transient_failure(metrics):
+    requests: list[httpx2.Request] = []
+
+    def redirect(request: httpx2.Request) -> httpx2.Response:
+        requests.append(request)
+        return httpx2.Response(302, headers={"location": "https://elsewhere.test/v1/systemone"})
+
+    valkey = FakeValkey()
+    second = build_second_check(Settings.from_env(ENFORCE), valkey, metrics, transport=httpx2.MockTransport(redirect))
+
+    answer = asyncio.run(second.ask(HASH, "flagged text"))
+
+    assert answer.p is None
+    assert [str(request.url) for request in requests] == ["https://jev.test/v1/systemone"]
+    assert list(valkey.ttls.values()) == [3600]
 
 
 def test_the_configured_thresholds_and_size_limit_apply(metrics):
