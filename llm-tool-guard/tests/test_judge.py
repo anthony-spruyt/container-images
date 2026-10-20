@@ -107,13 +107,52 @@ def test_a_response_from_another_model_is_a_transient_error():
     assert "jev-1.14.0" in str(error)
 
 
-@pytest.mark.parametrize("status", [400, 413, 422])
+@pytest.mark.parametrize("status", [413, 422])
 def test_request_the_service_refuses_is_permanent_and_not_retried(status):
     typesafe = Typesafe(httpx2.Response(status, json={"detail": "no"}))
 
     error = error_of(typesafe)
 
     assert (error.permanent, error.retryable) == (True, False)
+    assert len(typesafe.requests) == 1
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"detail": {"error_type": "max_tokens_exceeded", "message": "too long"}},
+        {"detail": {"code": "max_tokens_exceeded"}},
+        {"error_type": "max_tokens_exceeded"},
+        {"code": "max_tokens_exceeded"},
+    ],
+)
+def test_a_400_for_a_text_longer_than_the_model_context_is_permanent_and_not_retried(body):
+    typesafe = Typesafe(httpx2.Response(400, json=body))
+
+    error = error_of(typesafe)
+
+    assert (error.permanent, error.retryable) == (True, False)
+    assert len(typesafe.requests) == 1
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        httpx2.Response(400, json={"detail": {"error_type": "invalid_request_error", "message": "bad utf-8"}}),
+        httpx2.Response(400, json={"detail": "max_tokens_exceeded"}),
+        httpx2.Response(400, json={"detail": ["max_tokens_exceeded"]}),
+        httpx2.Response(400, json=["max_tokens_exceeded"]),
+        httpx2.Response(400, json={"detail": {"message": "max_tokens_exceeded"}}),
+        httpx2.Response(400, content="max_tokens_exceeded"),
+        httpx2.Response(400),
+    ],
+)
+def test_any_other_400_is_a_transient_error_and_not_retried(response):
+    typesafe = Typesafe(response)
+
+    error = error_of(typesafe)
+
+    assert (error.permanent, error.retryable) == (False, False)
     assert len(typesafe.requests) == 1
 
 

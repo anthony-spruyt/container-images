@@ -7,6 +7,7 @@ import re
 import time
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from typing import NamedTuple
 
 from cache import JevAnswer, Verdict, VerdictCache
@@ -94,7 +95,8 @@ class ToolGuard:
     async def check_with_jev(self, new: Sequence[dict], known: Sequence[str]) -> Judged:
         """Like check, with Jev's answer for the hashes the model flagged: blocked, cleared and jev_scores.
 
-        A cleared hash is dropped from flagged; one Jev did not answer, or answered in between, stays flagged.
+        A cleared hash is dropped from flagged; one Jev did not answer, or answered in between, stays flagged. If the
+        caller goes away while a scan runs, the scan is followed by its Jev ask, so later turns find the answer.
         """
         checking = self._check(new, known, second_opinion=True)
         del new
@@ -114,7 +116,7 @@ class ToolGuard:
         waits.update(self._schedule({h: t for h, t in texts.items() if h not in verdicts}, flagged))
         held = {h: t for h, t in texts.items() if h not in verdicts or verdicts[h].flagged} if second_opinion else {}
         del texts
-        scores = await self._settle(verdicts, waits, flagged)
+        scores = await self._settle(verdicts, waits, flagged, held)
         held = {h: t for h, t in held.items() if h in scores}
         answers = await self._second_opinions(list(scores), held) if second_opinion else {}
         blocked, cleared = self._apply_thresholds(answers)
@@ -136,10 +138,18 @@ class ToolGuard:
         verdicts: dict[str, Verdict | None],
         waits: dict[str, asyncio.Task[Verdict | None]],
         flagged: dict[str, str],
+        held: dict[str, str],
     ) -> dict[str, float]:
-        """Wait for the scans into verdicts, flag what the model flagged or failed to scan; return the model scores."""
+        """Wait for the scans into verdicts, flag what the model flagged or failed to scan; return the model scores.
+
+        If the request is cancelled meanwhile, each scan it waits on asks Jev about its text (from held) when it ends.
+        """
         if waits:
-            results = await asyncio.gather(*(asyncio.shield(t) for t in waits.values()))
+            try:
+                results = await asyncio.gather(*(asyncio.shield(t) for t in waits.values()))
+            except asyncio.CancelledError:
+                self._ask_when_scans_end(waits, held)
+                raise
             verdicts.update(zip(waits, results, strict=True))
         for hash_, verdict in verdicts.items():
             if verdict is None or verdict.flagged:
@@ -227,14 +237,36 @@ class ToolGuard:
         self._metrics.pending_scans.set(self._pending())
         return task
 
-    def _start_jev(self, second: SecondCheck, hash_: str, text: str) -> asyncio.Task[JevAnswer] | None:
+    def _ask_when_scans_end(self, waits: dict[str, asyncio.Task[Verdict | None]], held: dict[str, str]) -> None:
+        for hash_, task in waits.items():
+            if hash_ in held:
+                task.add_done_callback(partial(self._ask_if_flagged, hash_, held[hash_]))
+
+    def _ask_if_flagged(self, hash_: str, text: str, scan: asyncio.Task[Verdict | None]) -> None:
+        if self._second is None or scan.cancelled() or scan.exception() is not None:
+            return
+        verdict = scan.result()
+        if verdict is not None and verdict.flagged and hash_ not in self._jev_inflight:
+            self._start_jev(self._second, hash_, text, recheck=True)
+
+    def _start_jev(
+        self, second: SecondCheck, hash_: str, text: str, *, recheck: bool = False
+    ) -> asyncio.Task[JevAnswer] | None:
         if self._pending() >= self._max_pending:
             return None
-        task = asyncio.get_running_loop().create_task(second.ask(hash_, text))
+        task = asyncio.get_running_loop().create_task(
+            self._answer(second, hash_, text) if recheck else second.ask(hash_, text)
+        )
         self._jev_inflight[hash_] = task
         task.add_done_callback(lambda _: self._finished(self._jev_inflight, hash_))
         self._metrics.pending_scans.set(self._pending())
         return task
+
+    @staticmethod
+    async def _answer(second: SecondCheck, hash_: str, text: str) -> JevAnswer:
+        """Return the stored answer, or ask Jev when there is none."""
+        stored = await second.lookup([hash_])
+        return stored[hash_] if hash_ in stored else await second.ask(hash_, text)
 
     def _finished(self, inflight: dict, hash_: str) -> None:
         inflight.pop(hash_, None)

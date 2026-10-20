@@ -178,6 +178,22 @@ def test_check_without_the_opt_in_never_asks_jev_and_flags_as_before(metrics, va
     assert [k for k in valkey.data if "jev" in k] == []
 
 
+def test_check_without_the_opt_in_flags_a_new_text_and_a_known_hash_that_jev_has_cleared(metrics, valkey):
+    text = bad()
+    h = text["hash"]
+    first = judged(make_guard(FakeJudge(0.0), metrics, valkey), [text])
+    judge = FakeJudge(0.0)
+    guard = make_guard(judge, metrics, valkey)
+
+    by_text = asyncio.run(guard.check([text], []))
+    by_hash = asyncio.run(guard.check([], [h]))
+
+    assert first.cleared == [h]
+    assert by_text == ([h], [], {h: FLAGGED_SCORE})
+    assert by_hash == ([h], [], {h: FLAGGED_SCORE})
+    assert judge.calls == []
+
+
 def test_flags_that_are_not_model_verdicts_never_go_to_jev(metrics, valkey):
     judge = FakeJudge(0.0)
     scanner = FakeScanner(error=RuntimeError("boom"))
@@ -245,7 +261,7 @@ def test_a_flagged_text_the_model_cached_is_sent_to_jev_when_it_arrives_as_new(m
     assert judge.calls == [text["text"]]
 
 
-def test_text_over_the_jev_limit_is_flagged_unasked_and_the_marker_is_stored_for_the_full_ttl(metrics, valkey):
+def test_text_over_the_jev_limit_is_flagged_unasked_and_nothing_is_stored(metrics, valkey):
     judge = FakeJudge(0.0)
     guard = make_guard(judge, metrics, valkey)
     text = item(f"{INJECTION} " + "x" * JEV_BYTES)
@@ -255,8 +271,7 @@ def test_text_over_the_jev_limit_is_flagged_unasked_and_the_marker_is_stored_for
     h = text["hash"]
     assert result == Judged([h], [], {h: FLAGGED_SCORE}, [], [], {})
     assert judge.calls == []
-    assert valkey.data[jev_key(h)] == "-"
-    assert valkey.ttls[jev_key(h)] == TTL
+    assert jev_key(h) not in valkey.data
     assert sample(metrics, REQUESTS, outcome="skipped") == 1
 
 
@@ -440,6 +455,69 @@ def test_the_ask_finishes_and_is_stored_after_the_request_is_cancelled(metrics, 
     assert valkey.data[jev_key(text["hash"])] == "0.97"
 
 
+async def cancel_mid_scan(guard: ToolGuard, scanner: FakeScanner, text: dict, *, jev: bool = True) -> None:
+    """Start a request, drop it while its scan runs, then let the scan finish and the guard settle."""
+    request = asyncio.create_task(guard.check_with_jev([text], []) if jev else guard.check([text], []))
+    await wait_for(scanner.started.is_set)
+    request.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await request
+    scanner.release()
+    await guard.drain(5)
+
+
+@pytest.mark.parametrize("max_pending_scans", [1, 16])
+def test_the_ask_follows_the_scan_and_is_stored_after_the_request_is_cancelled_mid_scan(
+    metrics, valkey, max_pending_scans
+):
+    judge = FakeJudge(0.97)
+    scanner = FakeScanner(gated=True)
+    guard = make_guard(judge, metrics, valkey, scanner=scanner, max_pending_scans=max_pending_scans)
+    text = bad()
+
+    asyncio.run(cancel_mid_scan(guard, scanner, text))
+    later = judged(guard, known=[text["hash"]])
+
+    h = text["hash"]
+    assert valkey.data[jev_key(h)] == "0.97"
+    assert judge.calls == [text["text"]]
+    assert later == Judged([h], [], {h: FLAGGED_SCORE}, [h], [], {h: 0.97})
+
+
+def test_the_ask_after_a_cancelled_request_is_skipped_when_an_answer_is_already_stored(metrics, valkey):
+    judge = FakeJudge(0.0)
+    scanner = FakeScanner(gated=True)
+    guard = make_guard(judge, metrics, valkey, scanner=scanner)
+    text = bad()
+    valkey.data[jev_key(text["hash"])] = "0.5"
+
+    asyncio.run(cancel_mid_scan(guard, scanner, text))
+
+    assert judge.calls == []
+    assert valkey.data[jev_key(text["hash"])] == "0.5"
+
+
+def test_a_clean_scan_is_not_followed_by_an_ask_after_a_cancelled_request(metrics, valkey):
+    judge = FakeJudge(0.97)
+    scanner = FakeScanner(gated=True)
+    guard = make_guard(judge, metrics, valkey, scanner=scanner)
+
+    asyncio.run(cancel_mid_scan(guard, scanner, item("fine")))
+
+    assert judge.calls == []
+
+
+def test_a_request_without_the_opt_in_leaves_no_ask_behind_when_cancelled(metrics, valkey):
+    judge = FakeJudge(0.97)
+    scanner = FakeScanner(gated=True)
+    guard = make_guard(judge, metrics, valkey, scanner=scanner)
+
+    asyncio.run(cancel_mid_scan(guard, scanner, bad(), jev=False))
+
+    assert judge.calls == []
+    assert [k for k in valkey.data if "jev" in k] == []
+
+
 def test_close_cancels_asks_in_flight_and_stores_nothing(metrics, valkey):
     judge = FakeJudge(0.97, gated=True)
     guard = make_guard(judge, metrics, valkey)
@@ -521,14 +599,18 @@ def test_asks_in_flight_use_pending_slots_and_a_text_beyond_the_limit_is_flagged
     assert sample(metrics, "llm_tool_guard_pending_scans") == 0
 
 
-def test_valkey_down_still_asks_jev_and_uses_the_answer_for_this_request(metrics, valkey):
+@pytest.mark.parametrize("p", [0.01, 0.99])
+def test_valkey_down_still_asks_jev_but_an_answer_that_cannot_be_stored_leaves_the_text_flagged(metrics, valkey, p):
     valkey.down = True
-    guard = make_guard(FakeJudge(0.01), metrics, valkey)
+    judge = FakeJudge(p)
+    guard = make_guard(judge, metrics, valkey)
     text = bad()
 
     result = judged(guard, [text])
 
-    assert result.cleared == [text["hash"]]
+    h = text["hash"]
+    assert result == Judged([h], [], {h: FLAGGED_SCORE}, [], [], {})
+    assert judge.calls == [text["text"]]
 
 
 def test_without_valkey_jev_is_asked_each_time(metrics):

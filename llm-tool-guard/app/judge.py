@@ -37,7 +37,9 @@ QUESTION = {
 }
 
 _PATH = "/v1/systemone"
-_PERMANENT = frozenset({400, 413, 422})
+_PERMANENT = frozenset({413, 422})
+_TOO_LONG = "max_tokens_exceeded"
+_CODE_KEYS = ("error_type", "code")
 _RETRY_DELAY_SECONDS = 0.5
 _SURROGATE = re.compile("[\ud800-\udfff]")
 _MALFORMED = "malformed response"
@@ -63,6 +65,19 @@ def _probability(data: Any, model: str) -> float:
     if isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value) or not 0 <= value <= 1:
         raise JevError(_MALFORMED)
     return float(value)
+
+
+def _too_long(response: httpx2.Response) -> bool:
+    """Whether a 400 body names max_tokens_exceeded as its error code, at the top level or under "detail"."""
+    try:
+        body = response.json()
+    except ValueError:
+        return False
+    if not isinstance(body, dict):
+        return False
+    detail = body.get("detail")
+    sources = (body, detail) if isinstance(detail, dict) else (body,)
+    return any(source.get(key) == _TOO_LONG for source in sources for key in _CODE_KEYS)
 
 
 class Judge:
@@ -106,7 +121,7 @@ class Judge:
         except httpx2.TransportError as exc:
             raise JevError(f"request failed ({type(exc).__name__})", retryable=True) from None
         status = response.status_code
-        if status in _PERMANENT:
+        if status in _PERMANENT or (status == HTTPStatus.BAD_REQUEST and _too_long(response)):
             raise JevError(f"status {status}", permanent=True)
         if status == HTTPStatus.TOO_MANY_REQUESTS or status >= HTTPStatus.INTERNAL_SERVER_ERROR:
             raise JevError(f"status {status}", retryable=True)

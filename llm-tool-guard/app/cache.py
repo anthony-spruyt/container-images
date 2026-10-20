@@ -117,7 +117,7 @@ def jev_namespace(*, model: str, question: str, runtime: Mapping[str, str]) -> s
 def _failed(metrics: Metrics, operation: str, exc: Exception) -> None:
     metrics.cache_errors.labels(operation).inc()
     metrics.cache_up.set(0)
-    logger.warning("verdict cache %s failed: %s", operation, type(exc).__name__)
+    logger.warning("cache %s failed: %s", operation, type(exc).__name__)
 
 
 class VerdictCache:
@@ -199,6 +199,7 @@ class JevCache:
         """Store p (None for no answer) unless the hash already has one, and return what is stored.
 
         An answer, and a no-answer that asking again would repeat, last the cache TTL; any other no-answer an hour.
+        With a store configured but unreachable the result is no answer, so every turn sees the same verdict.
         """
         own = JevAnswer(p)
         if self._client is None:
@@ -208,6 +209,6 @@ class JevCache:
             stored = await self._client.set(self._key(hash_), _encode_answer(own), ex=ttl, nx=True, get=True)
         except (RedisError, OSError) as exc:
             _failed(self._metrics, "set", exc)
-            return own
+            return JevAnswer(None)
         self._metrics.cache_up.set(1)
         return own if stored is None else _decode_answer(stored) or JevAnswer(None)

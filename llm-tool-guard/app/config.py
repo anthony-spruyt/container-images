@@ -5,6 +5,7 @@ The module-level DEFAULT_* names and SCANNER_DEVICE are the fallbacks scanner_ty
 
 import math
 import os
+import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Self
@@ -15,6 +16,7 @@ DEFAULT_THRESHOLD = 0.9
 _TYPESAFE_BASE = "https://api.typesafe.ai"
 _JEV_MODEL = "jev-1.13.0"
 _JEV_MODES = ("off", "enforce")
+_KEY_CHARACTERS = re.compile(r"[!-~]*")
 SCANNER_DEVICE = os.environ.get("SCANNER_DEVICE", "")
 
 # [CLS] and [SEP]: the tokens each window spends outside the text.
@@ -42,6 +44,8 @@ def _jev_settings(env: Mapping[str, str]) -> dict:
     key = env.get("TYPESAFE_API_KEY", "")
     if mode == "enforce" and not key:
         raise ValueError("TYPESAFE_API_KEY is required when JEV_MODE=enforce")
+    if not _KEY_CHARACTERS.fullmatch(key):
+        raise ValueError("TYPESAFE_API_KEY must be printable ASCII with no spaces or line breaks")
     base = (env.get("TYPESAFE_API_BASE") or _TYPESAFE_BASE).rstrip("/")
     if not base.startswith(("https://", "http://")):
         raise ValueError(f"TYPESAFE_API_BASE must be an http(s) URL, got {base!r}")

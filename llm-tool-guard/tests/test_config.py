@@ -167,6 +167,22 @@ def test_jev_off_needs_no_key():
     assert Settings.from_env({"JEV_MODE": "off"}).typesafe_api_key == ""
 
 
+@pytest.mark.parametrize("mode", ["off", "enforce"])
+@pytest.mark.parametrize("key", ["s3cr3t\n", "s3cr3t\r\n", " s3cr3t", "s3c r3t", "s3c\tr3t", "s3cr3té", "s3cr3t\x00"])
+def test_a_key_that_is_not_printable_ascii_fails_at_load_without_echoing_it(mode, key):
+    with pytest.raises(ValueError, match="TYPESAFE_API_KEY") as caught:
+        Settings.from_env({"JEV_MODE": mode, "TYPESAFE_API_KEY": key})
+
+    assert "s3c" not in str(caught.value)
+    assert "r3t" not in str(caught.value)
+
+
+def test_a_key_of_printable_ascii_is_accepted():
+    key = "ts_Abc-123.xyz~!#"
+
+    assert Settings.from_env({**JEV_ENFORCE, "TYPESAFE_API_KEY": key}).typesafe_api_key == key
+
+
 def test_jev_clear_below_may_not_exceed_block_at():
     with pytest.raises(ValueError, match="JEV_CLEAR_BELOW"):
         Settings.from_env({"JEV_CLEAR_BELOW": "0.5", "JEV_BLOCK_AT": "0.4"})

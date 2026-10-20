@@ -62,11 +62,13 @@ def test_enforce_builds_a_second_check_that_asks_the_configured_service_with_the
 def test_the_configured_thresholds_and_size_limit_apply(metrics):
     env = {**ENFORCE, "JEV_BLOCK_AT": "0.6", "JEV_CLEAR_BELOW": "0.2", "JEV_MAX_TEXT_BYTES": "8"}
     requests: list[httpx2.Request] = []
-    second = build_second_check(Settings.from_env(env), FakeValkey(), metrics, transport=answering(0.5, requests))
+    valkey = FakeValkey()
+    second = build_second_check(Settings.from_env(env), valkey, metrics, transport=answering(0.5, requests))
 
     assert [second.classify(p) for p in (0.1, 0.2, 0.59, 0.6)] == ["cleared", "middle", "middle", "blocked"]
     assert asyncio.run(second.ask(HASH, "123456789")).p is None
     assert requests == []
+    assert valkey.data == {}
 
 
 def test_the_answer_cache_ttl_is_the_verdict_cache_ttl(metrics):

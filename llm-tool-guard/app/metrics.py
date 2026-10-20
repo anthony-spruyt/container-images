@@ -63,7 +63,9 @@ class Metrics:
             buckets=_JEV_BUCKETS,
             registry=registry,
         )
-        self.pending_scans = Gauge("llm_tool_guard_pending_scans", "Texts queued or being scanned", registry=registry)
+        self.pending_scans = Gauge(
+            "llm_tool_guard_pending_scans", "Texts queued or being scanned, and Jev asks in flight", registry=registry
+        )
         self.ready = Gauge("llm_tool_guard_ready", "1 once the model has loaded", registry=registry)
         for verdict in ("clean", "flagged", "error", "timeout", "stopped"):
             self.scans.labels(verdict)

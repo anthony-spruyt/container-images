@@ -62,12 +62,13 @@ class SecondCheck:
     async def ask(self, hash_: str, text: str) -> JevAnswer:
         """Ask Jev about text, store the outcome and return what is stored.
 
-        A text over the size limit and a request Jev refuses are stored as no-answer for the full TTL, any other failure
-        for an hour. A cancelled ask stores nothing.
+        A request Jev refuses is stored as no-answer for the full TTL, any other failure for an hour. A text over the
+        size limit is not asked and nothing is stored, so raising the limit takes effect at once. A cancelled ask
+        stores nothing.
         """
         if len(text.encode("utf-8", "surrogatepass")) > self._max_text_bytes:
             self._metrics.jev_requests.labels("skipped").inc()
-            return await self._cache.settle(hash_, None, permanent=True)
+            return JevAnswer(None)
         try:
             with self._metrics.jev_seconds.time():
                 p = await self._judge.ask(text)

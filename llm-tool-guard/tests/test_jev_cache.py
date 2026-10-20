@@ -170,13 +170,13 @@ def test_the_probability_bounds_are_stored_and_read(metrics, valkey):
     assert answers == {digest("zero"): JevAnswer(0.0), digest("one"): JevAnswer(1.0)}
 
 
-def test_valkey_errors_are_counted_and_the_local_answer_is_used(metrics):
+def test_valkey_errors_are_counted_and_an_answer_that_could_not_be_stored_is_not_used(metrics):
     valkey = FakeValkey()
     cache = make_cache(valkey, metrics)
     valkey.down = True
 
     assert asyncio.run(cache.get_many([digest("a")])) == {}
-    assert asyncio.run(cache.settle(digest("a"), 0.9, permanent=True)) == JevAnswer(0.9)
+    assert asyncio.run(cache.settle(digest("a"), 0.9, permanent=True)) == JevAnswer(None)
     assert asyncio.run(cache.settle(digest("b"), None, permanent=False)) == JevAnswer(None)
     assert sample(metrics, "llm_tool_guard_cache_errors_total", operation="get") == 1
     assert sample(metrics, "llm_tool_guard_cache_errors_total", operation="set") == 2
