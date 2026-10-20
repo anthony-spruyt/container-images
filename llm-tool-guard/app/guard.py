@@ -114,13 +114,7 @@ class ToolGuard:
         waits.update(self._schedule({h: t for h, t in texts.items() if h not in verdicts}, flagged))
         held = {h: t for h, t in texts.items() if h not in verdicts or verdicts[h].flagged} if second_opinion else {}
         del texts
-        if waits:
-            results = await asyncio.gather(*(asyncio.shield(t) for t in waits.values()))
-            verdicts.update(zip(waits, results, strict=True))
-        for hash_, verdict in verdicts.items():
-            if verdict is None or verdict.flagged:
-                flagged.setdefault(hash_, "error" if verdict is None else "verdict")
-        scores = {h: v.score for h, v in verdicts.items() if v is not None and v.flagged and flagged[h] == "verdict"}
+        scores = await self._settle(verdicts, waits, flagged)
         held = {h: t for h, t in held.items() if h in scores}
         answers = await self._second_opinions(list(scores), held) if second_opinion else {}
         blocked, cleared = self._apply_thresholds(answers)
@@ -136,6 +130,21 @@ class ToolGuard:
             [h for h in ordered if h in cleared],
             {h: a.p for h in ordered if (a := answers.get(h)) is not None and a.p is not None},
         )
+
+    async def _settle(
+        self,
+        verdicts: dict[str, Verdict | None],
+        waits: dict[str, asyncio.Task[Verdict | None]],
+        flagged: dict[str, str],
+    ) -> dict[str, float]:
+        """Wait for the scans into verdicts, flag what the model flagged or failed to scan; return the model scores."""
+        if waits:
+            results = await asyncio.gather(*(asyncio.shield(t) for t in waits.values()))
+            verdicts.update(zip(waits, results, strict=True))
+        for hash_, verdict in verdicts.items():
+            if verdict is None or verdict.flagged:
+                flagged.setdefault(hash_, "error" if verdict is None else "verdict")
+        return {h: v.score for h, v in verdicts.items() if v is not None and v.flagged and flagged[h] == "verdict"}
 
     async def _second_opinions(self, candidates: list[str], held: dict[str, str]) -> dict[str, JevAnswer]:
         """Return the stored answer or no-answer of each candidate Jev has one for; held is emptied as texts are used.

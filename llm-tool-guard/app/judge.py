@@ -40,6 +40,7 @@ _PATH = "/v1/systemone"
 _PERMANENT = frozenset({400, 413, 422})
 _RETRY_DELAY_SECONDS = 0.5
 _SURROGATE = re.compile("[\ud800-\udfff]")
+_MALFORMED = "malformed response"
 
 
 class JevError(Exception):
@@ -56,11 +57,11 @@ def _probability(data: Any, model: str) -> float:
     try:
         answered_by, value = data["model"], data["answers"][QUESTION_ID]["noul"]
     except (KeyError, TypeError):
-        raise JevError("malformed response") from None
+        raise JevError(_MALFORMED) from None
     if answered_by != model:
         raise JevError(f"response from model {answered_by!r}, not the pinned {model!r}")
     if isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value) or not 0 <= value <= 1:
-        raise JevError("malformed response")
+        raise JevError(_MALFORMED)
     return float(value)
 
 
@@ -114,5 +115,5 @@ class Judge:
         try:
             data = response.json()
         except ValueError:
-            raise JevError("malformed response") from None
+            raise JevError(_MALFORMED) from None
         return _probability(data, self._model)

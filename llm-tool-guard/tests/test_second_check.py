@@ -81,8 +81,11 @@ def test_the_answer_cache_ttl_is_the_verdict_cache_ttl(metrics):
 
 
 def test_the_namespace_is_stable_and_follows_the_model(metrics):
-    assert namespace_of(ENFORCE, metrics) == namespace_of(ENFORCE, metrics)
-    assert namespace_of({**ENFORCE, "JEV_MODEL": "jev-9"}, metrics) != namespace_of(ENFORCE, metrics)
+    first = namespace_of(ENFORCE, metrics)
+    again = namespace_of(ENFORCE, metrics)
+
+    assert first == again
+    assert namespace_of({**ENFORCE, "JEV_MODEL": "jev-9"}, metrics) != first
 
 
 @pytest.mark.parametrize(
