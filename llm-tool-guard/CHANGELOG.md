@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.1](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.5.0...llm-tool-guard-1.5.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.143.1 ([#2422](https://github.com/anthony-spruyt/container-images/issues/2422)) ([cd0cece](https://github.com/anthony-spruyt/container-images/commit/cd0cecef3214db8f7a12449f3d1d517dccfd3e3f))
+
+
+### Dependencies
+
+* **deps:** update container image python to v ([#2415](https://github.com/anthony-spruyt/container-images/issues/2415)) ([da066e4](https://github.com/anthony-spruyt/container-images/commit/da066e4ace3aafdf59f9dc7116beae4ff3cceb5c))
+* **deps:** update container image python to v ([#2419](https://github.com/anthony-spruyt/container-images/issues/2419)) ([322f172](https://github.com/anthony-spruyt/container-images/commit/322f172681e1b63594649b746c16b72cf1815887))
+
 ## [1.5.0](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.4.0...llm-tool-guard-1.5.0) (2026-10-20)
 
 

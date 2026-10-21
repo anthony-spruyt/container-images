@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.3](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.2...devcontainer-common-2.4.3) (2026-10-21)
+
+
+### Dependencies
+
+* **deps:** update node.js to v24.22.0 ([#2412](https://github.com/anthony-spruyt/container-images/issues/2412)) ([7743d0a](https://github.com/anthony-spruyt/container-images/commit/7743d0ac583c293fc5e38398905832876bb6b99b))
+
 ## [2.4.2](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.1...devcontainer-common-2.4.2) (2026-10-16)
 
 
