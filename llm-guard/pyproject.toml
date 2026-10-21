@@ -3,7 +3,7 @@ name = "llm-guard"
 version = "0.0.0"
 requires-python = ">=3.14"
 dependencies = [
-    "fastapi==0.143.0",
+    "fastapi==0.143.1",
     "uvicorn[standard]==0.54.0",
     "transformers==5.19.0",
     "tokenizers==0.23.3",
