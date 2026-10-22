@@ -1,5 +1,5 @@
 # renovate: datasource=docker depName=python
-ARG PYTHON_VERSION=3.14-slim@sha256:fbecd461fc72d21b2143c6eaba25143738079154a6d0ea3da3aec724f50eed4a
+ARG PYTHON_VERSION=3.14-slim@sha256:0b566a9f30a60730df33c26ac62dedb55393d8814645cd03543b67bf8987f3a1
 FROM python:${PYTHON_VERSION} AS download
 
 WORKDIR /build
