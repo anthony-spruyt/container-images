@@ -1,6 +1,6 @@
 # renovate: datasource=docker depName=python
 ARG PYTHON_VERSION=3.14-slim@sha256:fbecd461fc72d21b2143c6eaba25143738079154a6d0ea3da3aec724f50eed4a
-FROM ghcr.io/astral-sh/uv:0.13.5@sha256:32a7bb39b496babbd997b0a39a4d66c126bdaf5661b302bf6f06abda8deca6ff AS uv
+FROM docker.io/astral/uv:0.13.5@sha256:32a7bb39b496babbd997b0a39a4d66c126bdaf5661b302bf6f06abda8deca6ff AS uv
 FROM python:${PYTHON_VERSION} AS torch-lock
 WORKDIR /lock
 # Built from the llm-guard/ build context (metadata.yaml build_context): pyproject.toml, uv.lock and app/ are shared with the CPU image.
