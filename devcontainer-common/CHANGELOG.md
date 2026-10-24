@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.4.5](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.4...devcontainer-common-2.4.5) (2026-10-24)
+
+
+### Dependencies
+
+* **deps:** update dependency pipx to v1.18.3 ([#2480](https://github.com/anthony-spruyt/container-images/issues/2480)) ([159ff75](https://github.com/anthony-spruyt/container-images/commit/159ff756e67689288acc20bc110d91acb3fcc99c))
+* **deps:** update node.js to v24.22.1 ([#2461](https://github.com/anthony-spruyt/container-images/issues/2461)) ([0a99242](https://github.com/anthony-spruyt/container-images/commit/0a992426a74c26eb537104f9981a68f8c026e79f))
+
 ## [2.4.4](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.3...devcontainer-common-2.4.4) (2026-10-24)
 
 

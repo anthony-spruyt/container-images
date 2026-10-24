@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.6](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.5...happy-server-1.0.6) (2026-10-24)
+
+
+### Dependencies
+
+* **deps:** update container image node to v24.22.1 ([#2462](https://github.com/anthony-spruyt/container-images/issues/2462)) ([44f62ed](https://github.com/anthony-spruyt/container-images/commit/44f62ed5999d0af97b105cd225c5cf2acbb0577c))
+
 ## [1.0.5](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.4...happy-server-1.0.5) (2026-10-15)
 
 
