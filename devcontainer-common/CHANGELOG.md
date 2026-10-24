@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.4.4](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.3...devcontainer-common-2.4.4) (2026-10-24)
+
+
+### Bug Fixes
+
+* upgrade ca-certificates and update filelock to 4.2.1 ([#2463](https://github.com/anthony-spruyt/container-images/issues/2463)) ([23af2ef](https://github.com/anthony-spruyt/container-images/commit/23af2ef4efa79c88392c143cb0853064a15c1502))
+
+
+### Dependencies
+
+* **deps:** update dependency pipx to v1.18.1 ([#2435](https://github.com/anthony-spruyt/container-images/issues/2435)) ([ce005fb](https://github.com/anthony-spruyt/container-images/commit/ce005fb5f8f76d516552a35b49cf9bb3959c8102))
+* **deps:** update dependency pipx to v1.18.2 ([#2452](https://github.com/anthony-spruyt/container-images/issues/2452)) ([e3b8296](https://github.com/anthony-spruyt/container-images/commit/e3b82962a7733941e6186e526c1599c7e82bdf0d))
+
 ## [2.4.3](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.2...devcontainer-common-2.4.3) (2026-10-21)
 
 
