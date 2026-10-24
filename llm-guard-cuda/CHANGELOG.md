@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.6](https://github.com/anthony-spruyt/container-images/compare/llm-guard-cuda-1.1.5...llm-guard-cuda-1.1.6) (2026-10-24)
+
+
+### Dependencies
+
+* **deps:** replace container image ghcr.io/astral-sh/uv to 0.13.5 ([#2455](https://github.com/anthony-spruyt/container-images/issues/2455)) ([40f4a25](https://github.com/anthony-spruyt/container-images/commit/40f4a2573372a3424165ab35acf869c5e381638b))
+* **deps:** update container image ghcr.io/astral-sh/uv to v0.13.5 ([#2434](https://github.com/anthony-spruyt/container-images/issues/2434)) ([97d5ab8](https://github.com/anthony-spruyt/container-images/commit/97d5ab8681fd711ca4fa5e668c23258502104000))
+
 ## [1.1.5](https://github.com/anthony-spruyt/container-images/compare/llm-guard-cuda-1.1.4...llm-guard-cuda-1.1.5) (2026-10-21)
 
 

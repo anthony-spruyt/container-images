@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.5.2](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.5.1...llm-tool-guard-1.5.2) (2026-10-24)
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.143.2 ([#2443](https://github.com/anthony-spruyt/container-images/issues/2443)) ([a9d5b4c](https://github.com/anthony-spruyt/container-images/commit/a9d5b4c6ff33775a05879fb6fad77e9e2a2ce81c))
+* **deps:** update dependency fastapi to v0.143.3 ([#2458](https://github.com/anthony-spruyt/container-images/issues/2458)) ([a755139](https://github.com/anthony-spruyt/container-images/commit/a7551396ebf79e0c8e358f4142a1d6460fa5165e))
+* upgrade ca-certificates and update filelock to 4.2.1 ([#2463](https://github.com/anthony-spruyt/container-images/issues/2463)) ([23af2ef](https://github.com/anthony-spruyt/container-images/commit/23af2ef4efa79c88392c143cb0853064a15c1502))
+
+
+### Dependencies
+
+* **deps:** replace container image ghcr.io/astral-sh/uv to 0.13.5 ([#2455](https://github.com/anthony-spruyt/container-images/issues/2455)) ([40f4a25](https://github.com/anthony-spruyt/container-images/commit/40f4a2573372a3424165ab35acf869c5e381638b))
+* **deps:** update container image ghcr.io/astral-sh/uv to v0.13.5 ([#2434](https://github.com/anthony-spruyt/container-images/issues/2434)) ([97d5ab8](https://github.com/anthony-spruyt/container-images/commit/97d5ab8681fd711ca4fa5e668c23258502104000))
+
 ## [1.5.1](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.5.0...llm-tool-guard-1.5.1) (2026-10-21)
 
 
