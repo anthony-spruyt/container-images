@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.0.3...llm-tool-guard-model-1.0.4) (2026-10-24)
+
+
+### Bug Fixes
+
+* upgrade ca-certificates and update filelock to 4.2.1 ([#2463](https://github.com/anthony-spruyt/container-images/issues/2463)) ([23af2ef](https://github.com/anthony-spruyt/container-images/commit/23af2ef4efa79c88392c143cb0853064a15c1502))
+
 ## [1.0.3](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.0.2...llm-tool-guard-model-1.0.3) (2026-10-21)
 
 
