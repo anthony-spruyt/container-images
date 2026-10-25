@@ -39,7 +39,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
   && rm -f "/tmp/${TARBALL}"
 
 # renovate: depName=cli/cli datasource=github-releases
-ARG GH_VERSION="2.102.0"
+ARG GH_VERSION="2.103.2"
 RUN ARCH="$(dpkg --print-architecture)" \
   && curl -fsSL --retry 3 --retry-delay 5 "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_${ARCH}.deb" -o /tmp/gh.deb \
   && dpkg -i /tmp/gh.deb \
