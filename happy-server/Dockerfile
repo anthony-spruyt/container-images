@@ -15,12 +15,22 @@ FROM node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e05
 ARG HAPPY_SERVER_VERSION=1.1.11
 
 # openssl: Prisma's query engine links libssl and probes for it at generate time.
+# libbrotli1: installed by name so a rebuild takes the current Debian version; test.sh asserts the minimum.
 # Install scripts stay off; the only one needed is `prisma generate` for the runtime client.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl openssl \
+    && apt-get install -y --no-install-recommends ca-certificates curl libbrotli1 openssl \
     && rm -rf /var/lib/apt/lists/* \
     && npm install -g --no-fund --no-audit --ignore-scripts \
       "happy-server-self-host@${HAPPY_SERVER_VERSION}" \
+    # npm applies overrides only from a root package.json, so reinstall in place with them set.
+    # sharp and @fastify/static are direct dependencies, which overrides cannot change, so bump their ranges.
+    # --legacy-peer-deps: pglite-prisma-adapter's @prisma/client peer range is above the version the package pins.
+    && npm --prefix /usr/local/lib/node_modules/happy-server-self-host pkg set --json \
+      'overrides={"deepmerge-ts":"^8.0.0","effect":"^3.20.0","@slopus/happy-wire":{"zod":"^4.6.6"},"privacy-kit":{"zod":"^4.6.6"}}' \
+      'dependencies.sharp="^0.35.5"' \
+      'dependencies.@fastify/static="^10.1.1"' \
+    && npm install --prefix /usr/local/lib/node_modules/happy-server-self-host \
+      --omit=dev --legacy-peer-deps --ignore-scripts --no-package-lock --no-fund --no-audit \
     && /usr/local/lib/node_modules/happy-server-self-host/node_modules/.bin/prisma generate --generator client \
       --schema=/usr/local/lib/node_modules/happy-server-self-host/prisma/schema.prisma \
     && npm cache clean --force \
@@ -37,6 +47,9 @@ RUN apt-get update \
     && new='return s.data.clientType === "user-scoped" \&\& appState === "active";' \
     && sed -i "s/$old/$new/" "$f" \
     && grep -qF 'return s.data.clientType === "user-scoped" && appState === "active";' "$f" \
+    # The runtime runs node directly, so the package managers are not needed after the install.
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /root/.npm \
     && install -d -o 1000 -g 1000 /data
 
 ENV NODE_ENV=production \

@@ -1,7 +1,9 @@
 #!/bin/bash
 # Test happy-server image: non-root user, PSA-restricted run (read-only rootfs),
 # migrations, health endpoint, bundled webapp, state surviving a restart,
-# Bytes columns reading back through PGlite, and push suppression.
+# Bytes columns reading back through PGlite, push suppression, no package
+# managers shipped, dependency version floors, the sharp native binding, and
+# webapp assets.
 # Usage: ./test.sh <image-ref>
 
 set -euo pipefail
@@ -200,6 +202,82 @@ if ! grep -q "No push tokens for user .* session $PUSH_OUT" <<<"$(docker logs "$
   exit 1
 fi
 echo "  push suppression ok"
+
+echo "Test 10: npm, npx and corepack are not shipped..."
+if docker run --rm --entrypoint sh "$IMAGE_REF" -c \
+  'command -v npm || command -v npx || command -v corepack || test -e /usr/local/lib/node_modules/npm || test -e /usr/local/lib/node_modules/corepack'; then
+  echo "  ERROR: a package manager is still in the image" >&2
+  exit 1
+fi
+echo "  package managers absent ok"
+
+echo "Test 11: pinned dependencies resolve at or above their floors..."
+FLOOR_OUT=$(docker run --rm --entrypoint node "$IMAGE_REF" -e '
+const fs = require("node:fs");
+const path = require("node:path");
+const semver = require("semver");
+const floors = {
+  "@fastify/static": "10.1.1",
+  "deepmerge-ts": "8.0.0",
+  effect: "3.20.0",
+  sharp: "0.35.5",
+  zod: "4.6.6",
+};
+const bad = [];
+const walk = (modules) => {
+  for (const entry of fs.readdirSync(modules)) {
+    const names = entry.startsWith("@") ? fs.readdirSync(path.join(modules, entry)).map((n) => entry + "/" + n) : [entry];
+    for (const name of names) {
+      const dir = path.join(modules, name);
+      const manifest = path.join(dir, "package.json");
+      if (floors[name] && fs.existsSync(manifest)) {
+        const { version } = JSON.parse(fs.readFileSync(manifest, "utf8"));
+        if (!semver.gte(version, floors[name])) bad.push(name + "@" + version + " in " + dir);
+      }
+      if (fs.existsSync(path.join(dir, "node_modules"))) walk(path.join(dir, "node_modules"));
+    }
+  }
+};
+walk("node_modules");
+console.log(bad.length ? bad.join(", ") : "ok");
+' 2>&1)
+if [[ "$FLOOR_OUT" != "ok" ]]; then
+  echo "  ERROR: dependencies below their floors: $FLOOR_OUT" >&2
+  exit 1
+fi
+echo "  dependency floors ok"
+
+echo "Test 12: libbrotli1 is at or above the fixed Debian version..."
+if ! docker run --rm --entrypoint sh "$IMAGE_REF" -c \
+  'dpkg --compare-versions "$(dpkg-query -W -f="\${Version}" libbrotli1)" ge 1.1.0-2+deb13u1'; then
+  echo "  ERROR: libbrotli1 is older than 1.1.0-2+deb13u1" >&2
+  exit 1
+fi
+echo "  libbrotli1 ok"
+
+echo "Test 13: sharp native binding loads and resizes..."
+SHARP_OUT=$(docker run --rm --entrypoint node "$IMAGE_REF" -e '
+const sharp = require("sharp");
+(async () => {
+  const src = await sharp({ create: { width: 8, height: 4, channels: 3, background: "#336699" } }).png().toBuffer();
+  const meta = await sharp(src).metadata();
+  const { data, info } = await sharp(src).resize(4, 2).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  console.log(meta.width === 8 && info.channels === 4 && data.length === 32 ? "ok" : "unexpected");
+})().catch((e) => console.log(String(e)));
+' 2>&1)
+if [[ "$SHARP_OUT" != "ok" ]]; then
+  echo "  ERROR: sharp did not resize an image: $SHARP_OUT" >&2
+  exit 1
+fi
+echo "  sharp ok"
+
+echo "Test 14: webapp assets are served..."
+ASSET=$(docker exec "$NAME" find webapp -type f -name '*.js' -print -quit)
+if [[ -z "$ASSET" ]] || [[ -z "$(in_container_get "/${ASSET#webapp/}")" ]]; then
+  echo "  ERROR: webapp asset ${ASSET:-<none found>} was not served" >&2
+  exit 1
+fi
+echo "  assets ok"
 
 echo ""
 echo "=== All tests passed ==="
