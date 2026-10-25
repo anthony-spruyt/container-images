@@ -247,7 +247,7 @@ if [[ "$FLOOR_OUT" != "ok" ]]; then
 fi
 echo "  dependency floors ok"
 
-echo "Test 12: libbrotli1 is at or above the fixed Debian version..."
+echo "Test 12: libbrotli1 is at or above 1.1.0-2+deb13u1..."
 if ! docker run --rm --entrypoint sh "$IMAGE_REF" -c \
   'dpkg --compare-versions "$(dpkg-query -W -f="\${Version}" libbrotli1)" ge 1.1.0-2+deb13u1'; then
   echo "  ERROR: libbrotli1 is older than 1.1.0-2+deb13u1" >&2
@@ -272,7 +272,7 @@ fi
 echo "  sharp ok"
 
 echo "Test 14: webapp assets are served..."
-ASSET=$(docker exec "$NAME" find webapp -type f -name '*.js' -print -quit)
+ASSET=$(docker exec "$NAME" find webapp -type f -name '*.js' -regex '[A-Za-z0-9_./-]*' -print -quit)
 if [[ -z "$ASSET" ]] || [[ -z "$(in_container_get "/${ASSET#webapp/}")" ]]; then
   echo "  ERROR: webapp asset ${ASSET:-<none found>} was not served" >&2
   exit 1
