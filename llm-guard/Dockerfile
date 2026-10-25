@@ -12,7 +12,7 @@ FROM python:${PYTHON_VERSION}
 
 WORKDIR /app
 
-# Build-time only (ARG): uv installs into the image's Python, and --inexact keeps that Python's pip.
+# Build-time only (ARG): uv installs into the image's Python.
 ARG UV_PROJECT_ENVIRONMENT=/usr/local UV_PYTHON_DOWNLOADS=never UV_NO_CACHE=1 UV_LINK_MODE=copy UV_COMPILE_BYTECODE=1
 
 COPY --from=torch-lock /lock/pylock.torch.toml /tmp/pylock.torch.toml
@@ -21,8 +21,11 @@ RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
     && rm /tmp/pylock.torch.toml
 
 COPY pyproject.toml uv.lock ./
+# Nothing installs packages at runtime, so pip stays out of the image.
 RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
-    uv sync --locked --no-build --no-dev --inexact --group cpu
+    uv sync --locked --no-build --no-dev --group cpu \
+    && uv pip uninstall --system pip \
+    && rm -f /usr/local/bin/pip
 
 COPY app/ .
 
