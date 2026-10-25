@@ -15,6 +15,9 @@ FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cab
 
 SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 
+# Changing the stamp busts the build cache so apk upgrade fetches current packages
+COPY .rebuild-stamp /etc/rebuild-stamp
+
 # Install chrony and timezone data, upgrade base packages for security patches
 # chrony-nts, not chrony - the base package is built --disable-nts
 # Note: chrony package creates its own user/group, we'll replace them with UID/GID 1000

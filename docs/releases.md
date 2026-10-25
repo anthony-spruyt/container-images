@@ -54,6 +54,8 @@ Release-As: 2.0.0
 
 `chore` commits are visible in the changelog on purpose — release-please aborts a release with an empty changelog, so hiding them would break dependency-only releases.
 
+To rebuild an image for newer base packages, change `<image>/.rebuild-stamp` in a `chore:` commit. The image's Dockerfile must `COPY` the stamp before its `apk upgrade` step, so the change busts the build cache.
+
 ## Pull request checks
 
 On a PR, CI's `image` job builds each changed image through repo-operator's shared `_images.yaml` without pushing. Nothing is pushed and no release is touched. The image's `test-command` from its `metadata.yaml` runs against the locally loaded image; a `test.sh` that no `test-command` names never runs.

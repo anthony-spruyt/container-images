@@ -20,6 +20,9 @@ HEALTHCHECK NONE
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
 ARG KUBECTL_VERSION=v1.37.1
 
+# Changing the stamp busts the build cache so apk upgrade fetches current packages
+COPY .rebuild-stamp /etc/rebuild-stamp
+
 # Install runtime dependencies (no runtime apk add - PSA restricted compatible).
 # openssh-keygen: ed25519 keypair generation
 # curl: GitHub API calls
