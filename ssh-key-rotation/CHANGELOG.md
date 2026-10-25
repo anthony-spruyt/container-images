@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.12](https://github.com/anthony-spruyt/container-images/compare/ssh-key-rotation-2.0.11...ssh-key-rotation-2.0.12) (2026-10-25)
+
+
+### Dependencies
+
+* rebuild chrony and ssh-key-rotation for updated Alpine packages ([#2510](https://github.com/anthony-spruyt/container-images/issues/2510)) ([c32990a](https://github.com/anthony-spruyt/container-images/commit/c32990aad7e700266248a9b986d5a1a64029c3ad))
+
 ## [2.0.11](https://github.com/anthony-spruyt/container-images/compare/ssh-key-rotation-2.0.10...ssh-key-rotation-2.0.11) (2026-10-15)
 
 
