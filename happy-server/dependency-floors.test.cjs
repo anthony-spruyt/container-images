@@ -50,7 +50,7 @@ test("apply keeps an upstream override that already meets the floor", () => {
   assert.deepEqual(manifest(root).overrides, { eff: "^2.5.0" });
 });
 
-for (const overrides of [{ eff: "^1.0.0" }, { a: { eff: "^1.0.0" } }, { eff: "$eff" }]) {
+for (const overrides of [{ eff: "^1.0.0" }, { a: { eff: "^1.0.0" } }, { eff: "$eff" }, { a: "1.0.0" }]) {
   test(`apply fails on a conflicting upstream override ${JSON.stringify(overrides)}`, () => {
     const root = tree({ overrides });
     const before = fs.readFileSync(path.join(root, "package.json"), "utf8");

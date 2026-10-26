@@ -56,6 +56,14 @@
       "matchFileNames": ["megalinter-factory/base.yaml", "megalinter-factory/languages/*.yaml"],
       "addLabels": ["renovate/megalinter-flavor"],
     },
+    // A major floor would force past ranges that dependents pin exactly (effect 4 vs @prisma/config).
+    {
+      "description": "Keep happy-server dependency floors within their major",
+      "matchFileNames": ["happy-server/Dockerfile"],
+      "matchDepNames": ["@fastify/static", "deepmerge-ts", "effect", "sharp", "zod"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false,
+    },
     // release-please writes a CHANGELOG.md per image directory. Without
     // sourceDirectory Renovate looks for release notes at the repo root and
     // finds none, so updates to our own images render with an empty body.
