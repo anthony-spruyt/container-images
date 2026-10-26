@@ -17,7 +17,7 @@ ARG HAPPY_SERVER_VERSION=1.1.11
 # Dependency floors. Drop one once happy-server-self-host's own range meets it (#2513);
 # dependency-floors.cjs applies only the floors the installed package is below.
 # renovate: datasource=npm depName=@fastify/static
-ARG FASTIFY_STATIC_FLOOR=10.1.2
+ARG FASTIFY_STATIC_FLOOR=10.1.6
 # renovate: datasource=npm depName=deepmerge-ts
 ARG DEEPMERGE_TS_FLOOR=8.0.2
 # renovate: datasource=npm depName=effect
