@@ -21,7 +21,7 @@ ARG FASTIFY_STATIC_FLOOR=10.1.1
 # renovate: datasource=npm depName=deepmerge-ts
 ARG DEEPMERGE_TS_FLOOR=8.0.0
 # renovate: datasource=npm depName=effect
-ARG EFFECT_FLOOR=3.20.0
+ARG EFFECT_FLOOR=3.22.3
 # renovate: datasource=npm depName=sharp
 ARG SHARP_FLOOR=0.35.5
 # renovate: datasource=npm depName=zod
