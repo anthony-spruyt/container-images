@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.7](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.6...happy-server-1.0.7) (2026-10-26)
+
+
+### Bug Fixes
+
+* **happy-server:** raise dependency floors and drop npm from the runtime image ([#2509](https://github.com/anthony-spruyt/container-images/issues/2509)) ([8381bdf](https://github.com/anthony-spruyt/container-images/commit/8381bdfb4b88bdc7b00c9369e6d11f1cc82d89f5))
+
 ## [1.0.6](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.5...happy-server-1.0.6) (2026-10-25)
 
 
