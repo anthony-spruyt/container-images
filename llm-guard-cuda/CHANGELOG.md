@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.8](https://github.com/anthony-spruyt/container-images/compare/llm-guard-cuda-1.1.7...llm-guard-cuda-1.1.8) (2026-10-26)
+
+
+### Bug Fixes
+
+* **llm-guard:** leave pip out of the runtime images ([#2508](https://github.com/anthony-spruyt/container-images/issues/2508)) ([28e280d](https://github.com/anthony-spruyt/container-images/commit/28e280d2e10eb0b2f803fedabfc9fade72ee7ecd))
+
 ## [1.1.7](https://github.com/anthony-spruyt/container-images/compare/llm-guard-cuda-1.1.6...llm-guard-cuda-1.1.7) (2026-10-25)
 
 

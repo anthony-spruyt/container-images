@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.4](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.5.3...llm-tool-guard-1.5.4) (2026-10-26)
+
+
+### Bug Fixes
+
+* **llm-guard:** leave pip out of the runtime images ([#2508](https://github.com/anthony-spruyt/container-images/issues/2508)) ([28e280d](https://github.com/anthony-spruyt/container-images/commit/28e280d2e10eb0b2f803fedabfc9fade72ee7ecd))
+
 ## [1.5.3](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.5.2...llm-tool-guard-1.5.3) (2026-10-25)
 
 
