@@ -57,11 +57,8 @@ function edges(pkg) {
 
 const allowsBelow = (range, floor) => semver.validRange(range) !== null && !semver.subset(range, `>=${floor}`);
 
-function apply() {
-  const manifest = readManifest(root);
-  const overrides = manifest.overrides ?? {};
+function raiseDirectRanges(manifest) {
   const changes = [];
-
   for (const [dep, floor] of floors) {
     const range = manifest.dependencies?.[dep];
     if (range !== undefined && allowsBelow(range, floor)) {
@@ -69,27 +66,44 @@ function apply() {
       changes.push(`${dep}: dependency range ${range} -> ^${floor}`);
     }
   }
+  return changes;
+}
 
+function upstreamHoldsFloor(upstream, dep, floor) {
+  if (upstream === undefined) return false;
+  if (typeof upstream === "string" && semver.validRange(upstream) && !allowsBelow(upstream, floor)) return true;
+  throw new Error(
+    `the ${dep} floor ${floor} conflicts with the upstream override ${JSON.stringify(upstream)}; drop the floor or reconcile the override`
+  );
+}
+
+function nestOverride(overrides, pkg, dep, floor) {
+  const copy = copyOf(pkg, dep);
+  if (!copy || semver.gte(copy.version, floor)) return null;
+  if (upstreamHoldsFloor(overrides[dep] ?? overrides[pkg.name]?.[dep], dep, floor)) return null;
+  if (typeof overrides[pkg.name] === "string") {
+    throw new TypeError(`upstream overrides ${pkg.name} itself, so the ${dep} floor cannot be nested under it`);
+  }
+  overrides[pkg.name] = { ...overrides[pkg.name], [dep]: `^${floor}` };
+  return `${pkg.name} > ${dep}: override ^${floor} (was ${copy.version})`;
+}
+
+function nestOverrides(overrides) {
+  const changes = [];
   for (const pkg of packages()) {
     if (pkg.dir === root) continue;
     for (const [dep] of edges(pkg)) {
-      const floor = floors.get(dep);
-      const copy = copyOf(pkg, dep);
-      if (!copy || semver.gte(copy.version, floor)) continue;
-      const upstream = overrides[dep] ?? overrides[pkg.name]?.[dep];
-      if (upstream !== undefined) {
-        if (typeof upstream === "string" && semver.validRange(upstream) && !allowsBelow(upstream, floor)) continue;
-        throw new Error(
-          `the ${dep} floor ${floor} conflicts with the upstream override ${JSON.stringify(upstream)}; drop the floor or reconcile the override`
-        );
-      }
-      if (typeof overrides[pkg.name] === "string") {
-        throw new Error(`upstream overrides ${pkg.name} itself, so the ${dep} floor cannot be nested under it`);
-      }
-      overrides[pkg.name] = { ...overrides[pkg.name], [dep]: `^${floor}` };
-      changes.push(`${pkg.name} > ${dep}: override ^${floor} (was ${copy.version})`);
+      const change = nestOverride(overrides, pkg, dep, floors.get(dep));
+      if (change) changes.push(change);
     }
   }
+  return changes;
+}
+
+function apply() {
+  const manifest = readManifest(root);
+  const overrides = manifest.overrides ?? {};
+  const changes = [...raiseDirectRanges(manifest), ...nestOverrides(overrides)];
 
   if (Object.keys(overrides).length > 0) manifest.overrides = overrides;
   if (changes.length > 0) {
