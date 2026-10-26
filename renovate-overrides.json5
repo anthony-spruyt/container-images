@@ -64,6 +64,15 @@
       "matchUpdateTypes": ["major"],
       "enabled": false,
     },
+    // Renovate calls a 0.x minor bump "minor", but a caret range treats it as a major (sharp ^0.35.5 excludes 0.36).
+    {
+      "description": "Keep happy-server 0.x dependency floors within their minor",
+      "matchFileNames": ["happy-server/Dockerfile"],
+      "matchDepNames": ["@fastify/static", "deepmerge-ts", "effect", "sharp", "zod"],
+      "matchCurrentVersion": "/^0\\./",
+      "matchUpdateTypes": ["minor"],
+      "enabled": false,
+    },
     // release-please writes a CHANGELOG.md per image directory. Without
     // sourceDirectory Renovate looks for release notes at the repo root and
     // finds none, so updates to our own images render with an empty body.
