@@ -19,7 +19,7 @@ ARG HAPPY_SERVER_VERSION=1.1.11
 # renovate: datasource=npm depName=@fastify/static
 ARG FASTIFY_STATIC_FLOOR=10.1.1
 # renovate: datasource=npm depName=deepmerge-ts
-ARG DEEPMERGE_TS_FLOOR=8.0.0
+ARG DEEPMERGE_TS_FLOOR=8.0.2
 # renovate: datasource=npm depName=effect
 ARG EFFECT_FLOOR=3.22.3
 # renovate: datasource=npm depName=sharp
