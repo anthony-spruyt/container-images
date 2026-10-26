@@ -1,7 +1,9 @@
 #!/bin/bash
 # Test happy-server image: non-root user, PSA-restricted run (read-only rootfs),
 # migrations, health endpoint, bundled webapp, state surviving a restart,
-# Bytes columns reading back through PGlite, and push suppression.
+# Bytes columns reading back through PGlite, push suppression, no package
+# managers shipped, dependency version floors and the script that applies them,
+# the sharp native binding, and webapp assets.
 # Usage: ./test.sh <image-ref>
 
 set -euo pipefail
@@ -9,6 +11,19 @@ set -euo pipefail
 IMAGE_REF="${1:?Usage: $0 <image-ref>}"
 NAME="happy-server-test-$$"
 DATA_VOL="happy-server-test-data-$$"
+SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PKG_DIR=/usr/local/lib/node_modules/happy-server-self-host
+
+# The Dockerfile's annotated *_FLOOR args are the only list of floors.
+mapfile -t FLOORS < <(awk '
+  /^# renovate: datasource=npm depName=/ { pkg = $NF; sub(/^depName=/, "", pkg); next }
+  /^ARG [A-Z_]+_FLOOR=/ && pkg != "" { v = $0; sub(/^[^=]*=/, "", v); print pkg "=" v }
+  { pkg = "" }
+' "$SRC_DIR/Dockerfile")
+if [[ ${#FLOORS[@]} -eq 0 ]] || [[ ${#FLOORS[@]} -ne $(grep -c '^ARG [A-Z_]*_FLOOR=' "$SRC_DIR/Dockerfile") ]]; then
+  echo "ERROR: every *_FLOOR arg in the Dockerfile needs a '# renovate: datasource=npm depName=...' line above it" >&2
+  exit 1
+fi
 
 cleanup() {
   docker rm -f "$NAME" >/dev/null 2>&1 || true
@@ -200,6 +215,71 @@ if ! grep -q "No push tokens for user .* session $PUSH_OUT" <<<"$(docker logs "$
   exit 1
 fi
 echo "  push suppression ok"
+
+echo "Test 10: npm, npx, corepack and yarn are not shipped..."
+if ! docker run --rm --entrypoint sh "$IMAGE_REF" -c '
+  for cmd in npm npx corepack yarn yarnpkg; do
+    if command -v "$cmd"; then exit 1; fi
+  done
+  for path in /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn*; do
+    if test -e "$path"; then echo "$path"; exit 1; fi
+  done
+'; then
+  echo "  ERROR: a package manager is still in the image" >&2
+  exit 1
+fi
+echo "  package managers absent ok"
+
+echo "Test 11: dependency floors hold across the installed tree..."
+if ! FLOOR_OUT=$(docker run --rm --entrypoint node -v "$SRC_DIR:/src:ro" "$IMAGE_REF" \
+  /src/dependency-floors.cjs check "$PKG_DIR" "${FLOORS[@]}" 2>&1); then
+  echo "  ERROR: $FLOOR_OUT" >&2
+  exit 1
+fi
+echo "  dependency floors ok"
+
+# Version check only: libbrotli1 comes in through curl's libcurl, not by name.
+echo "Test 12: libbrotli1 is at or above 1.1.0-2+deb13u1..."
+if ! docker run --rm --entrypoint sh "$IMAGE_REF" -c \
+  'dpkg --compare-versions "$(dpkg-query -W -f="\${Version}" libbrotli1)" ge 1.1.0-2+deb13u1'; then
+  echo "  ERROR: libbrotli1 is older than 1.1.0-2+deb13u1" >&2
+  exit 1
+fi
+echo "  libbrotli1 ok"
+
+echo "Test 13: sharp native binding loads and resizes..."
+SHARP_OUT=$(docker run --rm --entrypoint node "$IMAGE_REF" -e '
+const sharp = require("sharp");
+(async () => {
+  const src = await sharp({ create: { width: 8, height: 4, channels: 3, background: "#336699" } }).png().toBuffer();
+  const meta = await sharp(src).metadata();
+  const { data, info } = await sharp(src).resize(4, 2).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  console.log(meta.width === 8 && info.channels === 4 && data.length === 32 ? "ok" : "unexpected");
+})().catch((e) => console.log(String(e)));
+' 2>&1)
+if [[ "$SHARP_OUT" != "ok" ]]; then
+  echo "  ERROR: sharp did not resize an image: $SHARP_OUT" >&2
+  exit 1
+fi
+echo "  sharp ok"
+
+echo "Test 14: webapp assets are served..."
+ASSET=$(docker exec "$NAME" find webapp -type f -name '*.js' -regex '[A-Za-z0-9_./-]*' -print -quit)
+# Unknown paths fall back to index.html, so compare bytes with the file in the image.
+if [[ -z "$ASSET" ]] || ! in_container_get "/${ASSET#webapp/}" | docker exec -i "$NAME" cmp - "$ASSET"; then
+  echo "  ERROR: webapp asset ${ASSET:-<none found>} was not served" >&2
+  exit 1
+fi
+echo "  assets ok"
+
+echo "Test 15: dependency-floors.cjs applies and checks floors..."
+if ! FLOORS_TEST_OUT=$(docker run --rm --entrypoint node -v "$SRC_DIR:/src:ro" "$IMAGE_REF" \
+  --test /src/dependency-floors.test.cjs 2>&1); then
+  echo "  ERROR: dependency-floors.cjs tests failed" >&2
+  echo "$FLOORS_TEST_OUT" | tail -n 40 >&2
+  exit 1
+fi
+echo "  floors script ok"
 
 echo ""
 echo "=== All tests passed ==="
