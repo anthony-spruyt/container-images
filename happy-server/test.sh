@@ -2,8 +2,8 @@
 # Test happy-server image: non-root user, PSA-restricted run (read-only rootfs),
 # migrations, health endpoint, bundled webapp, state surviving a restart,
 # Bytes columns reading back through PGlite, push suppression, no package
-# managers shipped, dependency version floors, the sharp native binding, and
-# webapp assets.
+# managers shipped, dependency version floors and the script that applies them,
+# the sharp native binding, and webapp assets.
 # Usage: ./test.sh <image-ref>
 
 set -euo pipefail
@@ -11,6 +11,19 @@ set -euo pipefail
 IMAGE_REF="${1:?Usage: $0 <image-ref>}"
 NAME="happy-server-test-$$"
 DATA_VOL="happy-server-test-data-$$"
+SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PKG_DIR=/usr/local/lib/node_modules/happy-server-self-host
+
+# The Dockerfile's annotated *_FLOOR args are the only list of floors.
+mapfile -t FLOORS < <(awk '
+  /^# renovate: datasource=npm depName=/ { pkg = $NF; sub(/^depName=/, "", pkg); next }
+  /^ARG [A-Z_]+_FLOOR=/ && pkg != "" { v = $0; sub(/^[^=]*=/, "", v); print pkg "=" v }
+  { pkg = "" }
+' "$SRC_DIR/Dockerfile")
+if [[ ${#FLOORS[@]} -eq 0 ]] || [[ ${#FLOORS[@]} -ne $(grep -c '^ARG [A-Z_]*_FLOOR=' "$SRC_DIR/Dockerfile") ]]; then
+  echo "ERROR: every *_FLOOR arg in the Dockerfile needs a '# renovate: datasource=npm depName=...' line above it" >&2
+  exit 1
+fi
 
 cleanup() {
   docker rm -f "$NAME" >/dev/null 2>&1 || true
@@ -203,50 +216,29 @@ if ! grep -q "No push tokens for user .* session $PUSH_OUT" <<<"$(docker logs "$
 fi
 echo "  push suppression ok"
 
-echo "Test 10: npm, npx and corepack are not shipped..."
-if docker run --rm --entrypoint sh "$IMAGE_REF" -c \
-  'command -v npm || command -v npx || command -v corepack || test -e /usr/local/lib/node_modules/npm || test -e /usr/local/lib/node_modules/corepack'; then
+echo "Test 10: npm, npx, corepack and yarn are not shipped..."
+if ! docker run --rm --entrypoint sh "$IMAGE_REF" -c '
+  for cmd in npm npx corepack yarn yarnpkg; do
+    if command -v "$cmd"; then exit 1; fi
+  done
+  for path in /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn*; do
+    if test -e "$path"; then echo "$path"; exit 1; fi
+  done
+'; then
   echo "  ERROR: a package manager is still in the image" >&2
   exit 1
 fi
 echo "  package managers absent ok"
 
-echo "Test 11: pinned dependencies resolve at or above their floors..."
-FLOOR_OUT=$(docker run --rm --entrypoint node "$IMAGE_REF" -e '
-const fs = require("node:fs");
-const path = require("node:path");
-const semver = require("semver");
-const floors = {
-  "@fastify/static": "10.1.1",
-  "deepmerge-ts": "8.0.0",
-  effect: "3.20.0",
-  sharp: "0.35.5",
-  zod: "4.6.6",
-};
-const bad = [];
-const walk = (modules) => {
-  for (const entry of fs.readdirSync(modules)) {
-    const names = entry.startsWith("@") ? fs.readdirSync(path.join(modules, entry)).map((n) => entry + "/" + n) : [entry];
-    for (const name of names) {
-      const dir = path.join(modules, name);
-      const manifest = path.join(dir, "package.json");
-      if (floors[name] && fs.existsSync(manifest)) {
-        const { version } = JSON.parse(fs.readFileSync(manifest, "utf8"));
-        if (!semver.gte(version, floors[name])) bad.push(name + "@" + version + " in " + dir);
-      }
-      if (fs.existsSync(path.join(dir, "node_modules"))) walk(path.join(dir, "node_modules"));
-    }
-  }
-};
-walk("node_modules");
-console.log(bad.length ? bad.join(", ") : "ok");
-' 2>&1)
-if [[ "$FLOOR_OUT" != "ok" ]]; then
-  echo "  ERROR: dependencies below their floors: $FLOOR_OUT" >&2
+echo "Test 11: dependency floors hold across the installed tree..."
+if ! FLOOR_OUT=$(docker run --rm --entrypoint node -v "$SRC_DIR:/src:ro" "$IMAGE_REF" \
+  /src/dependency-floors.cjs check "$PKG_DIR" "${FLOORS[@]}" 2>&1); then
+  echo "  ERROR: $FLOOR_OUT" >&2
   exit 1
 fi
 echo "  dependency floors ok"
 
+# Version check only: libbrotli1 comes in through curl's libcurl, not by name.
 echo "Test 12: libbrotli1 is at or above 1.1.0-2+deb13u1..."
 if ! docker run --rm --entrypoint sh "$IMAGE_REF" -c \
   'dpkg --compare-versions "$(dpkg-query -W -f="\${Version}" libbrotli1)" ge 1.1.0-2+deb13u1'; then
@@ -273,11 +265,21 @@ echo "  sharp ok"
 
 echo "Test 14: webapp assets are served..."
 ASSET=$(docker exec "$NAME" find webapp -type f -name '*.js' -regex '[A-Za-z0-9_./-]*' -print -quit)
-if [[ -z "$ASSET" ]] || [[ -z "$(in_container_get "/${ASSET#webapp/}")" ]]; then
+# Unknown paths fall back to index.html, so compare bytes with the file in the image.
+if [[ -z "$ASSET" ]] || ! in_container_get "/${ASSET#webapp/}" | docker exec -i "$NAME" cmp - "$ASSET"; then
   echo "  ERROR: webapp asset ${ASSET:-<none found>} was not served" >&2
   exit 1
 fi
 echo "  assets ok"
+
+echo "Test 15: dependency-floors.cjs applies and checks floors..."
+if ! FLOORS_TEST_OUT=$(docker run --rm --entrypoint node -v "$SRC_DIR:/src:ro" "$IMAGE_REF" \
+  --test /src/dependency-floors.test.cjs 2>&1); then
+  echo "  ERROR: dependency-floors.cjs tests failed" >&2
+  echo "$FLOORS_TEST_OUT" | tail -n 40 >&2
+  exit 1
+fi
+echo "  floors script ok"
 
 echo ""
 echo "=== All tests passed ==="

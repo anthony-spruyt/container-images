@@ -14,21 +14,32 @@ FROM node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e05
 # renovate: datasource=npm depName=happy-server-self-host
 ARG HAPPY_SERVER_VERSION=1.1.11
 
+# Dependency floors. Drop one once happy-server-self-host's own range meets it (#2513);
+# dependency-floors.cjs applies only the floors the installed package is below.
+# renovate: datasource=npm depName=@fastify/static
+ARG FASTIFY_STATIC_FLOOR=10.1.1
+# renovate: datasource=npm depName=deepmerge-ts
+ARG DEEPMERGE_TS_FLOOR=8.0.0
+# renovate: datasource=npm depName=effect
+ARG EFFECT_FLOOR=3.20.0
+# renovate: datasource=npm depName=sharp
+ARG SHARP_FLOOR=0.35.5
+# renovate: datasource=npm depName=zod
+ARG ZOD_FLOOR=4.6.6
+
 # openssl: Prisma's query engine links libssl and probes for it at generate time.
-# libbrotli1: installed by name so a rebuild takes the current Debian version; test.sh asserts the minimum.
 # Install scripts stay off; the only one needed is `prisma generate` for the runtime client.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl libbrotli1 openssl \
+RUN --mount=type=bind,source=dependency-floors.cjs,target=/tmp/dependency-floors.cjs \
+    apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl openssl \
     && rm -rf /var/lib/apt/lists/* \
     && npm install -g --no-fund --no-audit --ignore-scripts \
       "happy-server-self-host@${HAPPY_SERVER_VERSION}" \
-    # npm applies overrides only from a root package.json, so reinstall in place with them set.
-    # sharp and @fastify/static are direct dependencies, which overrides cannot change, so bump their ranges.
+    # A global install ignores overrides, so set the floors in the package's own package.json and reinstall in place.
+    && node /tmp/dependency-floors.cjs apply /usr/local/lib/node_modules/happy-server-self-host \
+      "@fastify/static=${FASTIFY_STATIC_FLOOR}" "deepmerge-ts=${DEEPMERGE_TS_FLOOR}" "effect=${EFFECT_FLOOR}" \
+      "sharp=${SHARP_FLOOR}" "zod=${ZOD_FLOOR}" \
     # --legacy-peer-deps: pglite-prisma-adapter's @prisma/client peer range is above the version the package pins.
-    && npm --prefix /usr/local/lib/node_modules/happy-server-self-host pkg set --json \
-      'overrides={"deepmerge-ts":"^8.0.0","effect":"^3.20.0","@slopus/happy-wire":{"zod":"^4.6.6"},"privacy-kit":{"zod":"^4.6.6"}}' \
-      'dependencies.sharp="^0.35.5"' \
-      'dependencies.@fastify/static="^10.1.1"' \
     && npm install --prefix /usr/local/lib/node_modules/happy-server-self-host \
       --omit=dev --legacy-peer-deps --ignore-scripts --no-package-lock --no-fund --no-audit \
     && /usr/local/lib/node_modules/happy-server-self-host/node_modules/.bin/prisma generate --generator client \
@@ -50,6 +61,7 @@ RUN apt-get update \
     # The runtime runs node directly, so the package managers are not needed after the install.
     && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
       /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /root/.npm \
+      /opt/yarn-v* /usr/local/bin/yarn /usr/local/bin/yarnpkg \
     && install -d -o 1000 -g 1000 /data
 
 ENV NODE_ENV=production \
