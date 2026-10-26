@@ -172,15 +172,24 @@ fi
 echo "Test 11: scanner unit tests..."
 # Runs against the image's torch and transformers; the tests stub the model and download only its tokenizer.
 TESTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/tests"
+# The image has no pip: this throwaway container bootstraps one from the interpreter's bundled wheel.
 docker run --rm \
   -v "$TESTS_DIR:/tests:ro" \
   -e PYTHONDONTWRITEBYTECODE=1 \
   -e LLM_GUARD_TESTS_REQUIRE_HUB=1 \
   "$IMAGE_REF" \
-  sh -c 'pip install --user --no-cache-dir --quiet --disable-pip-version-check --no-warn-script-location \
+  sh -c 'python -m ensurepip --user >/dev/null && python -m pip install --user --no-cache-dir --quiet --disable-pip-version-check --no-warn-script-location \
     --only-binary :all: --require-hashes -r /tests/requirements-test.txt \
     && python -m pytest -p no:cacheprovider -q /tests'
 echo "  unit tests OK"
+
+echo "Test 12: pip is not in the image..."
+if ! docker run --rm --entrypoint python "$IMAGE_REF" -c \
+  'import importlib.util, shutil, sys; sys.exit(importlib.util.find_spec("pip") is not None or shutil.which("pip") is not None)'; then
+  echo "  ERROR: pip is installed" >&2
+  exit 1
+fi
+echo "  no pip OK"
 
 echo ""
 echo "=== All tests passed ==="
