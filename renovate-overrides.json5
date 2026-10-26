@@ -64,7 +64,15 @@
       "matchUpdateTypes": ["major"],
       "enabled": false,
     },
-    // Renovate calls a 0.x minor bump "minor", but a caret range treats it as a major (sharp ^0.35.5 excludes 0.36).
+    // A caret range treats a 0.x minor as a major (sharp ^0.35.5 excludes 0.36), but Renovate calls it "minor".
+    // Patches get their own bucket: Renovate keeps only the highest non-major update, so blocking it would hide them.
+    {
+      "description": "Offer happy-server 0.x dependency floor patches apart from their minors",
+      "matchFileNames": ["happy-server/Dockerfile"],
+      "matchDepNames": ["@fastify/static", "deepmerge-ts", "effect", "sharp", "zod"],
+      "matchCurrentVersion": "/^0\\./",
+      "separateMinorPatch": true,
+    },
     {
       "description": "Keep happy-server 0.x dependency floors within their minor",
       "matchFileNames": ["happy-server/Dockerfile"],
