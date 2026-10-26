@@ -25,7 +25,7 @@ ARG EFFECT_FLOOR=3.20.0
 # renovate: datasource=npm depName=sharp
 ARG SHARP_FLOOR=0.35.5
 # renovate: datasource=npm depName=zod
-ARG ZOD_FLOOR=4.6.6
+ARG ZOD_FLOOR=4.6.7
 
 # openssl: Prisma's query engine links libssl and probes for it at generate time.
 # Install scripts stay off; the only one needed is `prisma generate` for the runtime client.
