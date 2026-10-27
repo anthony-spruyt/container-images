@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.10](https://github.com/anthony-spruyt/container-images/compare/llm-guard-cuda-1.1.9...llm-guard-cuda-1.1.10) (2026-10-27)
+
+
+### Dependencies
+
+* **llm-guard-cuda:** Synchronize llm-guard versions
+
 ## [1.1.9](https://github.com/anthony-spruyt/container-images/compare/llm-guard-cuda-1.1.8...llm-guard-cuda-1.1.9) (2026-10-27)
 
 
