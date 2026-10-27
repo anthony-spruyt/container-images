@@ -6,7 +6,7 @@ dependencies = [
     "fastapi==0.153.0",
     "httpx2==2.15.1",
     "uvicorn[standard]==0.54.0",
-    "transformers==5.20.2",
+    "transformers==5.21.0",
     "tokenizers==0.23.3",
     "pydantic==2.14.1",
     "redis==8.1.0",
