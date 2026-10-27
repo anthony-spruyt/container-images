@@ -16,7 +16,7 @@ WEIGHTS_IMAGE="llm-tool-guard-model-test:$SUFFIX"
 HUB="$(mktemp -d)"
 TOKEN="test-token-$SUFFIX"
 # renovate: datasource=docker depName=docker.io/valkey/valkey
-VALKEY_IMAGE="docker.io/valkey/valkey:9.1.2@sha256:418652cfb58ef879d4978c33553735d7147016032d5aefaa14c828e611eb9dfd"
+VALKEY_IMAGE="docker.io/valkey/valkey:9.1.3@sha256:3add1a336a920ea54770a001ab6feb3da5fceea96a40373a3a2cd469b815f0b7"
 
 # Uncompressed image ceiling: fails loudly if a CUDA torch wheel or model weights land in the image.
 MAX_IMAGE_BYTES=$((2000 * 1000 * 1000))
