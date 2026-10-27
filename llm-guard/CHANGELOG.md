@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.9](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.1.8...llm-guard-1.1.9) (2026-10-27)
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.147.0 ([#2539](https://github.com/anthony-spruyt/container-images/issues/2539)) ([6c3447d](https://github.com/anthony-spruyt/container-images/commit/6c3447d0a78259d9f13a1ef0172835cad6fd8920))
+* **deps:** update dependency fastapi to v0.148.0 ([#2541](https://github.com/anthony-spruyt/container-images/issues/2541)) ([53d3d9a](https://github.com/anthony-spruyt/container-images/commit/53d3d9af2bf078f9554e2d806a8064c209612039))
+* **deps:** update dependency fastapi to v0.150.0 ([#2544](https://github.com/anthony-spruyt/container-images/issues/2544)) ([0826598](https://github.com/anthony-spruyt/container-images/commit/0826598ad61ed2d319179122aade465196afd9f4))
+* **deps:** update dependency transformers to v5.20.2 ([#2534](https://github.com/anthony-spruyt/container-images/issues/2534)) ([a087935](https://github.com/anthony-spruyt/container-images/commit/a0879350b93a4bf0b8c516fe3d2344281a0f92d1))
+
 ## [1.1.8](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.1.7...llm-guard-1.1.8) (2026-10-26)
 
 
