@@ -58,7 +58,7 @@ RUN ARCH="$(dpkg --print-architecture)" \
 # images and the n8n spawner's expected runtime user.
 # /etc/claude-code is pre-created: BuildKit gives COPY --chmod's mode to parent dirs it creates.
 # renovate: depName=@aikidosec/safe-chain datasource=npm
-ARG SAFE_CHAIN_VERSION="1.5.25"
+ARG SAFE_CHAIN_VERSION="1.5.26"
 RUN npm install -g "@aikidosec/safe-chain@${SAFE_CHAIN_VERSION}" \
   && if getent passwd 1000 >/dev/null; then userdel -r "$(getent passwd 1000 | cut -d: -f1)"; fi \
   && useradd -m -u 1000 -s /bin/bash node \
