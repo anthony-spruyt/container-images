@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test coder-gitops image: required tooling, non-root user, scripts present,
-# read-only rootfs compatible.
+# read-only rootfs compatible (PSA restricted).
 # Usage: ./test.sh <image-ref>
 
 set -euo pipefail

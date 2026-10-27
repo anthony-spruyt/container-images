@@ -17,7 +17,7 @@ def test_optional_features_are_off_until_configured():
     assert settings.auth_token == ""
 
 
-def test_the_default_body_limit_fits_a_text_of_the_default_size_limit():
+def test_the_default_body_limit_exceeds_the_default_text_limit():
     settings = Settings.from_env({})
 
     assert settings.max_body_bytes > settings.max_text_bytes
