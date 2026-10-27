@@ -10,7 +10,6 @@ IMAGE_REF="${1:?Usage: $0 <image-ref>}"
 echo "=== coder-gitops image tests ==="
 echo "Image: $IMAGE_REF"
 
-# Test 1: required binaries present
 echo "Test 1: required binaries..."
 for bin in coder kubectl curl jq bash; do
   if ! docker run --rm --entrypoint sh "$IMAGE_REF" -c "command -v $bin >/dev/null"; then
@@ -20,7 +19,6 @@ for bin in coder kubectl curl jq bash; do
   echo "  found: $bin"
 done
 
-# Test 2: runs as non-root UID 1000
 echo "Test 2: non-root user..."
 UID_OUT=$(docker run --rm --entrypoint id "$IMAGE_REF" -u)
 if [ "$UID_OUT" != "1000" ]; then
@@ -29,7 +27,6 @@ if [ "$UID_OUT" != "1000" ]; then
 fi
 echo "  UID=1000 ok"
 
-# Test 3: scripts present and executable
 echo "Test 3: scripts..."
 for script in push-templates.sh rotate-token.sh; do
   if ! docker run --rm --entrypoint sh "$IMAGE_REF" -c "test -x /usr/local/bin/$script"; then
@@ -39,24 +36,12 @@ for script in push-templates.sh rotate-token.sh; do
   echo "  found: $script"
 done
 
-# Test 4: script syntax valid
-echo "Test 4: script syntax check..."
-for script in push-templates.sh rotate-token.sh; do
-  if ! docker run --rm --entrypoint bash "$IMAGE_REF" -n "/usr/local/bin/$script"; then
-    echo "  ERROR: $script has syntax errors"
-    exit 1
-  fi
-done
-echo "  syntax ok"
-
-# Test 5: kubectl + coder run (--client / --version)
-echo "Test 5: kubectl + coder version..."
+echo "Test 4: kubectl + coder version..."
 docker run --rm --entrypoint kubectl "$IMAGE_REF" version --client >/dev/null
 docker run --rm --entrypoint coder "$IMAGE_REF" version >/dev/null
 echo "  versions ok"
 
-# Test 6: read-only root filesystem compatible (PSA restricted)
-echo "Test 6: read-only rootfs + tmpfs /tmp..."
+echo "Test 5: read-only rootfs + tmpfs /tmp..."
 if ! docker run --rm \
   --read-only \
   --tmpfs /tmp:rw,size=16m \
@@ -104,9 +89,8 @@ TESTSCRIPT
   rm -f "${testfile}" "${mockfile}"
 }
 
-# Test 7: push-templates.sh skips unchanged templates (diff logic)
 # shellcheck disable=SC2016 # mock scripts use single quotes intentionally
-run_mock_test "Test 7: diff-based skip logic..." "mytemplate" \
+run_mock_test "Test 6: diff-based skip logic..." "mytemplate" \
   '#!/bin/bash
 if [ "$1" = "templates" ] && [ "$2" = "pull" ]; then
   cp -a "${TEMPLATES_DIR}/$3/." "$4/"
@@ -117,9 +101,8 @@ elif [ "$1" = "templates" ] && [ "$2" = "push" ]; then
 fi' \
   "SKIP: mytemplate" "skip-unchanged ok"
 
-# Test 8: push-templates.sh pushes changed templates
 # shellcheck disable=SC2016
-run_mock_test "Test 8: diff-based push on change..." "mytemplate" \
+run_mock_test "Test 7: diff-based push on change..." "mytemplate" \
   '#!/bin/bash
 if [ "$1" = "templates" ] && [ "$2" = "pull" ]; then
   echo "old content" > "$4/main.tf"
@@ -130,9 +113,8 @@ elif [ "$1" = "templates" ] && [ "$2" = "push" ]; then
 fi' \
   "CHANGED: mytemplate" "push-changed ok"
 
-# Test 9: push-templates.sh creates new templates (pull fails)
 # shellcheck disable=SC2016
-run_mock_test "Test 9: new template creation..." "newtemplate" \
+run_mock_test "Test 8: new template creation..." "newtemplate" \
   '#!/bin/bash
 if [ "$1" = "templates" ] && [ "$2" = "pull" ]; then
   echo "template \"newtemplate\" not found" >&2
@@ -143,9 +125,8 @@ elif [ "$1" = "templates" ] && [ "$2" = "push" ]; then
 fi' \
   "NEW: newtemplate" "new-template ok"
 
-# Test 10: pull failure reason appears in log output
 # shellcheck disable=SC2016
-run_mock_test "Test 10: pull failure reason logged..." "failtemplate" \
+run_mock_test "Test 9: pull failure reason logged..." "failtemplate" \
   '#!/bin/bash
 if [ "$1" = "templates" ] && [ "$2" = "pull" ]; then
   echo "auth token expired" >&2

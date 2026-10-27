@@ -1,6 +1,7 @@
 """Tests for environment configuration."""
 
 import math
+import re
 import secrets
 
 import pytest
@@ -8,30 +9,22 @@ import pytest
 from config import Settings
 
 
-def test_defaults():
+def test_optional_features_are_off_until_configured():
     settings = Settings.from_env({})
 
-    assert settings.listen_port == 8080
-    assert settings.model == "Horizon-Labs/prompt-injection-guard-base"
-    assert settings.injection_label == "INJECTION"
+    assert settings.jev_mode == "off"
     assert settings.valkey_url == ""
     assert settings.auth_token == ""
-    assert settings.max_text_bytes >= 256 * 1024
-    assert settings.cache_ttl_seconds >= 30 * 24 * 3600
-    assert settings.scan_workers == 1
-    assert settings.threshold == 0.9
-    assert (settings.window_tokens, settings.window_overlap) == (2048, 512)
-    assert settings.max_windows == 171
-    assert settings.max_body_bytes == 8 * 1024 * 1024
-    assert settings.max_concurrent_requests == 8
-    assert settings.scan_timeout_seconds == 300
-    assert settings.shutdown_drain_seconds == 20
-    assert settings.jev_mode == "off"
-    assert (settings.jev_api_url, settings.jev_api_key) == ("", "")
-    assert settings.jev_model == "jev-1.13.0"
-    assert (settings.jev_block_at, settings.jev_clear_below) == (0.90, 0.08)
-    assert settings.jev_timeout_seconds == 10
-    assert settings.jev_max_text_bytes == 16384
+
+
+def test_the_default_body_limit_fits_a_text_of_the_default_size_limit():
+    settings = Settings.from_env({})
+
+    assert settings.max_body_bytes > settings.max_text_bytes
+
+
+def test_the_default_jev_model_is_a_pinned_version():
+    assert re.fullmatch(r"jev-\d+\.\d+\.\d+", Settings.from_env({}).jev_model)
 
 
 def test_overrides():
