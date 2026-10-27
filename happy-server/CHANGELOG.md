@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.8](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.7...happy-server-1.0.8) (2026-10-27)
+
+
+### Dependencies
+
+* **deps:** update dependency @fastify/static to v10.1.2 [security] ([#2526](https://github.com/anthony-spruyt/container-images/issues/2526)) ([fc2ec6e](https://github.com/anthony-spruyt/container-images/commit/fc2ec6ead79375e9fdfa70d203bc51b678a42474))
+* **deps:** update dependency @fastify/static to v10.1.6 ([#2537](https://github.com/anthony-spruyt/container-images/issues/2537)) ([5d84312](https://github.com/anthony-spruyt/container-images/commit/5d84312d35043a265b04df9c661a140e007c4e0c))
+* **deps:** update dependency deepmerge-ts to v8.0.2 ([#2527](https://github.com/anthony-spruyt/container-images/issues/2527)) ([d83bbad](https://github.com/anthony-spruyt/container-images/commit/d83bbad5b7cea195b9e807121e114e5c2ad2f61d))
+* **deps:** update dependency effect to v3.22.3 ([#2529](https://github.com/anthony-spruyt/container-images/issues/2529)) ([28882dd](https://github.com/anthony-spruyt/container-images/commit/28882dd6c8f4ab47f4c9e3039bd12b9a7e869659))
+* **deps:** update dependency zod to v4.6.7 ([#2528](https://github.com/anthony-spruyt/container-images/issues/2528)) ([55673ea](https://github.com/anthony-spruyt/container-images/commit/55673ea6f2bdbe65c79732faf7181fcb8debee73))
+
 ## [1.0.7](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.6...happy-server-1.0.7) (2026-10-26)
 
 

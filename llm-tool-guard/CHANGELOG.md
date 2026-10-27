@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.5.5](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.5.4...llm-tool-guard-1.5.5) (2026-10-27)
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.147.0 ([#2539](https://github.com/anthony-spruyt/container-images/issues/2539)) ([6c3447d](https://github.com/anthony-spruyt/container-images/commit/6c3447d0a78259d9f13a1ef0172835cad6fd8920))
+* **deps:** update dependency fastapi to v0.148.0 ([#2541](https://github.com/anthony-spruyt/container-images/issues/2541)) ([53d3d9a](https://github.com/anthony-spruyt/container-images/commit/53d3d9af2bf078f9554e2d806a8064c209612039))
+* **deps:** update dependency fastapi to v0.150.0 ([#2544](https://github.com/anthony-spruyt/container-images/issues/2544)) ([0826598](https://github.com/anthony-spruyt/container-images/commit/0826598ad61ed2d319179122aade465196afd9f4))
+* **deps:** update dependency httpx2 to v2.15.1 ([#2545](https://github.com/anthony-spruyt/container-images/issues/2545)) ([97b1f66](https://github.com/anthony-spruyt/container-images/commit/97b1f66bc28b32e74a65a055b524cf1e353ec2dd))
+* **deps:** update dependency transformers to v5.20.2 ([#2534](https://github.com/anthony-spruyt/container-images/issues/2534)) ([a087935](https://github.com/anthony-spruyt/container-images/commit/a0879350b93a4bf0b8c516fe3d2344281a0f92d1))
+
 ## [1.5.4](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.5.3...llm-tool-guard-1.5.4) (2026-10-26)
 
 
