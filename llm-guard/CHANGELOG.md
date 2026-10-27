@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.10](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.1.9...llm-guard-1.1.10) (2026-10-27)
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.151.0 ([#2560](https://github.com/anthony-spruyt/container-images/issues/2560)) ([0b4a9e5](https://github.com/anthony-spruyt/container-images/commit/0b4a9e55bee90e1e09b5e382bbad8144408a73df))
+
 ## [1.1.9](https://github.com/anthony-spruyt/container-images/compare/llm-guard-1.1.8...llm-guard-1.1.9) (2026-10-27)
 
 
