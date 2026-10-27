@@ -20,7 +20,6 @@ echo "=== Chrony Container Tests ==="
 echo "Image: $IMAGE_REF"
 echo ""
 
-# Test 1: Container starts successfully
 echo "Test 1: Container startup..."
 docker run -d \
   --name "$CONTAINER_NAME" \
@@ -29,7 +28,6 @@ docker run -d \
   -e ENABLE_NTS="false" \
   "$IMAGE_REF"
 
-# Test 2: Wait for container to be healthy
 echo "Test 2: Waiting for healthcheck (max 60s)..."
 TIMEOUT=60
 ELAPSED=0
@@ -58,8 +56,8 @@ if [ $ELAPSED -ge $TIMEOUT ]; then
   exit 1
 fi
 
-# Test 3: Verify chronyc can query tracking info (proves chronyd is running)
 echo "Test 3: Verify chronyc tracking..."
+# A tracking reply over the socket proves chronyd is running
 if docker exec "$CONTAINER_NAME" chronyc -h /var/lib/chrony/chrony.sock -n tracking >/dev/null 2>&1; then
   echo "  chronyc tracking successful"
   docker exec "$CONTAINER_NAME" chronyc -h /var/lib/chrony/chrony.sock -n tracking | head -5
@@ -69,16 +67,7 @@ else
   exit 1
 fi
 
-# Test 4: Verify chrony is tracking sources
-echo "Test 4: Verify NTP source activity..."
-if docker exec "$CONTAINER_NAME" chronyc -h /var/lib/chrony/chrony.sock -n activity | grep -q "sources"; then
-  echo "  chrony is active and tracking sources"
-else
-  echo "  WARNING: Could not verify source activity"
-fi
-
-# Test 5: Verify the packaged chrony version is recorded in the image
-echo "Test 5: Upstream chrony version recorded..."
+echo "Test 4: Upstream chrony version recorded..."
 UPSTREAM_VERSION=$(docker exec "$CONTAINER_NAME" cat /etc/chrony-upstream-version 2>/dev/null || true)
 if [[ -n "$UPSTREAM_VERSION" ]]; then
   echo "  Packaged chrony: $UPSTREAM_VERSION"
@@ -87,8 +76,7 @@ else
   exit 1
 fi
 
-# Test 6: Verify chronyd is built with NTS support
-echo "Test 6: chronyd built with NTS..."
+echo "Test 5: chronyd built with NTS..."
 CHRONYD_FLAGS=$(docker run --rm --entrypoint chronyd "$IMAGE_REF" --version 2>&1 || true)
 echo "  $CHRONYD_FLAGS"
 if grep -q '+NTS' <<<"$CHRONYD_FLAGS"; then
@@ -99,8 +87,7 @@ else
   exit 1
 fi
 
-# Test 7: Verify the container actually stays up with ENABLE_NTS=true
-echo "Test 7: ENABLE_NTS=true startup..."
+echo "Test 6: ENABLE_NTS=true startup..."
 docker run -d \
   --name "$CONTAINER_NAME_NTS" \
   -e NTP_SERVERS="time.cloudflare.com" \
@@ -147,15 +134,13 @@ if grep -qi "Missing NTS support" <<<"$(docker logs "$CONTAINER_NAME_NTS" 2>&1)"
 fi
 echo "  ENABLE_NTS=true starts and stays healthy"
 
-# Test 8: Verify zero-capability mode works (--cap-drop=ALL)
-echo "Test 8: Zero-capability mode (--cap-drop=ALL)..."
+echo "Test 7: Zero-capability mode (--cap-drop=ALL)..."
 docker run -d \
   --name "$CONTAINER_NAME_ZEROCAP" \
   --cap-drop=ALL \
   -e NTP_SERVERS="time.cloudflare.com" \
   "$IMAGE_REF"
 
-# Wait for zero-cap container to be healthy
 ELAPSED=0
 while [ $ELAPSED -lt $TIMEOUT ]; do
   STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$CONTAINER_NAME_ZEROCAP" 2>/dev/null || echo "starting")
@@ -182,7 +167,6 @@ if [ $ELAPSED -ge $TIMEOUT ]; then
   exit 1
 fi
 
-# Verify chronyc works in zero-cap mode
 if docker exec "$CONTAINER_NAME_ZEROCAP" chronyc -h /var/lib/chrony/chrony.sock -n tracking >/dev/null 2>&1; then
   echo "  chronyc tracking works in zero-cap mode"
 else

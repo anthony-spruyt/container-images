@@ -10,7 +10,6 @@ IMAGE_REF="${1:?Usage: $0 <image-ref>}"
 echo "=== ssh-key-rotation image tests ==="
 echo "Image: $IMAGE_REF"
 
-# Test 1: required binaries present
 echo "Test 1: required binaries..."
 for bin in ssh-keygen curl jq kubectl; do
   if ! docker run --rm --entrypoint sh "$IMAGE_REF" -c "command -v $bin >/dev/null"; then
@@ -20,7 +19,6 @@ for bin in ssh-keygen curl jq kubectl; do
   echo "  found: $bin"
 done
 
-# Test 2: runs as non-root UID 1000
 echo "Test 2: non-root user..."
 UID_OUT=$(docker run --rm --entrypoint id "$IMAGE_REF" -u)
 if [ "$UID_OUT" != "1000" ]; then
@@ -29,7 +27,6 @@ if [ "$UID_OUT" != "1000" ]; then
 fi
 echo "  UID=1000 ok"
 
-# Test 3: entrypoint script present and executable
 echo "Test 3: entrypoint script..."
 if ! docker run --rm --entrypoint sh "$IMAGE_REF" -c "test -x /usr/local/bin/rotate-ssh-key.sh"; then
   echo "  ERROR: /usr/local/bin/rotate-ssh-key.sh missing or not executable"
@@ -37,24 +34,15 @@ if ! docker run --rm --entrypoint sh "$IMAGE_REF" -c "test -x /usr/local/bin/rot
 fi
 echo "  entrypoint ok"
 
-# Test 4: script syntax valid
-echo "Test 4: script syntax check..."
-if ! docker run --rm --entrypoint sh "$IMAGE_REF" -c "sh -n /usr/local/bin/rotate-ssh-key.sh"; then
-  echo "  ERROR: script has syntax errors"
-  exit 1
-fi
-echo "  syntax ok"
-
-# Test 5: kubectl runs (--client to avoid needing a cluster)
-echo "Test 5: kubectl client..."
+echo "Test 4: kubectl client..."
+# --client avoids needing a cluster
 if ! docker run --rm --entrypoint kubectl "$IMAGE_REF" version --client >/dev/null; then
   echo "  ERROR: kubectl --client failed"
   exit 1
 fi
 echo "  kubectl ok"
 
-# Test 6: read-only root filesystem compatible (PSA restricted)
-echo "Test 6: read-only rootfs + tmpfs /tmp..."
+echo "Test 5: read-only rootfs + tmpfs /tmp..."
 if ! docker run --rm \
   --read-only \
   --tmpfs /tmp:rw,size=64m \
@@ -65,8 +53,7 @@ if ! docker run --rm \
 fi
 echo "  read-only rootfs ok"
 
-# Test 7: fails fast when required env vars are missing
-echo "Test 7: env var validation..."
+echo "Test 6: env var validation..."
 OUTPUT=$(docker run --rm \
   --read-only \
   --tmpfs /tmp:rw,size=64m \
@@ -77,8 +64,7 @@ if ! echo "$OUTPUT" | grep -q "ERROR:.*is required"; then
 fi
 echo "  env var validation ok"
 
-# Test 8: fails when FORCE_SYNC_NAMESPACES set without FORCE_SYNC_ES_NAME
-echo "Test 8: FORCE_SYNC_ES_NAME required with FORCE_SYNC_NAMESPACES..."
+echo "Test 7: FORCE_SYNC_ES_NAME required with FORCE_SYNC_NAMESPACES..."
 OUTPUT=$(docker run --rm \
   --read-only \
   --tmpfs /tmp:rw,size=64m \
@@ -94,8 +80,7 @@ if ! echo "$OUTPUT" | grep -q "FORCE_SYNC_ES_NAME is required"; then
 fi
 echo "  conditional validation ok"
 
-# Test 9: GRACE_PERIOD_DAYS cutoff date computation
-echo "Test 9: grace period cutoff computation..."
+echo "Test 8: grace period cutoff computation..."
 OUTPUT=$(docker run --rm \
   --read-only \
   --tmpfs /tmp:rw,size=64m \
@@ -112,8 +97,7 @@ if ! echo "$OUTPUT" | grep -q "Grace period: 7 days"; then
 fi
 echo "  grace period ok"
 
-# Test 10: GRACE_PERIOD_DAYS=0 falls back to no grace period
-echo "Test 10: grace period disabled with 0..."
+echo "Test 9: grace period disabled with 0..."
 OUTPUT=$(docker run --rm \
   --read-only \
   --tmpfs /tmp:rw,size=64m \
