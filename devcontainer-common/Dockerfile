@@ -38,7 +38,7 @@ ARG MDFORMAT_VERSION="1.0.0"
 # renovate: datasource=pypi depName=mdformat-gfm
 ARG MDFORMAT_GFM_VERSION="1.0.0"
 # renovate: datasource=pypi depName=mdformat-frontmatter
-ARG MDFORMAT_FRONTMATTER_VERSION="2.1.2"
+ARG MDFORMAT_FRONTMATTER_VERSION="2.2.0"
 # renovate: datasource=pypi depName=mdformat-admon
 ARG MDFORMAT_ADMON_VERSION="2.1.1"
 RUN pip install --no-cache-dir \
