@@ -134,3 +134,5 @@ The four Intel `.deb`s are pinned by checksum in the [Dockerfile](Dockerfile), a
 
 The Python dependencies are pinned in [pyproject.toml](pyproject.toml) and locked with hashes in [uv.lock](uv.lock), installed with `uv sync --locked`, and kept current by Renovate.
 To bump by hand, edit [pyproject.toml](pyproject.toml), then run `uv lock` in this directory and commit both files. `uv lock` resolves only releases uploaded at least 7 days ago (`exclude-newer` in [pyproject.toml](pyproject.toml)), so pinning a release younger than that fails to resolve.
+
+`openvino-telemetry` is excluded from the lock (`exclude-dependencies` in [pyproject.toml](pyproject.toml)), so importing openvino sends no telemetry. A test in [tests/test_no_telemetry.py](tests/test_no_telemetry.py) fails if the package comes back.
