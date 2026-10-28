@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.1](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.0...llm-tool-guard-1.7.1) (2026-10-28)
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.156.8 ([#2629](https://github.com/anthony-spruyt/container-images/issues/2629)) ([7d6b254](https://github.com/anthony-spruyt/container-images/commit/7d6b254f693d395598df588d215e3961627d3e7b))
+* **deps:** update dependency fastapi to v0.157.0 ([#2653](https://github.com/anthony-spruyt/container-images/issues/2653)) ([b4ad7c2](https://github.com/anthony-spruyt/container-images/commit/b4ad7c21e60365da1c231126b46ce66e272cb297))
+* **deps:** update dependency fastapi to v0.159.0 ([#2657](https://github.com/anthony-spruyt/container-images/issues/2657)) ([84fd0fb](https://github.com/anthony-spruyt/container-images/commit/84fd0fb4b568c834eee0639839d1c3709b872465))
+* **deps:** update dependency fastapi to v0.159.1 ([#2660](https://github.com/anthony-spruyt/container-images/issues/2660)) ([31c53df](https://github.com/anthony-spruyt/container-images/commit/31c53df90a133d561c1d5a62b63b09c06ce6be76))
+* **deps:** update dependency httpx2 to v2.16.0 ([#2591](https://github.com/anthony-spruyt/container-images/issues/2591)) ([17598ca](https://github.com/anthony-spruyt/container-images/commit/17598ca2bf7cadbbe9592718edf27b9ce0b8d130))
+* **llm-tool-guard:** keep the OpenVINO telemetry package out of the image ([#2652](https://github.com/anthony-spruyt/container-images/issues/2652)) ([4f1676a](https://github.com/anthony-spruyt/container-images/commit/4f1676a4605b90f6360dceb7a46629d2845c09b7))
+
 ## [1.7.0](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.6.0...llm-tool-guard-1.7.0) (2026-10-28)
 
 
