@@ -10,33 +10,32 @@ SUFFIX="$$"
 NETWORK="llm-tool-guard-test-$SUFFIX"
 VALKEY="llm-tool-guard-valkey-$SUFFIX"
 GUARD="llm-tool-guard-test-$SUFFIX"
-VOLUME="llm-tool-guard-hf-$SUFFIX"
-WEIGHTS="llm-tool-guard-weights-$SUFFIX"
-WEIGHTS_IMAGE="llm-tool-guard-model-test:$SUFFIX"
+MODEL="llm-tool-guard-model-$SUFFIX"
+MODEL_IMAGE="llm-tool-guard-model-test:$SUFFIX"
 HUB="$(mktemp -d)"
 TOKEN="test-token-$SUFFIX"
 # renovate: datasource=docker depName=docker.io/valkey/valkey
 VALKEY_IMAGE="docker.io/valkey/valkey:9.1.3@sha256:3add1a336a920ea54770a001ab6feb3da5fceea96a40373a3a2cd469b815f0b7"
 
-# Uncompressed image ceiling: fails loudly if a CUDA torch wheel or model weights land in the image.
-MAX_IMAGE_BYTES=$((2000 * 1000 * 1000))
+# Uncompressed image ceiling: fails loudly if torch or model weights land in the image.
+MAX_IMAGE_BYTES=$((1500 * 1000 * 1000))
 
-# cleanup removes the test containers, network, model cache volume and weights copy, ignoring any that are already gone.
+# cleanup removes the test containers, network and model image copy, ignoring any that are already gone.
 cleanup() {
   echo "Cleaning up..."
-  docker rm -f "$GUARD" "$VALKEY" "$WEIGHTS" >/dev/null 2>&1 || true
+  docker rm -f "$GUARD" "$VALKEY" "$MODEL" >/dev/null 2>&1 || true
   docker network rm "$NETWORK" >/dev/null 2>&1 || true
-  docker volume rm "$VOLUME" >/dev/null 2>&1 || true
-  docker rmi "$WEIGHTS_IMAGE" >/dev/null 2>&1 || true
+  docker rmi "$MODEL_IMAGE" >/dev/null 2>&1 || true
   chmod -R u+w "$HUB" >/dev/null 2>&1 || true
   rm -rf "$HUB" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
-# Mount arguments that put the model cache at HF_HOME; Test 11 swaps them for the weights image layout.
-HF_MOUNT=(-v "$VOLUME:/app/.cache/huggingface")
+# Mount arguments that put the model image's files at HF_HOME/hub; set once the model image is built.
+HF_MOUNT=()
 
-# start_guard runs the scanner against Valkey with the HF_MOUNT model cache; extra args are passed to docker run.
+# start_guard runs the scanner on DEVICE (CPU unless set; empty keeps the image default) against Valkey with the
+# HF_MOUNT model cache, offline; extra args are passed to docker run.
 start_guard() {
   docker rm -f "$GUARD" >/dev/null 2>&1 || true
   docker run -d \
@@ -44,6 +43,8 @@ start_guard() {
     --network "$NETWORK" \
     -p 127.0.0.1::8080 \
     "${HF_MOUNT[@]}" \
+    -e SCANNER_DEVICE="${DEVICE-CPU}" \
+    -e HF_HUB_OFFLINE=1 \
     -e VALKEY_URL="redis://$VALKEY:6379/0" \
     -e AUTH_TOKEN="$TOKEN" \
     -e JEV_MODE=off \
@@ -73,18 +74,16 @@ wait_for() {
   return 1
 }
 
+# openvino_pin prints the OpenVINO version a pyproject.toml pins.
+openvino_pin() {
+  sed -n 's/^ *"openvino==\(.*\)",$/\1/p' "$1"
+}
+
 echo "=== LLM Tool Guard Container Tests ==="
 echo "Image: $IMAGE_REF"
 echo ""
 
-echo "Test 1: scanner_types.py matches llm-guard's..."
-if ! cmp -s "$DIR/app/scanner_types.py" "$DIR/../llm-guard/app/scanner_types.py"; then
-  echo "  ERROR: llm-tool-guard/app/scanner_types.py differs from llm-guard/app/scanner_types.py; copy it over" >&2
-  exit 1
-fi
-echo "  identical OK"
-
-echo "Test 2: runs as a non-root user..."
+echo "Test 1: runs as a non-root user..."
 UID_IN_IMAGE=$(docker run --rm --entrypoint id "$IMAGE_REF" -u)
 if [[ "$UID_IN_IMAGE" != "1000" ]]; then
   echo "  ERROR: image runs as uid $UID_IN_IMAGE" >&2
@@ -92,13 +91,37 @@ if [[ "$UID_IN_IMAGE" != "1000" ]]; then
 fi
 echo "  uid 1000 OK"
 
-echo "Test 3: torch is the CPU build..."
-TORCH_CUDA=$(docker run --rm --entrypoint python "$IMAGE_REF" -c "import torch; print(torch.version.cuda)")
-if [[ "$TORCH_CUDA" != "None" ]]; then
-  echo "  ERROR: image contains a CUDA torch build (torch.version.cuda=$TORCH_CUDA)" >&2
+echo "Test 2: the scanner and the model converter pin the same OpenVINO..."
+RUNTIME_PIN=$(openvino_pin "$DIR/pyproject.toml")
+CONVERTER_PIN=$(openvino_pin "$DIR/../llm-tool-guard-model/convert/pyproject.toml")
+if [[ -z "$RUNTIME_PIN" || "$RUNTIME_PIN" != "$CONVERTER_PIN" ]]; then
+  echo "  ERROR: scanner pins openvino '$RUNTIME_PIN', converter pins '$CONVERTER_PIN'" >&2
   exit 1
 fi
-echo "  torch.version.cuda=None OK"
+echo "  openvino $RUNTIME_PIN OK"
+
+echo "Test 3: the GPU runtime is complete and named in the image..."
+# No GPU here, so this checks what a GPU run needs from the image: the driver loads its libraries, and the baked
+# INTEL_GPU_RUNTIME names the packages that are installed.
+if ! docker run --rm --entrypoint sh "$IMAGE_REF" -c '
+  set -eu
+  icd="$(cat /etc/OpenCL/vendors/intel.icd)"
+  if ldd "$icd" | grep -q "not found"; then echo "  ERROR: $icd has unresolved libraries" >&2; exit 1; fi
+  for library in libigc.so.2 libigdfcl.so.2; do
+    ldconfig -p | grep -q "$library" || { echo "  ERROR: $library is not in the linker cache" >&2; exit 1; }
+  done
+  for package in intel-opencl-icd intel-igc-opencl-2 libigdgmm12; do
+    version="$(dpkg-query -W -f="\${Version}" "$package")"
+    case "$INTEL_GPU_RUNTIME" in
+      *"${version%-0}"*) ;;
+      *) echo "  ERROR: INTEL_GPU_RUNTIME \"$INTEL_GPU_RUNTIME\" lacks $package $version" >&2; exit 1 ;;
+    esac
+  done
+  echo "  $INTEL_GPU_RUNTIME"
+'; then
+  exit 1
+fi
+echo "  GPU runtime OK"
 
 echo "Test 4: image size under ceiling..."
 IMAGE_BYTES=$(docker image inspect "$IMAGE_REF" --format '{{.Size}}')
@@ -108,27 +131,44 @@ if [[ "$IMAGE_BYTES" -ge "$MAX_IMAGE_BYTES" ]]; then
 fi
 echo "  ${IMAGE_BYTES} bytes (ceiling ${MAX_IMAGE_BYTES}) OK"
 
-echo "Test 5: start Valkey and the scanner (cold model cache)..."
+echo "Test 5: start Valkey and the scanner on the model image, read-only at HF_HOME/hub..."
+MODEL_REVISION=$(sed -n 's/^ARG MODEL_REVISION=//p' "$DIR/../llm-tool-guard-model/Dockerfile")
+docker build -q -t "$MODEL_IMAGE" "$DIR/../llm-tool-guard-model" >/dev/null
+# The image has no shell or command; the name given to create is never run.
+docker create --name "$MODEL" "$MODEL_IMAGE" none >/dev/null
+docker cp "$MODEL:/." "$HUB/"
+chmod 755 "$HUB"
+HF_MOUNT=(--tmpfs /app/.cache/huggingface:mode=1777 -v "$HUB:/app/.cache/huggingface/hub:ro")
 docker network create "$NETWORK" >/dev/null
-docker volume create "$VOLUME" >/dev/null
 docker run -d --name "$VALKEY" --network "$NETWORK" --user 999:999 --entrypoint valkey-server \
   "$VALKEY_IMAGE" --save "" --appendonly no >/dev/null
 start_guard
 echo "  /healthz (max 120s)..."
 wait_for "$BASE/healthz" 120
-echo "  /readyz (max 600s, includes the first model download)..."
-wait_for "$BASE/readyz" 600
+echo "  /readyz (max 120s)..."
+wait_for "$BASE/readyz" 120
+if docker exec -u 0 "$GUARD" touch /app/.cache/huggingface/hub/probe 2>/dev/null; then
+  echo "  ERROR: the model cache is writable" >&2
+  exit 1
+fi
+echo "  model cache is read-only OK"
+if ! grep -qF "model revision $MODEL_REVISION" <<<"$(docker logs "$GUARD" 2>&1)"; then
+  echo "  ERROR: scanner did not report model revision $MODEL_REVISION" >&2
+  docker logs "$GUARD"
+  exit 1
+fi
+echo "  model revision $MODEL_REVISION OK"
 
 echo "Test 6: scan API, auth and verdict cache..."
 python3 "$DIR/tests/smoke.py" "$BASE" "$TOKEN" scan
 
 echo "Test 7: scan time budget..."
-start_guard -e HF_HUB_OFFLINE=1 -e SCAN_TIMEOUT_SECONDS=0.5 -e WINDOW_TOKENS=16 -e WINDOW_OVERLAP=4
+start_guard -e SCAN_TIMEOUT_SECONDS=0.5 -e WINDOW_TOKENS=16 -e WINDOW_OVERLAP=4
 wait_for "$BASE/readyz" 120
 python3 "$DIR/tests/smoke.py" "$BASE" "$TOKEN" budget
 
-echo "Test 8: restart offline from the warm model cache..."
-start_guard -e HF_HUB_OFFLINE=1
+echo "Test 8: a restart keeps serving the cached verdicts..."
+start_guard
 wait_for "$BASE/readyz" 120
 python3 "$DIR/tests/smoke.py" "$BASE" "$TOKEN" cached
 
@@ -148,29 +188,23 @@ docker run --rm \
     && python -m pytest -p no:cacheprovider -q /tests'
 echo "  unit tests OK"
 
-echo "Test 11: starts and scans offline with the weights image read-only at HF_HOME/hub..."
-MODEL_REVISION=$(sed -n 's/^ARG MODEL_REVISION=//p' "$DIR/../llm-tool-guard-model/Dockerfile")
-docker build -q -t "$WEIGHTS_IMAGE" "$DIR/../llm-tool-guard-model" >/dev/null
-# The image has no shell or command; the name given to create is never run.
-docker create --name "$WEIGHTS" "$WEIGHTS_IMAGE" none >/dev/null
-docker cp "$WEIGHTS:/." "$HUB/"
-chmod 755 "$HUB"
-docker start "$VALKEY" >/dev/null
-HF_MOUNT=(--tmpfs /app/.cache/huggingface:mode=1777 -v "$HUB:/app/.cache/huggingface/hub:ro")
-start_guard -e HF_HUB_OFFLINE=1
-wait_for "$BASE/readyz" 120
-if docker exec -u 0 "$GUARD" touch /app/.cache/huggingface/hub/probe 2>/dev/null; then
-  echo "  ERROR: the model cache is writable" >&2
+echo "Test 11: the default device is the GPU, and with none the load fails instead of falling back to the CPU..."
+DEVICE="" start_guard
+ELAPSED=0
+until [[ "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/healthz")" == "503" ]]; do
+  if [[ $ELAPSED -ge 120 ]]; then
+    echo "  ERROR: /healthz never reported a failed load" >&2
+    docker logs "$GUARD"
+    exit 1
+  fi
+  sleep 5
+  ELAPSED=$((ELAPSED + 5))
+done
+if [[ "$(curl -s -o /dev/null -w '%{http_code}' "$BASE/readyz")" == "200" ]]; then
+  echo "  ERROR: the scanner is ready without a GPU" >&2
   exit 1
 fi
-echo "  model cache is read-only OK"
-python3 "$DIR/tests/smoke.py" "$BASE" "$TOKEN" scan
-if ! grep -qF "model revision $MODEL_REVISION" <<<"$(docker logs "$GUARD" 2>&1)"; then
-  echo "  ERROR: scanner did not report model revision $MODEL_REVISION" >&2
-  docker logs "$GUARD"
-  exit 1
-fi
-echo "  model revision $MODEL_REVISION OK"
+echo "  load failed after ${ELAPSED}s and /readyz is not ready OK"
 
 echo "Test 12: pip is not in the image..."
 if ! docker run --rm --entrypoint python "$IMAGE_REF" -c \

@@ -9,9 +9,9 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONTAINER="llm-tool-guard-model-test-$$"
 OUT="$(mktemp -d)"
 MODEL_DIR="models--Horizon-Labs--prompt-injection-guard-base"
-FILES=(config.json model.safetensors special_tokens_map.json tokenizer.json tokenizer_config.json)
+FILES=(config.json openvino_model.bin openvino_model.xml special_tokens_map.json tokenizer.json tokenizer_config.json)
 
-# Uncompressed image ceiling: fails loudly if the ONNX exports land in the image.
+# Uncompressed image ceiling: fails loudly if model.safetensors lands in the image beside the IR.
 MAX_IMAGE_BYTES=$((1400 * 1000 * 1000))
 
 # cleanup removes the container and the copied cache, ignoring any that are already gone.
