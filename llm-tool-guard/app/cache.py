@@ -22,7 +22,7 @@ _NO_ANSWER = "-"
 _PARTIAL = "+"
 _SPANS = re.compile(r"\d+-\d+(,\d+-\d+)*", re.ASCII)
 _TRANSIENT_TTL_SECONDS = 3600
-_LIBRARIES = ("transformers", "tokenizers", "torch")
+_LIBRARIES = ("transformers", "tokenizers", "openvino")
 
 
 Span = tuple[int, int]

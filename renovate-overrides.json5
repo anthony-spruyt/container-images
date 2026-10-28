@@ -50,6 +50,13 @@
       "matchCurrentValue": "/\\+cu130$/",
       "registryUrls": ["https://download.pytorch.org/whl/cu130"],
     },
+    // The scanner compiles the IR the converter saves; llm-tool-guard/test.sh fails when the two pins differ.
+    {
+      "description": "Group the scanner and converter OpenVINO pins into one PR",
+      "matchManagers": ["pep621"],
+      "matchPackageNames": ["openvino"],
+      "groupName": "openvino",
+    },
     {
       "description": "Label toolchain pins in MegaLinter language definitions like flavor pins",
       "matchManagers": ["custom.regex"],

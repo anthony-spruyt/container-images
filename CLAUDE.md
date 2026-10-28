@@ -51,8 +51,8 @@ Note that release-please only sees the variant's own directory, so a source-only
 
 ### Sharing a file with another image
 
-An image with its own sources that reuses one file from another image keeps a copy of it, lists the original under `watch` in its `metadata.yaml`, and fails its `test.sh` when the two differ. `llm-tool-guard/app/scanner_types.py` copies `llm-guard/app/scanner_types.py` this way: a change to the original rebuilds `llm-tool-guard`, its test fails until the copy is updated, and updating the copy
-touches `llm-tool-guard/`, so release-please releases it.
+An image with its own sources that reuses one file from another image keeps a copy of it, lists the original under `watch` in its `metadata.yaml`, and fails its `test.sh` when the two differ. `claude-agent-read/assets/claude-plugins-bootstrap.sh` copies `devcontainer-common/assets/claude-plugins-bootstrap.sh` this way: a change to the original rebuilds `claude-agent-read`, its test fails until the copy is updated, and updating the copy
+touches `claude-agent-read/`, so release-please releases it.
 
 ### Optional: Add Trivy Ignores
 

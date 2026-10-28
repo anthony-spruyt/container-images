@@ -5,10 +5,8 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
-import torch
-from transformers import Pipeline, pipeline
-
 import config
+from openvino_backend import OpenVinoPipeline, load_pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -25,19 +23,6 @@ _INVISIBLE_CODEPOINTS = frozenset(
         0xFEFF,  # zero-width no-break space / BOM
     }
 )
-
-
-def _resolve_device() -> int:
-    """
-    Return the transformers pipeline device index.
-
-    ``config.SCANNER_DEVICE`` wins when set. Otherwise auto-detect: the CUDA
-    image ships a CUDA torch build and lands on GPU 0, while the CPU image
-    ships the CPU-only wheel, reports ``is_available()`` False, and stays on -1.
-    """
-    if config.SCANNER_DEVICE:
-        return int(config.SCANNER_DEVICE)
-    return 0 if torch.cuda.is_available() else -1
 
 
 def _is_int(value) -> bool:
@@ -69,7 +54,7 @@ class ScanResult:
 
 
 class PromptInjectionScanner:
-    """Detects prompt injection using a HuggingFace text-classification model."""
+    """Detects prompt injection using a text-classification model converted to OpenVINO."""
 
     def __init__(self, **kwargs):
         """
@@ -77,6 +62,7 @@ class PromptInjectionScanner:
 
         Kwargs:
             model (str): HuggingFace model ID. Defaults to config.DEFAULT_MODEL.
+            device (str): OpenVINO device to run the model on. Defaults to config.DEFAULT_DEVICE.
             injection_label (str): Positive-class label. Defaults to config.DEFAULT_INJECTION_LABEL.
             threshold (float): Block threshold [0,1]. Defaults to config.DEFAULT_THRESHOLD.
             match_type (str): ``"full"``, ``"sentence"`` or ``"sliding_window"``. Defaults to ``"full"``.
@@ -84,38 +70,32 @@ class PromptInjectionScanner:
                 Defaults to 512.
             window_overlap (int): Tokens shared by consecutive windows in ``"sliding_window"`` mode.
                 Defaults to a quarter of the window.
-            window_batch_size (int): Windows scored per model call in ``"sliding_window"`` mode. Defaults to 8.
+            window_batch_size (int): Windows scored per model call in ``"sliding_window"`` mode. Must be 1,
+                as OpenVINO scores padded rows as NaN. Defaults to 1.
             max_windows (int): Most windows one input may span in ``"sliding_window"`` mode. Input spanning
                 more is blocked with score 1.0. Defaults to 64.
         """
         self._model = kwargs.get("model", "") or config.DEFAULT_MODEL
+        self._device = kwargs.get("device", "") or config.DEFAULT_DEVICE
         self._injection_label = kwargs.get("injection_label", "") or config.DEFAULT_INJECTION_LABEL
         threshold = kwargs.get("threshold")
         self._threshold = config.DEFAULT_THRESHOLD if threshold is None else threshold
         self._match_type = kwargs.get("match_type", "full")
         self._model_max_length = kwargs.get("model_max_length", 512)
         self._window_overlap: int | None = kwargs.get("window_overlap")
-        self._window_batch_size = kwargs.get("window_batch_size", 8)
+        self._window_batch_size = kwargs.get("window_batch_size", 1)
         self._max_windows = kwargs.get("max_windows", 64)
-        self._pipe: Pipeline | None = None
+        self._pipe: OpenVinoPipeline | None = None
         self._injection_label_missing_warned = False
 
     def load(self):
-        """Load the HuggingFace pipeline and validate the injection label exists."""
+        """Compile the model on the device and validate the injection label exists."""
         if self._match_type == "sliding_window":
             self._check_window_params()
-        device = _resolve_device()
         # Device goes in msg, not extra: the logging.basicConfig format in
         # main.py only renders %(message)s, so extra= fields never surface.
-        logger.info("loading model on device %s", device, extra={"model": self._model})
-        self._pipe = pipeline(
-            "text-classification",
-            model=self._model,
-            device=device,
-            truncation=True,
-            max_length=self._model_max_length,
-            top_k=None,
-        )
+        logger.info("loading model on device %s", self._device, extra={"model": self._model})
+        self._pipe = load_pipeline(self._model, self._device, max_length=self._model_max_length)
         self._check_model_limit()
         if self._match_type == "sliding_window":
             self._configure_windows()
@@ -138,6 +118,8 @@ class PromptInjectionScanner:
             value = getattr(self, f"_{name}")
             if not _is_int(value) or value < 1:
                 raise ValueError(f"{name} must be a positive int, got {value!r}")
+        if self._window_batch_size != 1:
+            raise ValueError(f"window_batch_size must be 1, got {self._window_batch_size}: padded rows score NaN")
         if self._window_overlap is not None and not _is_int(self._window_overlap):
             raise ValueError(f"window_overlap must be an int, got {self._window_overlap!r}")
 
@@ -146,8 +128,8 @@ class PromptInjectionScanner:
         tokenizer = self._pipe.tokenizer
         if not getattr(tokenizer, "is_fast", False):
             raise ValueError(f"sliding_window needs a fast tokenizer; {self._model!r} has none")
-        if self._window_batch_size > 1 and tokenizer.pad_token is None:
-            raise ValueError(f"window_batch_size > 1 needs a pad token; {self._model!r} has none")
+        if tokenizer.pad_token is None:
+            raise ValueError(f"sliding_window needs a pad token; {self._model!r} has none")
         span = self._model_max_length - tokenizer.num_special_tokens_to_add(pair=False)
         if span < 1:
             raise ValueError(f"model_max_length {self._model_max_length} leaves no room beside the special tokens")
@@ -200,6 +182,12 @@ class PromptInjectionScanner:
             return set(id2label.values())
         return set()
 
+    def fingerprint(self) -> dict[str, str]:
+        """Return what besides the settings shapes this scanner's scores: device, precision, model files and driver."""
+        if self._pipe is None:
+            raise RuntimeError("PromptInjectionScanner not loaded; call load() first")
+        return dict(self._pipe.fingerprint)
+
     def _score_text(self, text: str) -> float:
         """Return injection score [0,1] for a single text chunk."""
         results = self._pipe(text)
@@ -248,11 +236,9 @@ class PromptInjectionScanner:
         """Return the injection score of each window, scoring window_batch_size of them per model call."""
         scores = []
         for start in range(0, len(windows), self._window_batch_size):
-            batch = self._pipe.tokenizer.pad(windows[start : start + self._window_batch_size], return_tensors="pt")
+            batch = self._pipe.tokenizer.pad(windows[start : start + self._window_batch_size], return_tensors="np")
             logits = self._pipe.forward(dict(batch))["logits"]
-            scores.extend(
-                self._injection_score(self._pipe.postprocess({"logits": row[None]}, top_k=None)) for row in logits
-            )
+            scores.extend(self._injection_score(self._pipe.postprocess({"logits": row[None]})) for row in logits)
         return scores
 
     def scan(self, text: str) -> ScanResult:

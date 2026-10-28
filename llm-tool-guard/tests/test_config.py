@@ -23,6 +23,12 @@ def test_the_default_body_limit_exceeds_the_default_text_limit():
     assert settings.max_body_bytes > settings.max_text_bytes
 
 
+def test_the_scanner_runs_on_the_gpu_unless_told_otherwise():
+    assert Settings.from_env({}).scanner_device == "GPU"
+    assert Settings.from_env({"SCANNER_DEVICE": ""}).scanner_device == "GPU"
+    assert Settings.from_env({"SCANNER_DEVICE": "CPU"}).scanner_device == "CPU"
+
+
 def test_the_default_jev_model_is_a_pinned_version():
     assert re.fullmatch(r"jev-\d+\.\d+\.\d+", Settings.from_env({}).jev_model)
 

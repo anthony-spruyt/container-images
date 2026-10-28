@@ -10,6 +10,7 @@ from prometheus_client import CollectorRegistry
 from redis.asyncio import Redis
 
 import classifier as classifier_module
+import openvino_backend
 import scanner_types
 from api import create_app
 from cache import VerdictCache, cache_namespace, runtime_fingerprint
@@ -26,24 +27,28 @@ logging.basicConfig(
 )
 
 
+def runtime_of(scanner: PromptInjectionScanner) -> dict[str, str]:
+    """Return what besides the settings shapes a verdict: the source files, library versions and the loaded model."""
+    sources = [Path(module.__file__) for module in (scanner_types, classifier_module, openvino_backend)]
+    return {**runtime_fingerprint(sources), **scanner.fingerprint()}
+
+
 def build(settings: Settings, metrics: Metrics):
     """Return the background loader that builds the guard once the model is ready."""
 
     async def load() -> ToolGuard:
-        classifier = Classifier(
-            PromptInjectionScanner(
-                model=settings.model,
-                injection_label=settings.injection_label,
-                threshold=settings.threshold,
-                match_type="sliding_window",
-                model_max_length=settings.window_tokens,
-                window_overlap=settings.window_overlap,
-                window_batch_size=settings.window_batch_size,
-                max_windows=settings.max_windows,
-            ),
-            settings.model,
-            time_budget_seconds=settings.scan_timeout_seconds,
+        scanner = PromptInjectionScanner(
+            model=settings.model,
+            device=settings.scanner_device,
+            injection_label=settings.injection_label,
+            threshold=settings.threshold,
+            match_type="sliding_window",
+            model_max_length=settings.window_tokens,
+            window_overlap=settings.window_overlap,
+            window_batch_size=settings.window_batch_size,
+            max_windows=settings.max_windows,
         )
+        classifier = Classifier(scanner, settings.model, time_budget_seconds=settings.scan_timeout_seconds)
         await asyncio.to_thread(classifier.load)
         client = None
         if settings.valkey_url:
@@ -62,7 +67,7 @@ def build(settings: Settings, metrics: Metrics):
             window_tokens=settings.window_tokens,
             window_overlap=settings.window_overlap,
             max_windows=settings.max_windows,
-            runtime=runtime_fingerprint([Path(scanner_types.__file__), Path(classifier_module.__file__)]),
+            runtime=runtime_of(scanner),
         )
         logging.getLogger(__name__).info(
             "cache namespace %s (model revision %s, valkey %s)",

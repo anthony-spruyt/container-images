@@ -1,10 +1,9 @@
 """Service configuration, read from the environment.
 
-The module-level DEFAULT_* names and SCANNER_DEVICE are the fallbacks scanner_types.py reads.
+The module-level DEFAULT_* names are the fallbacks scanner_types.py reads.
 """
 
 import math
-import os
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -14,10 +13,10 @@ from urllib.parse import urlsplit
 DEFAULT_MODEL = "Horizon-Labs/prompt-injection-guard-base"
 DEFAULT_INJECTION_LABEL = "INJECTION"
 DEFAULT_THRESHOLD = 0.9
+DEFAULT_DEVICE = "GPU"
 _JEV_MODEL = "jev-1.13.0"
 _JEV_MODES = ("off", "enforce")
 _PRINTABLE_ASCII = re.compile(r"[!-~]*")
-SCANNER_DEVICE = os.environ.get("SCANNER_DEVICE", "")
 
 # [CLS] and [SEP]: the tokens each window spends outside the text.
 _SPECIAL_TOKENS = 2
@@ -102,6 +101,7 @@ class Settings:
     listen_host: str
     listen_port: int
     model: str
+    scanner_device: str
     injection_label: str
     threshold: float
     window_tokens: int
@@ -149,6 +149,7 @@ class Settings:
             listen_host=env.get("LISTEN_HOST") or "0.0.0.0",
             listen_port=_number(env, "LISTEN_PORT", 8080, int, 1),
             model=env.get("MODEL") or DEFAULT_MODEL,
+            scanner_device=env.get("SCANNER_DEVICE") or DEFAULT_DEVICE,
             injection_label=env.get("INJECTION_LABEL") or DEFAULT_INJECTION_LABEL,
             threshold=threshold,
             window_tokens=window_tokens,
