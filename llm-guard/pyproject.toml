@@ -13,7 +13,7 @@ dependencies = [
 
 # One variant per image; both are locked together in uv.lock.
 [dependency-groups]
-cpu = ["torch==2.14.1+cpu"]
+cpu = ["torch==2.15.0+cpu"]
 cu130 = ["torch==2.14.1+cu130"]
 
 [tool.uv]
