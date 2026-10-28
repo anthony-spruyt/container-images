@@ -134,18 +134,6 @@
       "sourceDirectory": "happy-server",
     },
     {
-      "description": "Release notes for own images: llm-guard",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/anthony-spruyt/llm-guard"],
-      "sourceDirectory": "llm-guard",
-    },
-    {
-      "description": "Release notes for own images: llm-guard-cuda",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/anthony-spruyt/llm-guard-cuda"],
-      "sourceDirectory": "llm-guard-cuda",
-    },
-    {
       "description": "Release notes for own images: llm-tool-guard",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["ghcr.io/anthony-spruyt/llm-tool-guard"],

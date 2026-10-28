@@ -6,8 +6,6 @@
   "coder-gitops": "1.0.31",
   "devcontainer-common": "2.4.7",
   "happy-server": "1.0.11",
-  "llm-guard": "1.2.0",
-  "llm-guard-cuda": "1.2.0",
   "llm-tool-guard": "1.7.0",
   "llm-tool-guard-model": "1.1.0",
   "megalinter-base": "1.0.5",

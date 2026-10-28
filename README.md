@@ -45,7 +45,7 @@ CI and releases find images in `release-please-config.json`, so no workflow chan
 To share another image's sources but use your own `Dockerfile`, add a `metadata.yaml` setting `build_context`:
 
 ```yaml
-build_context: llm-guard
+build_context: <source-image>
 ```
 
 ## Adding a Custom MegaLinter Flavor
