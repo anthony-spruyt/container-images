@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.11](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.1.10...claude-agent-read-1.1.11) (2026-10-28)
+
+
+### Bug Fixes
+
+* **claude-agent-read:** clone plugin marketplaces over HTTPS without an SSH probe ([#2630](https://github.com/anthony-spruyt/container-images/issues/2630)) ([d57124a](https://github.com/anthony-spruyt/container-images/commit/d57124ab49a48ecf65951c71eacde0909cc3fec4))
+
 ## [1.1.10](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.1.9...claude-agent-read-1.1.10) (2026-10-28)
 
 

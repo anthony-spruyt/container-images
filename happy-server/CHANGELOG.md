@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.10](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.9...happy-server-1.0.10) (2026-10-28)
+
+
+### Dependencies
+
+* **deps:** update dependency effect to v3.22.4 ([#2582](https://github.com/anthony-spruyt/container-images/issues/2582)) ([c0d6dc7](https://github.com/anthony-spruyt/container-images/commit/c0d6dc7ba9a7cae0aa0964eae0de0ce875f50438))
+
 ## [1.0.9](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.8...happy-server-1.0.9) (2026-10-28)
 
 

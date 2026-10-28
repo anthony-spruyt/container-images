@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.114](https://github.com/anthony-spruyt/container-images/compare/claude-agent-write-1.0.113...claude-agent-write-1.0.114) (2026-10-28)
+
+
+### Dependencies
+
+* **deps:** update container image ghcr.io/anthony-spruyt/claude-agent-read to v1.1.10 ([#2613](https://github.com/anthony-spruyt/container-images/issues/2613)) ([dee2450](https://github.com/anthony-spruyt/container-images/commit/dee245075841f14c8752e6f464a15147b02c1dd8))
+* **deps:** update container image golang to v1.27.3 ([#2576](https://github.com/anthony-spruyt/container-images/issues/2576)) ([7bcd09b](https://github.com/anthony-spruyt/container-images/commit/7bcd09b16586a64afe18fb651b5040e7625e7a06))
+
 ## [1.0.113](https://github.com/anthony-spruyt/container-images/compare/claude-agent-write-1.0.112...claude-agent-write-1.0.113) (2026-10-27)
 
 
