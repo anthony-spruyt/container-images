@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.129](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.128...claude-agent-spruyt-labs-1.0.129) (2026-10-28)
+
+
+### Dependencies
+
+* **deps:** update dependency falcosecurity/falcoctl to v0.14.3 ([#2583](https://github.com/anthony-spruyt/container-images/issues/2583)) ([2b5c2fa](https://github.com/anthony-spruyt/container-images/commit/2b5c2facc845991ad60839be3274cc8f9dd83fad))
+* **deps:** update dependency siderolabs/talos to v1.14.5 ([#2584](https://github.com/anthony-spruyt/container-images/issues/2584)) ([47efd55](https://github.com/anthony-spruyt/container-images/commit/47efd555096efee038bc5b10db74b208ec6c3867))
+
 ## [1.0.128](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.127...claude-agent-spruyt-labs-1.0.128) (2026-10-28)
 
 
