@@ -23,32 +23,13 @@
       "matchFileNames": ["llm-tool-guard-model/requirements.txt"],
       "enabled": false,
     },
-    // The torch pins differ by local version (+cpu vs +cu130) and live in two
-    // apps, so Renovate would open one PR per variant; they must move together.
-    {
-      "description": "Group torch CPU and CUDA variant updates into one PR",
-      "matchManagers": ["pep621"],
-      "matchPackageNames": ["torch"],
-      "groupName": "torch",
-      "group": {
-        "commitMessageTopic": "torch (cpu + cuda)",
-      },
-    },
-    // pep621 gives every torch pin all the indexes uv.sources lists, so a CPU pin
-    // would move to a CUDA build; each variant is looked up on its own index.
+    // The +cpu local version exists only on the PyTorch CPU index, not on PyPI.
     {
       "description": "Look up CPU torch pins on the CPU index",
       "matchManagers": ["pep621"],
       "matchPackageNames": ["torch"],
       "matchCurrentValue": "/\\+cpu$/",
       "registryUrls": ["https://download.pytorch.org/whl/cpu"],
-    },
-    {
-      "description": "Look up CUDA 13.0 torch pins on the CUDA 13.0 index; a new CUDA variant needs its own rule here and in pyproject.toml",
-      "matchManagers": ["pep621"],
-      "matchPackageNames": ["torch"],
-      "matchCurrentValue": "/\\+cu130$/",
-      "registryUrls": ["https://download.pytorch.org/whl/cu130"],
     },
     // The scanner compiles the IR the converter saves; llm-tool-guard/test.sh fails when the two pins differ.
     {
@@ -132,18 +113,6 @@
       "matchDatasources": ["docker"],
       "matchPackageNames": ["ghcr.io/anthony-spruyt/happy-server"],
       "sourceDirectory": "happy-server",
-    },
-    {
-      "description": "Release notes for own images: llm-guard",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/anthony-spruyt/llm-guard"],
-      "sourceDirectory": "llm-guard",
-    },
-    {
-      "description": "Release notes for own images: llm-guard-cuda",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/anthony-spruyt/llm-guard-cuda"],
-      "sourceDirectory": "llm-guard-cuda",
     },
     {
       "description": "Release notes for own images: llm-tool-guard",

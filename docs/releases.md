@@ -93,9 +93,18 @@ It compares composed linter sets (base, languages and `custom_linters`), not ups
 
 ## Variant images
 
-`llm-guard-cuda` builds from `llm-guard/` via `build_context`. release-please's [`linked-versions`][linked] plugin in `release-please-config.json` groups `llm-guard` and `llm-guard-cuda`, so a commit touching either directory releases both images at the same version: the highest bump either one would take on its own. The image without a matching commit gets a `Synchronize llm-guard versions` changelog entry. `merge: false` keeps both in the single release PR.
+An image that builds from another image's directory via `build_context` belongs in a release-please [`linked-versions`][linked] group in the `plugins` list of `release-please-config.json`, so it is never released without its source. A commit touching either directory then releases both images at the same version: the highest bump either one would take on its own. The image without a matching commit gets a `Synchronize <group> versions` changelog entry. `merge: false` keeps both in the single release PR.
 
-Add any further image that builds from another image's directory to such a group as well, so it is never released without its source.
+```json
+"plugins": [
+  {
+    "type": "linked-versions",
+    "groupName": "<source-image>",
+    "components": ["<source-image>", "<variant-image>"],
+    "merge": false
+  }
+]
+```
 
 ## Recovering a stuck draft
 
@@ -133,7 +142,6 @@ Notable settings:
 | `tag-separator: "-"` | Matches the tags this repo already uses, so they round-trip  |
 | `include-v-in-tag`   | Per image. Preserves each image's existing `v`-or-not prefix |
 | `last-release-sha`   | Bounds history scanning — see below                          |
-| `plugins`            | Links image versions — see [Variant images](#variant-images) |
 
 ### `last-release-sha`
 
