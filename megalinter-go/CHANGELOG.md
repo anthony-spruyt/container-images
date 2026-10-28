@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.6](https://github.com/anthony-spruyt/container-images/compare/megalinter-go-2.1.5...megalinter-go-2.1.6) (2026-10-28)
+
+
+### Dependencies
+
+* **megalinter:** rebuild flavors for updated language definitions ([#2617](https://github.com/anthony-spruyt/container-images/issues/2617)) ([93c4dad](https://github.com/anthony-spruyt/container-images/commit/93c4dadc250ed40e3bbb74a6c6c874bd9d2de544))
+
 ## [2.1.5](https://github.com/anthony-spruyt/container-images/compare/megalinter-go-2.1.4...megalinter-go-2.1.5) (2026-10-25)
 
 
