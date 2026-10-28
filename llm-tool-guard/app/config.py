@@ -91,6 +91,7 @@ def _jev_settings(env: Mapping[str, str]) -> dict:
         "jev_clear_below": clear_below,
         "jev_timeout_seconds": _number(env, "JEV_TIMEOUT_SECONDS", 10.0, float, 0.001),
         "jev_max_text_bytes": _number(env, "JEV_MAX_TEXT_BYTES", 16 * 1024, int, 1),
+        "jev_max_windows": _number(env, "JEV_MAX_WINDOWS", 16, int, 1),
     }
 
 
@@ -128,6 +129,7 @@ class Settings:
     jev_clear_below: float
     jev_timeout_seconds: float
     jev_max_text_bytes: int
+    jev_max_windows: int
 
     @classmethod
     def from_env(cls, env: Mapping[str, str]) -> Self:

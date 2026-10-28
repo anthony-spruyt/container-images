@@ -9,7 +9,7 @@ from typing import Any, Literal, NamedTuple, Protocol
 import httpx2
 
 import judge as judge_module
-from cache import JevAnswer, JevCache, jev_namespace, runtime_fingerprint
+from cache import JevAnswer, JevCache, Span, jev_namespace, runtime_fingerprint
 from config import Settings
 from judge import JevError, Judge
 from metrics import Metrics
@@ -24,10 +24,9 @@ class Asked(NamedTuple):
 
     p: float | None
     permanent: bool = False
-    skipped: bool = False
 
 
-SKIPPED = Asked(None, skipped=True)
+UNASKED = Asked(None, permanent=True)
 
 
 class Judging(Protocol):
@@ -43,7 +42,7 @@ class Judging(Protocol):
 class SecondCheck:
     """Asks Jev about the flagged windows of a text and stores one answer per text; the first one stored is used."""
 
-    def __init__(  # noqa: PLR0913 - keyword-only thresholds and limit
+    def __init__(  # noqa: PLR0913 - keyword-only thresholds and limits
         self,
         judge: Judging,
         cache: JevCache,
@@ -52,14 +51,23 @@ class SecondCheck:
         block_at: float,
         clear_below: float,
         max_text_bytes: int,
+        max_windows: int,
     ):
-        """block_at and clear_below are applied to every answer when it is read, so retuning them never asks again."""
+        """block_at and clear_below are applied to every answer when it is read, so retuning them never asks again.
+
+        max_text_bytes caps one window; max_windows caps the flagged windows of one text, above which none are asked.
+        """
         self._judge = judge
         self._cache = cache
         self._metrics = metrics
         self._block_at = block_at
         self._clear_below = clear_below
         self._max_text_bytes = max_text_bytes
+        self._max_windows = max_windows
+
+    def accepts(self, spans: Sequence[Span]) -> bool:
+        """Return whether a text flagged in these windows is asked about: it has some, and no more than the cap."""
+        return 0 < len(spans) <= self._max_windows
 
     def classify(self, p: float, *, partial: bool = False) -> Outcome:
         """Return blocked at or above block_at, cleared below clear_below, else middle; never cleared when partial."""
@@ -74,11 +82,12 @@ class SecondCheck:
     async def ask_window(self, hash_: str, index: int, text: str) -> Asked:
         """Ask Jev about one window of the text with this hash; nothing is stored until settle.
 
-        A window with no text or over the size limit is not asked. A cancelled ask returns nothing.
+        A window with no text or over the size limit is not asked, and asking again would not change that: the limit is
+        part of the cache namespace, so raising it starts fresh answers. A cancelled ask returns nothing.
         """
         if not text or len(text.encode("utf-8", "surrogatepass")) > self._max_text_bytes:
             self._metrics.jev_requests.labels("skipped").inc()
-            return SKIPPED
+            return UNASKED
         try:
             with self._metrics.jev_seconds.time():
                 p = await self._judge.ask(text)
@@ -97,14 +106,13 @@ class SecondCheck:
     async def settle(self, hash_: str, asked: Sequence[Asked]) -> JevAnswer:
         """Store the text's answer, its windows' highest probability, and return what is stored for the hash.
 
-        The answer is partial when a window gave none. If a window was skipped nothing is stored, so raising the limit
-        or a free slot takes effect at once; the answer returned is for this request only.
+        The answer is partial when a window gave none. With no window asked nothing is stored.
         """
+        if not asked:
+            return JevAnswer(None)
         answered = [a.p for a in asked if a.p is not None]
         p = max(answered, default=None)
         partial = bool(answered) and len(answered) < len(asked)
-        if any(a.skipped for a in asked):
-            return JevAnswer(p, partial)
         permanent = all(a.permanent for a in asked if a.p is None)
         return await self._cache.settle(hash_, p, partial=partial, permanent=permanent)
 
@@ -140,6 +148,8 @@ def build_second_check(
         question=json.dumps(judge_module.QUESTION, sort_keys=True),
         runtime=runtime_fingerprint([Path(judge_module.__file__)], libraries=()),
         scan_namespace=scan_namespace,
+        max_text_bytes=settings.jev_max_text_bytes,
+        max_windows=settings.jev_max_windows,
     )
     logger.info("jev namespace %s (model %s)", namespace, settings.jev_model)
     cache = JevCache(valkey, namespace=namespace, ttl_seconds=settings.cache_ttl_seconds, metrics=metrics)
@@ -150,4 +160,5 @@ def build_second_check(
         block_at=settings.jev_block_at,
         clear_below=settings.jev_clear_below,
         max_text_bytes=settings.jev_max_text_bytes,
+        max_windows=settings.jev_max_windows,
     )

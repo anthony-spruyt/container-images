@@ -13,6 +13,8 @@ BASE = {
     "question": '{"type": "noul"}',
     "runtime": {"judge.py": "aaa"},
     "scan_namespace": "0123456789abcdef",
+    "max_text_bytes": 16384,
+    "max_windows": 16,
 }
 
 
@@ -35,9 +37,11 @@ def test_namespace_is_stable_for_the_same_settings():
         ("question", '{"type": "choice"}'),
         ("runtime", {"judge.py": "bbb"}),
         ("scan_namespace", "fedcba9876543210"),
+        ("max_text_bytes", 8192),
+        ("max_windows", 8),
     ],
 )
-def test_namespace_changes_with_the_model_the_question_the_client_source_and_the_scan_namespace(field, value):
+def test_namespace_changes_with_each_setting_that_shapes_an_answer(field, value):
     assert jev_namespace(**{**BASE, field: value}) != jev_namespace(**BASE)
 
 

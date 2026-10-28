@@ -12,7 +12,7 @@ from typing import NamedTuple
 
 from cache import JevAnswer, Span, Verdict, VerdictCache
 from metrics import Metrics
-from second_check import SKIPPED, Asked, SecondCheck
+from second_check import SecondCheck
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,8 @@ class ToolGuard:
 
         spans are the character spans of the windows the model flagged. stop_scans makes running scans raise
         ScanStoppedError at their next safe point; close() calls it. second_check, when set, gives Jev's opinion on
-        the flagged windows of every text the model flagged; each window asked takes a pending slot like a scan.
+        the flagged windows of every text the model flagged; a text takes a pending slot for each of its windows, like
+        a scan, all at once or none.
         """
         self._scan = scan
         self._stop_scans = stop_scans
@@ -94,9 +95,9 @@ class ToolGuard:
 
         While a second check is set, Jev is asked about each window the model flagged in a flagged text. Its answer for
         the text blocks it when any window answered blocks, clears it only when every window asked clears, and
-        otherwise leaves it flagged, as it does a window with no answer, no slot or over the size limit. A cleared hash
-        is dropped from flagged. If the caller goes away while a scan runs, the scan is followed by its Jev asks, so
-        later turns find the answer.
+        otherwise leaves it flagged, as it does a window with no answer or over the size limit, or a text with too
+        many windows or no slots for them. A cleared hash is dropped from flagged. If the caller goes away while a
+        scan runs, the scan is followed by its Jev asks, so later turns find the answer.
         """
         checking = self._check(new, known)
         del new
@@ -159,14 +160,15 @@ class ToolGuard:
         """Return the stored answer or no-answer of each flagged hash Jev has one for; held is emptied as used.
 
         Joins asks already in flight, reads the cache, then asks about the flagged windows of the rest that have a
-        text. A flagged text without windows (the model flagged it for its length) is not asked about.
+        text. A flagged text without windows (the model flagged it for its length), or with more than the second check
+        takes, is not asked about.
         """
         if self._second is None or not modelled:
             return {}
         waits = {h: self._jev_inflight[h] for h in modelled if h in self._jev_inflight}
         answers = await self._second.lookup([h for h in modelled if h not in waits])
         for hash_, verdict in modelled.items():
-            if hash_ in answers or hash_ in waits or hash_ not in held or not verdict.spans:
+            if hash_ in answers or hash_ in waits or hash_ not in held or not self._second.accepts(verdict.spans):
                 continue
             pieces = _slices(held.pop(hash_), verdict.spans)
             waits[hash_] = self._jev_inflight.get(hash_) or self._start_jev(self._second, hash_, pieces)
@@ -243,7 +245,12 @@ class ToolGuard:
         if self._second is None or scan.cancelled() or scan.exception() is not None:
             return
         verdict = scan.result()
-        if verdict is not None and verdict.flagged and verdict.spans and hash_ not in self._jev_inflight:
+        if (
+            verdict is not None
+            and verdict.flagged
+            and self._second.accepts(verdict.spans)
+            and hash_ not in self._jev_inflight
+        ):
             self._start_jev(self._second, hash_, _slices(text, verdict.spans), recheck=True)
 
     def _start_jev(
@@ -257,27 +264,25 @@ class ToolGuard:
     async def _ask_windows(self, second: SecondCheck, hash_: str, pieces: list[str], *, recheck: bool) -> JevAnswer:
         """Ask Jev about every window of a text at once and return the answer stored for the text.
 
-        With recheck, a stored answer is returned instead of asking.
+        The text takes a pending slot for each window until its asks end; without that many free slots nothing is asked
+        or stored, and the answer returned is for this request only. With recheck, a stored answer is returned instead
+        of asking.
         """
         if recheck:
             stored = await second.lookup([hash_])
             if hash_ in stored:
                 return stored[hash_]
-        asked = await asyncio.gather(*(self._ask_window(second, hash_, i, piece) for i, piece in enumerate(pieces)))
-        return await second.settle(hash_, asked)
-
-    async def _ask_window(self, second: SecondCheck, hash_: str, index: int, text: str) -> Asked:
-        """Ask about one window while holding a pending slot; a window with no free slot is skipped."""
-        if self._pending() >= self._max_pending:
-            self._metrics.jev_requests.labels("skipped").inc()
-            return SKIPPED
-        self._jev_asks += 1
+        if self._pending() + len(pieces) > self._max_pending:
+            self._metrics.jev_requests.labels("skipped").inc(len(pieces))
+            return JevAnswer(None)
+        self._jev_asks += len(pieces)
         self._metrics.pending_scans.set(self._pending())
         try:
-            return await second.ask_window(hash_, index, text)
+            asked = await asyncio.gather(*(second.ask_window(hash_, i, piece) for i, piece in enumerate(pieces)))
         finally:
-            self._jev_asks -= 1
+            self._jev_asks -= len(pieces)
             self._metrics.pending_scans.set(self._pending())
+        return await second.settle(hash_, asked)
 
     def _finished(self, inflight: dict, hash_: str) -> None:
         inflight.pop(hash_, None)

@@ -143,12 +143,22 @@ def cache_namespace(  # noqa: PLR0913 - one argument per setting that changes a 
     return hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest()[:16]
 
 
-def jev_namespace(*, model: str, question: str, runtime: Mapping[str, str], scan_namespace: str) -> str:
+def jev_namespace(  # noqa: PLR0913 - one argument per setting that shapes an answer
+    *, model: str, question: str, runtime: Mapping[str, str], scan_namespace: str, max_text_bytes: int, max_windows: int
+) -> str:
     """Return a short digest of what shapes Jev's answer: its model, question, client source and the windows asked.
 
     scan_namespace is the verdict cache namespace: it decides which windows of a text are flagged, so which are asked.
+    max_text_bytes and max_windows decide which of those are asked, so a stored answer follows them.
     """
-    settings = {"model": model, "question": question, "runtime": dict(runtime), "scan_namespace": scan_namespace}
+    settings = {
+        "model": model,
+        "question": question,
+        "runtime": dict(runtime),
+        "scan_namespace": scan_namespace,
+        "jev_max_text_bytes": max_text_bytes,
+        "jev_max_windows": max_windows,
+    }
     return hashlib.sha256(json.dumps(settings, sort_keys=True).encode()).hexdigest()[:16]
 
 

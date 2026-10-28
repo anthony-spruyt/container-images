@@ -24,7 +24,9 @@ def make_guard(metrics, valkey=None, scanner=None, judge=None, **settings_env) -
     second = None
     if judge is not None:
         jev_cache = JevCache(valkey, namespace="jns", ttl_seconds=60, metrics=metrics)
-        second = SecondCheck(judge, jev_cache, metrics, block_at=0.9, clear_below=0.08, max_text_bytes=1024)
+        second = SecondCheck(
+            judge, jev_cache, metrics, block_at=0.9, clear_below=0.08, max_text_bytes=1024, max_windows=16
+        )
     return ToolGuard(
         scanner or FakeScanner(),
         cache,

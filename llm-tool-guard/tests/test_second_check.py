@@ -10,10 +10,11 @@ import judge as judge_module
 from cache import JevAnswer
 from config import Settings
 from fakes import FakeValkey, digest, sample
-from second_check import SKIPPED, Asked, SecondCheck, build_second_check
+from second_check import Asked, SecondCheck, build_second_check
 
 HASH = digest("flagged text")
 SCAN = "0123456789abcdef"
+NO_ANSWER_FOR_GOOD = Asked(None, permanent=True)
 ENFORCE = {"JEV_MODE": "enforce", "JEV_API_URL": "https://jev.test", "JEV_API_KEY": "jev-test-key"}
 DAY = 3600 * 24
 
@@ -125,13 +126,13 @@ def test_an_answer_with_a_window_missing_is_never_cleared_but_can_still_block(me
     assert [second.classify(p, partial=True) for p in (0.1, 0.4, 0.6)] == ["middle", "middle", "blocked"]
 
 
-def test_a_window_over_the_size_limit_is_not_asked_and_counts_as_skipped(metrics):
+def test_a_window_over_the_size_limit_is_not_asked_and_counts_as_an_answer_that_asking_again_would_not_change(metrics):
     requests: list[httpx2.Request] = []
     second = build(metrics, transport=answering(0.5, requests), JEV_MAX_TEXT_BYTES="8")
 
     asked = asyncio.run(second.ask_window(HASH, 0, "123456789"))
 
-    assert asked == SKIPPED
+    assert asked == NO_ANSWER_FOR_GOOD
     assert requests == []
     assert sample(metrics, "llm_tool_guard_jev_requests_total", outcome="skipped") == 1
 
@@ -142,7 +143,7 @@ def test_the_size_limit_counts_bytes_of_one_window(metrics):
 
     asked = [asyncio.run(second.ask_window(HASH, i, text)) for i, text in enumerate(["12345678", "ééééé"])]
 
-    assert asked == [Asked(0.5), SKIPPED]
+    assert asked == [Asked(0.5), NO_ANSWER_FOR_GOOD]
     assert len(requests) == 1
 
 
@@ -150,7 +151,7 @@ def test_a_window_without_text_is_not_asked(metrics):
     requests: list[httpx2.Request] = []
     second = build(metrics, transport=answering(0.5, requests))
 
-    assert asyncio.run(second.ask_window(HASH, 0, "")) == SKIPPED
+    assert asyncio.run(second.ask_window(HASH, 0, "")) == NO_ANSWER_FOR_GOOD
     assert requests == []
 
 
@@ -208,21 +209,31 @@ def test_a_text_every_window_of_which_failed_is_stored_as_no_answer(metrics):
     assert list(valkey.ttls.values()) == [3600]
 
 
-def test_a_text_with_a_window_skipped_is_not_stored_so_a_raised_limit_takes_effect_at_once(metrics):
+def test_a_text_with_a_window_that_was_not_asked_is_stored_partial_for_the_full_ttl_so_it_is_not_asked_again(metrics):
     valkey = FakeValkey()
     second = build(metrics, valkey=valkey)
 
-    answer = settle(second, Asked(0.4), SKIPPED)
+    answer = settle(second, Asked(0.4), NO_ANSWER_FOR_GOOD)
 
     assert answer == JevAnswer(0.4, partial=True)
-    assert valkey.data == {}
+    assert list(valkey.data.values()) == ["0.4+"]
+    assert list(valkey.ttls.values()) == [DAY]
 
 
-def test_a_text_with_only_skipped_windows_has_no_answer_and_is_not_stored(metrics):
+def test_a_text_with_only_windows_that_were_not_asked_is_stored_as_no_answer_for_the_full_ttl(metrics):
     valkey = FakeValkey()
     second = build(metrics, valkey=valkey)
 
-    assert settle(second, SKIPPED, SKIPPED) == JevAnswer(None)
+    assert settle(second, NO_ANSWER_FOR_GOOD, NO_ANSWER_FOR_GOOD) == JevAnswer(None)
+    assert list(valkey.data.values()) == ["-"]
+    assert list(valkey.ttls.values()) == [DAY]
+
+
+def test_a_text_with_no_window_asked_has_no_answer_and_is_not_stored(metrics):
+    valkey = FakeValkey()
+    second = build(metrics, valkey=valkey)
+
+    assert settle(second) == JevAnswer(None)
     assert valkey.data == {}
 
 
@@ -245,6 +256,11 @@ def test_the_namespace_is_stable_and_follows_the_model(metrics):
 
 def test_the_namespace_follows_the_scan_namespace_because_that_decides_which_windows_are_asked(metrics):
     assert namespace_of(metrics, scan="fedcba9876543210") != namespace_of(metrics)
+
+
+@pytest.mark.parametrize("setting", [{"JEV_MAX_TEXT_BYTES": "1024"}, {"JEV_MAX_WINDOWS": "4"}])
+def test_the_namespace_follows_the_size_and_window_limits_because_they_decide_what_is_asked(metrics, setting):
+    assert namespace_of(metrics, **setting) != namespace_of(metrics)
 
 
 @pytest.mark.parametrize(

@@ -139,6 +139,7 @@ def test_jev_overrides():
             "JEV_CLEAR_BELOW": "0.05",
             "JEV_TIMEOUT_SECONDS": "2.5",
             "JEV_MAX_TEXT_BYTES": "4096",
+            "JEV_MAX_WINDOWS": "5",
         }
     )
 
@@ -149,6 +150,13 @@ def test_jev_overrides():
     assert (settings.jev_block_at, settings.jev_clear_below) == (0.95, 0.05)
     assert settings.jev_timeout_seconds == 2.5
     assert settings.jev_max_text_bytes == 4096
+    assert settings.jev_max_windows == 5
+
+
+def test_the_default_jev_window_cap_fits_in_the_default_pending_limit():
+    settings = Settings.from_env({})
+
+    assert 1 <= settings.jev_max_windows <= settings.max_pending_scans
 
 
 def test_jev_enforce_without_a_key_fails_at_load():
@@ -211,6 +219,10 @@ def test_jev_thresholds_may_meet():
         ("JEV_CLEAR_BELOW", "x"),
         ("JEV_TIMEOUT_SECONDS", "0"),
         ("JEV_MAX_TEXT_BYTES", "0"),
+        ("JEV_MAX_WINDOWS", "0"),
+        ("JEV_MAX_WINDOWS", "-1"),
+        ("JEV_MAX_WINDOWS", "x"),
+        ("JEV_MAX_WINDOWS", "2.5"),
         ("JEV_API_URL", "jev.test"),
         ("JEV_API_URL", "ftp://jev.test"),
         ("JEV_API_URL", "https://"),
