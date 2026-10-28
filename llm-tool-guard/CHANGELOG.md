@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.6.0](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.5.6...llm-tool-guard-1.6.0) (2026-10-28)
+
+
+### Features
+
+* **llm-tool-guard:** ask Jev about the flagged windows of every flagged text ([#2608](https://github.com/anthony-spruyt/container-images/issues/2608)) ([b9f444b](https://github.com/anthony-spruyt/container-images/commit/b9f444b500a9e5d9124411abb7493c405a591e99))
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.153.0 ([#2568](https://github.com/anthony-spruyt/container-images/issues/2568)) ([e1c09ea](https://github.com/anthony-spruyt/container-images/commit/e1c09eaa467b6c730836df47e580bc8c2bc40084))
+
+
+### Dependencies
+
+* **deps:** update container image docker.io/valkey/valkey to v9.1.3 ([#2575](https://github.com/anthony-spruyt/container-images/issues/2575)) ([9bf5c9a](https://github.com/anthony-spruyt/container-images/commit/9bf5c9abb2d274b99bc266b8e3fbab14ccc27777))
+* **deps:** update container image python to 82abc9f ([#2572](https://github.com/anthony-spruyt/container-images/issues/2572)) ([48d71b2](https://github.com/anthony-spruyt/container-images/commit/48d71b2cd13a2291ec72ae6d2dff43f7de8d43c2))
+
 ## [1.5.6](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.5.5...llm-tool-guard-1.5.6) (2026-10-27)
 
 
