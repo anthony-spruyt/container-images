@@ -19,4 +19,6 @@ dependencies = [
 package = false
 exclude-newer = "7 days"
 no-build = true
+# With this package installed, `import openvino` sends a telemetry event; openvino falls back to a no-op stub without it.
+exclude-dependencies = ["openvino-telemetry"]
 environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
