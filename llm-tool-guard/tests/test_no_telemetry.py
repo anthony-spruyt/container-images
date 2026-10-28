@@ -1,7 +1,5 @@
 """Tests that the scanner image carries no OpenVINO telemetry.
 
-Importing openvino runs the OpenVINO converter package, which sends a usage event through openvino-telemetry when that
-package is installed. The scanner makes no outside calls, so the package stays out of the environment.
 Run from llm-tool-guard/app so the app modules import: python -m pytest ../tests
 """
 
@@ -29,7 +27,8 @@ print(json.dumps({"telemetry_loaded": "openvino_telemetry" in sys.modules}))
 def fixture_probe(tmp_path: Path) -> dict:
     """Import openvino and compile a model in a fresh interpreter with an empty home directory and no CI variable."""
     env = {"HOME": str(tmp_path), "PATH": os.environ["PATH"]}
-    run = subprocess.run([sys.executable, "-I", "-c", PROBE], env=env, capture_output=True, text=True, check=True)
+    run = subprocess.run([sys.executable, "-I", "-c", PROBE], env=env, capture_output=True, text=True, check=False)
+    assert run.returncode == 0, run.stderr
     return json.loads(run.stdout.splitlines()[-1])
 
 
