@@ -9,7 +9,7 @@
 #   PUBLIC_URL — public base URL for file links sent to clients
 #
 # Pin to specific digest for supply chain security (renovate updates this)
-FROM node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea
+FROM node:26.11.1-trixie-slim@sha256:193fe51b64e77981119c98c2002c9e32a70e2f006fb4d25068ce0558998917f0
 
 # renovate: datasource=npm depName=happy-server-self-host
 ARG HAPPY_SERVER_VERSION=1.1.11
