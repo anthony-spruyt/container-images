@@ -6,13 +6,30 @@ import threading
 from collections.abc import Callable
 
 from redis.exceptions import ConnectionError as ValkeyConnectionError
+from tokenizers import Tokenizer, models, pre_tokenizers, processors
+from transformers import PreTrainedTokenizerFast
 
 from metrics import Metrics
 
 INJECTION = "INJECT"
+MARKER = "TRIGGER"
 FLAGGED_SCORE = 0.97312
 CLEAN_SCORE = 0.01234
 CLEAN_VALUE = f"0:{CLEAN_SCORE}"
+
+
+def word_tokenizer() -> PreTrainedTokenizerFast:
+    """Build an offline whitespace word-level fast tokenizer that wraps input in [CLS] ... [SEP]."""
+    vocab = {tok: i for i, tok in enumerate(["[PAD]", "[UNK]", "[CLS]", "[SEP]", MARKER])}
+    vocab.update({f"w{i}": len(vocab) + i for i in range(500)})
+    backend = Tokenizer(models.WordLevel(vocab, unk_token="[UNK]"))
+    backend.pre_tokenizer = pre_tokenizers.WhitespaceSplit()
+    backend.post_processor = processors.TemplateProcessing(
+        single="[CLS] $A [SEP]", special_tokens=[("[CLS]", vocab["[CLS]"]), ("[SEP]", vocab["[SEP]"])]
+    )
+    return PreTrainedTokenizerFast(
+        tokenizer_object=backend, pad_token="[PAD]", unk_token="[UNK]", cls_token="[CLS]", sep_token="[SEP]"
+    )
 
 
 def flagged_value(text: str) -> str:

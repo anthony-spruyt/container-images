@@ -1,6 +1,10 @@
 # llm-tool-guard
 
-Prompt-injection scanner for tool results. The LiteLLM tool-guard middleware sends each tool result's text to `POST /v1/scan`, and the service answers with the hashes to wrap. The model is loaded from a Hugging Face cache mounted at `HF_HOME`; weights are not baked into the image. With `JEV_MODE=enforce`, Jev is a second check on every result the model flags: it is asked about the windows of the text the model flagged.
+Prompt-injection scanner for tool results.
+The LiteLLM tool-guard middleware sends each tool result's text to `POST /v1/scan`, and the service answers with the hashes to wrap.
+The model is an OpenVINO IR that runs on the Intel GPU.
+It is loaded from the [llm-tool-guard-model](../llm-tool-guard-model/README.md) image, mounted read-only at `$HF_HOME/hub`; weights are not baked into the image.
+With `JEV_MODE=enforce`, Jev is a second check on every result the model flags: it is asked about the windows of the text the model flagged.
 
 ## API
 
@@ -40,7 +44,8 @@ The response always has these six fields:
 
 ## Verdict cache
 
-Verdicts are cached in Valkey under a namespace derived from the model and its revision, the label and threshold, the window settings, the digests of `scanner_types.py` and `classifier.py`, and the installed `transformers`, `tokenizers` and `torch` versions. Changing any of them starts a fresh namespace.
+Verdicts are cached in Valkey under a namespace derived from the model and its revision, the label and threshold, the window settings, the digests of `scanner_types.py`, `classifier.py` and `openvino_backend.py`, the installed `transformers`, `tokenizers` and `openvino` versions, the device and its precision, a digest of the model files and the Intel GPU runtime baked into the image.
+Changing any of them starts a fresh namespace.
 
 A value is `<verdict>:<score>`, such as `0:0.0123` for clean, or `<verdict>:<score>:<spans>` for a flagged text, such as `1:0.9731:0-2113,1800-3900`. A text flagged for spanning more than `MAX_WINDOWS` has no windows to list and is stored as `1:1.0`, with no spans. The score is the highest window score. The spans are the character offsets (start, end exclusive) in the text of each window whose own score is at or above `THRESHOLD`; they let a cached flag be put to Jev without scanning again. The verdict is the decision made when the text was scanned and is served as stored, never recomputed from the score; a value in any other form is a miss.
 
@@ -66,10 +71,11 @@ Jev's answers are cached in Valkey beside the verdicts, under `llm-tool-guard:je
 | `AUTH_TOKEN`              | empty                                      | Bearer token required on `/v1/scan`; no auth when empty                                         |
 | `MODEL`                   | `Horizon-Labs/prompt-injection-guard-base` | Hugging Face model                                                                              |
 | `INJECTION_LABEL`         | `INJECTION`                                | Model label that means injection                                                                |
+| `SCANNER_DEVICE`          | `GPU`                                      | OpenVINO device the model runs on, `GPU` or `CPU`; a missing device fails the load              |
 | `THRESHOLD`               | `0.9`                                      | Score at or above which a text is flagged, in (0, 1]                                            |
 | `WINDOW_TOKENS`           | `2048`                                     | Tokens per scan window                                                                          |
 | `WINDOW_OVERLAP`          | `512`                                      | Tokens shared by consecutive windows                                                            |
-| `WINDOW_BATCH_SIZE`       | `1`                                        | Windows scored per model call                                                                   |
+| `WINDOW_BATCH_SIZE`       | `1`                                        | Windows scored per model call; only `1` is accepted, as padded rows score NaN                   |
 | `MAX_WINDOWS`             | covers `MAX_TEXT_BYTES`                    | Most windows one text may span                                                                  |
 | `MAX_TEXT_BYTES`          | `262144`                                   | Largest text scanned; larger texts are flagged                                                  |
 | `MAX_BODY_BYTES`          | `8388608`                                  | Largest request body, about 32 texts of `MAX_TEXT_BYTES`; larger bodies get `413`               |
@@ -107,6 +113,24 @@ A `429`, `5xx`, a timeout or a dropped connection is retried once inside `JEV_TI
 
 `llm_tool_guard_jev_requests_total{outcome}` counts asks, one per window, by `blocked`, `cleared`, `middle` (answered in between), `error` and `skipped` (not asked: over `JEV_MAX_TEXT_BYTES`, or the text found no queue slots for its windows). `llm_tool_guard_jev_duration_seconds` times the calls to Jev. Answers served from the cache are not counted.
 
+## GPU runtime
+
+The model compiles on the device named by `SCANNER_DEVICE`: `GPU` runs in f16 with the `LATENCY` hint, any other device in f32.
+A device OpenVINO does not list fails the load, so the pod never turns ready; nothing falls back to the CPU.
+CI has no GPU, so `test.sh` runs the scanner with `SCANNER_DEVICE=CPU` and checks that the default device fails the load.
+A pod on the GPU needs the Intel GPU device and a group that can open it.
+
+The image carries Intel's OpenCL stack and nothing else of the GPU's:
+
+- `intel-opencl-icd` and `libigdgmm12` from the `intel/compute-runtime` release, the main line that covers Alder Lake.
+- `intel-igc-core-2` and `intel-igc-opencl-2` from the `intel/intel-graphics-compiler` release that the driver package pairs with.
+- `ocl-icd-libopencl1` from Debian. Debian packages no IGC, and its compute-runtime is too old.
+
+The four Intel `.deb`s are pinned by checksum in the [Dockerfile](Dockerfile), and Renovate tracks only `COMPUTE_RUNTIME_VERSION`. A bump fails the build until the checksums, `GMMLIB_VERSION` (the `libigdgmm12` file name changes between releases) and the IGC pin follow it. Set the IGC version to what the new `intel-opencl-icd` package depends on (`dpkg-deb -f <deb> Depends`); the apt install fails when the pinned IGC is outside that range, so a stale pair cannot ship.
+
+`INTEL_GPU_RUNTIME` names the installed versions and is part of the [verdict cache](#verdict-cache) namespace. The driver keeps its compiler cache in `$XDG_CACHE_HOME/neo_compiler_cache`, which is under `HF_HOME`, so mount a writable volume there.
+
 ## Download tooling
 
-The Python dependencies are pinned in [pyproject.toml](pyproject.toml) and locked with hashes in [uv.lock](uv.lock), installed with `uv sync --locked`, and kept current by Renovate. To bump by hand, edit [pyproject.toml](pyproject.toml), then run `uv lock` in this directory and commit both files. `uv lock` resolves only releases uploaded at least 7 days ago (`exclude-newer` in [pyproject.toml](pyproject.toml)), so pinning a release younger than that fails to resolve. torch is the `cpu` dependency group and comes from the PyTorch CPU index; everything else comes from PyPI.
+The Python dependencies are pinned in [pyproject.toml](pyproject.toml) and locked with hashes in [uv.lock](uv.lock), installed with `uv sync --locked`, and kept current by Renovate.
+To bump by hand, edit [pyproject.toml](pyproject.toml), then run `uv lock` in this directory and commit both files. `uv lock` resolves only releases uploaded at least 7 days ago (`exclude-newer` in [pyproject.toml](pyproject.toml)), so pinning a release younger than that fails to resolve.

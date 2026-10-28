@@ -22,7 +22,11 @@ BASE = {
         "classifier.py": "bbb",
         "transformers": "5.18.0",
         "tokenizers": "0.23.3",
-        "torch": "2.13.0",
+        "openvino": "2026.4.1",
+        "device": "GPU",
+        "precision": "f16",
+        "ir": "ddd",
+        "gpu_runtime": "runtime-1",
     },
 }
 
@@ -45,7 +49,11 @@ def test_namespace_is_stable_for_the_same_settings():
         ("runtime", {**BASE["runtime"], "classifier.py": "ccc"}),
         ("runtime", {**BASE["runtime"], "transformers": "5.19.0"}),
         ("runtime", {**BASE["runtime"], "tokenizers": "0.24.0"}),
-        ("runtime", {**BASE["runtime"], "torch": "2.14.0"}),
+        ("runtime", {**BASE["runtime"], "openvino": "2026.5.0"}),
+        ("runtime", {**BASE["runtime"], "device": "CPU"}),
+        ("runtime", {**BASE["runtime"], "precision": "f32"}),
+        ("runtime", {**BASE["runtime"], "ir": "eee"}),
+        ("runtime", {**BASE["runtime"], "gpu_runtime": "runtime-2"}),
     ],
 )
 def test_namespace_changes_with_every_verdict_setting(field, value):
@@ -74,7 +82,7 @@ def test_runtime_fingerprint_holds_the_source_digests_and_library_versions(tmp_p
     sources = write_sources(tmp_path, scanner_types="SCANNER = 1\n", classifier="CLASSIFIER = 1\n")
 
     fingerprint = runtime_fingerprint(
-        sources, version=versions(transformers="5.18.0", tokenizers="0.23.3", torch="2.13.0")
+        sources, version=versions(transformers="5.18.0", tokenizers="0.23.3", openvino="2026.4.1")
     )
 
     assert fingerprint == {
@@ -82,14 +90,14 @@ def test_runtime_fingerprint_holds_the_source_digests_and_library_versions(tmp_p
         "classifier.py": hashlib.sha256(b"CLASSIFIER = 1\n").hexdigest(),
         "transformers": "5.18.0",
         "tokenizers": "0.23.3",
-        "torch": "2.13.0",
+        "openvino": "2026.4.1",
     }
 
 
 @pytest.mark.parametrize("changed", ["scanner_types", "classifier"])
 def test_changing_a_runtime_source_changes_the_namespace(tmp_path, changed):
     sources = write_sources(tmp_path, scanner_types="SCANNER = 1\n", classifier="CLASSIFIER = 1\n")
-    lookup = versions(transformers="1", tokenizers="1", torch="1")
+    lookup = versions(transformers="1", tokenizers="1", openvino="1")
 
     def namespace() -> str:
         return cache_namespace(**{**BASE, "runtime": runtime_fingerprint(sources, version=lookup)})
@@ -105,7 +113,7 @@ def test_runtime_fingerprint_names_a_missing_library(tmp_path):
 
     lookup = versions(transformers="1", tokenizers="1")
 
-    with pytest.raises(PackageNotFoundError, match="torch"):
+    with pytest.raises(PackageNotFoundError, match="openvino"):
         runtime_fingerprint(sources, version=lookup)
 
 
