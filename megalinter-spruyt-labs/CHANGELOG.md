@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.6](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v3.1.5...megalinter-spruyt-labs-v3.1.6) (2026-10-28)
+
+
+### Dependencies
+
+* **deps:** update dependency @biomejs/biome to v2.6.3 ([#2586](https://github.com/anthony-spruyt/container-images/issues/2586)) ([fdffd4a](https://github.com/anthony-spruyt/container-images/commit/fdffd4a340ba441b5ab08eaee4243919fc494cd2))
+
 ## [3.1.5](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v3.1.4...megalinter-spruyt-labs-v3.1.5) (2026-10-25)
 
 

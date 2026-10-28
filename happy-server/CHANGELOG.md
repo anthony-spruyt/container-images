@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.9](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.8...happy-server-1.0.9) (2026-10-28)
+
+
+### Dependencies
+
+* **deps:** update dependency @fastify/static to v10.1.8 ([#2579](https://github.com/anthony-spruyt/container-images/issues/2579)) ([03d42c9](https://github.com/anthony-spruyt/container-images/commit/03d42c9b7315fbf0e9f73ea860608b6a0b321f89))
+
 ## [1.0.8](https://github.com/anthony-spruyt/container-images/compare/happy-server-1.0.7...happy-server-1.0.8) (2026-10-27)
 
 
