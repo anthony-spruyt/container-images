@@ -48,6 +48,8 @@ To share another image's sources but use your own `Dockerfile`, add a `metadata.
 build_context: <source-image>
 ```
 
+Add the variant to a `linked-versions` group in `release-please-config.json` with its source image, so a commit touching either directory releases both. See [docs/releases.md](docs/releases.md#variant-images).
+
 ## Adding a Custom MegaLinter Flavor
 
 Custom MegaLinter flavors extend official flavors with additional linters. They are named by the languages they lint (`megalinter-go`, `megalinter-go-python`). Each language's linters and toolchain are defined once in `megalinter-factory/languages/<language>.yaml`, and a flavor lists the languages it combines.
