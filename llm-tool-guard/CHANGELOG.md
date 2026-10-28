@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.0](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.6.0...llm-tool-guard-1.7.0) (2026-10-28)
+
+
+### Features
+
+* **llm-tool-guard:** run the scanner model on the Intel GPU with OpenVINO ([#2634](https://github.com/anthony-spruyt/container-images/issues/2634)) ([54e1b04](https://github.com/anthony-spruyt/container-images/commit/54e1b049a528a3ec77e15e61b4173e6a3220767e)), closes [#2633](https://github.com/anthony-spruyt/container-images/issues/2633)
+
 ## [1.6.0](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.5.6...llm-tool-guard-1.6.0) (2026-10-28)
 
 
