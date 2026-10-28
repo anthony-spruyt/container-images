@@ -53,10 +53,13 @@ class OpenVinoPipeline:
         self._lock = threading.Lock()
 
     def forward(self, batch: Mapping[str, Any]) -> dict[str, np.ndarray]:
-        """Return the logits of a batch of one window; OpenVINO scores padded rows as NaN."""
+        """Return the logits of a batch of one window; OpenVINO scores padded rows as NaN, which raises."""
         inputs = {name: np.asarray(batch[name], dtype=np.int64) for name in _INPUTS}
         with self._lock:
-            return {"logits": np.array(self._request.infer(inputs)[0], dtype=np.float32)}
+            logits = np.array(self._request.infer(inputs)[0], dtype=np.float32)
+        if not np.isfinite(logits).all():
+            raise ValueError("the model returned logits that are not finite")
+        return {"logits": logits}
 
     def postprocess(self, outputs: Mapping[str, np.ndarray]) -> list[dict[str, Any]]:
         """Return the score of every label for the first row of logits."""

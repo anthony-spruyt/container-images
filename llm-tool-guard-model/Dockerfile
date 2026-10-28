@@ -22,9 +22,8 @@ RUN hf download "$MODEL" config.json tokenizer.json tokenizer_config.json specia
     && model_dir="$(find /hub -maxdepth 1 -name 'models--*')" \
     && mkdir -p "$model_dir/refs" \
     && printf '%s' "$MODEL_REVISION" > "$model_dir/refs/main" \
-    && mkdir /source \
-    && cp -L "$model_dir/snapshots/$MODEL_REVISION/"* /weights/models--*/snapshots/"$MODEL_REVISION"/* /source/ \
-    && sed "s|  |  /source/|" SHA256SUMS > /build/sums \
+    && weights="$(echo /weights/models--*/snapshots/"$MODEL_REVISION")" \
+    && sed -e "/model.safetensors\$/ s|  |  $weights/|" -e "/model.safetensors\$/! s|  |  $model_dir/snapshots/$MODEL_REVISION/|" SHA256SUMS > /build/sums \
     && sha256sum --strict -c /build/sums \
     && rm -rf /hub/.locks \
     && find /hub -name '*.lock' -delete
@@ -40,16 +39,20 @@ RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
     uv sync --locked --no-build --no-dev
 
 COPY convert/convert.py convert/parity.jsonl ./
-COPY --from=download /source /source
+# Mounted and linked, not COPYed: the CI build cache stores every layer, and a copy of the weights or the IR is one more.
 # Fails the build when the IR scores the parity texts differently from the original.
-RUN /opt/convert/bin/python convert.py /source /ir parity.jsonl
+RUN --mount=from=download,source=/hub,target=/hub \
+    --mount=from=download,source=/weights,target=/weights \
+    mkdir /source \
+    && ln -s /hub/models--*/snapshots/*/* /weights/models--*/snapshots/*/* /source/ \
+    && /opt/convert/bin/python convert.py
 
 FROM python:${PYTHON_VERSION} AS assemble
 COPY --from=download /hub /hub
-COPY --from=convert /ir /ir
 
 # Fixed owner, modes and mtimes: the same revision must give byte-identical layers, or every node re-pulls the weights.
-RUN snapshot="$(echo /hub/models--*/snapshots/*)" \
+RUN --mount=from=convert,source=/ir,target=/ir \
+    snapshot="$(echo /hub/models--*/snapshots/*)" \
     && cp /ir/openvino_model.xml /ir/openvino_model.bin "$snapshot/" \
     && chown -R 0:0 /hub \
     && find /hub -type d -exec chmod 755 {} + \

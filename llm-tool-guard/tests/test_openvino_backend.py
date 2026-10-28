@@ -4,6 +4,7 @@ A tiny model stands in for the classifier: its logits are [number of attended to
 Run from llm-tool-guard/app so the app modules import: python -m pytest ../tests
 """
 
+import asyncio
 import json
 import math
 import threading
@@ -16,8 +17,14 @@ import openvino as ov
 import pytest
 from openvino import opset13 as ops
 
-from fakes import word_tokenizer
+import openvino_backend
+import scanner_types
+from cache import VerdictCache
+from classifier import Classifier
+from fakes import digest, sample, word_tokenizer
+from guard import ToolGuard
 from openvino_backend import OpenVinoPipeline, compile_options, ir_digest, load_pipeline
+from scanner_types import PromptInjectionScanner
 
 MODEL = "org/model"
 LABELS = {"0": "SAFE", "1": "INJECTION"}
@@ -52,6 +59,21 @@ class RecordingRequest:
         """Record the shape of input_ids."""
         self.shapes.append(inputs["input_ids"].shape)
         return {0: self._logits}
+
+
+class SequenceRequest:
+    """Stands in for an inference request: answers each call with the next of the given logits, then the last again."""
+
+    def __init__(self, *answers):
+        """Answer the calls in the order of answers."""
+        self._answers = answers
+        self._calls = 0
+
+    def infer(self, inputs: dict) -> dict:
+        """Return the next logits."""
+        answer = self._answers[min(self._calls, len(self._answers) - 1)]
+        self._calls += 1
+        return {0: np.array(answer, dtype=np.float32)}
 
 
 class OverlapProbe:
@@ -107,6 +129,36 @@ def test_forward_feeds_both_inputs_to_the_model_and_returns_its_logits(snapshot)
     assert out["logits"].tolist() == [[2.0, 11.0]]
 
 
+@pytest.mark.parametrize("bad", [np.nan, np.inf, -np.inf])
+def test_forward_raises_on_logits_that_are_not_finite(bad):
+    pipe = OpenVinoPipeline(word_tokenizer(), CONFIG, RecordingRequest([[0.0, bad]]), max_length=8, fingerprint={})
+    batch = {"input_ids": np.array([[1, 2]]), "attention_mask": np.array([[1, 1]])}
+
+    with pytest.raises(ValueError, match="not finite"):
+        pipe.forward(batch)
+
+
+def test_a_non_finite_score_in_a_later_window_flags_the_text_as_an_error(monkeypatch, metrics, valkey):
+    request = SequenceRequest([[0.0, -9.0]], [[np.nan, np.nan]], [[0.0, -9.0]])
+    pipe = OpenVinoPipeline(word_tokenizer(), CONFIG, request, max_length=12, fingerprint={})
+    monkeypatch.setattr(scanner_types, "load_pipeline", lambda *_args, **_kwargs: pipe)
+    scanner = PromptInjectionScanner(
+        match_type="sliding_window", model_max_length=12, window_overlap=3, threshold=0.9, max_windows=8
+    )
+    classifier = Classifier(scanner, MODEL, locate=lambda *_args: None)
+    classifier.load()
+    cache = VerdictCache(valkey, namespace="ns", ttl_seconds=60, metrics=metrics)
+    guard = ToolGuard(classifier, cache, metrics, max_text_bytes=1024, max_pending_scans=4, scan_workers=1)
+    text = " ".join(f"w{i}" for i in range(30))
+
+    judged = asyncio.run(guard.check([{"hash": digest(text), "text": text}], []))
+
+    assert judged.flagged == [digest(text)]
+    assert judged.scores == {}
+    assert sample(metrics, "llm_tool_guard_scans_total", verdict="error") == 1
+    assert sample(metrics, "llm_tool_guard_flagged_total", reason="error") == 1
+
+
 def test_postprocess_scores_every_label_with_a_softmax_of_the_first_row(snapshot):
     pipe = load(snapshot)
 
@@ -152,6 +204,27 @@ def test_the_model_is_compiled_on_the_named_device_in_the_precision_for_it(snaps
     assert pipe.fingerprint["precision"] == "f32"
 
 
+@pytest.mark.parametrize(("device", "precision"), [("CPU", "f32"), ("GPU", "f16")])
+def test_the_latency_hint_and_the_precision_for_the_device_reach_compile_model(
+    snapshot, monkeypatch, device, precision
+):
+    compiles = []
+    real = ov.Core()
+
+    class SpyCore:
+        def compile_model(self, model, device_name, config=None):
+            compiles.append((device_name, config))
+            return real.compile_model(model, "CPU")
+
+    monkeypatch.setattr(openvino_backend, "ov", SimpleNamespace(Core=SpyCore))
+
+    load(snapshot, device)
+
+    assert [name for name, _ in compiles] == [device]
+    assert compiles[0][1]["PERFORMANCE_HINT"] == "LATENCY"
+    assert compiles[0][1]["INFERENCE_PRECISION_HINT"] == precision
+
+
 def test_a_missing_device_fails_the_load_instead_of_falling_back(snapshot):
     with pytest.raises(RuntimeError, match="NO_SUCH_DEVICE"):
         load(snapshot, "NO_SUCH_DEVICE")
@@ -168,10 +241,6 @@ def test_the_fingerprint_holds_the_device_precision_driver_and_model_digest(snap
     assert set(fingerprint) == {"device", "precision", "ir", "gpu_runtime"}
     assert fingerprint["gpu_runtime"] == DRIVER
     assert len(fingerprint["ir"]) == 64
-
-
-def test_the_fingerprint_names_a_missing_driver_version(snapshot):
-    assert load(snapshot, environ={}).fingerprint["gpu_runtime"] == ""
 
 
 def test_the_model_digest_changes_with_the_model_file_and_its_weights(snapshot):

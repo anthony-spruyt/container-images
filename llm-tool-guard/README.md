@@ -126,7 +126,7 @@ The image carries Intel's OpenCL stack and nothing else of the GPU's:
 - `intel-igc-core-2` and `intel-igc-opencl-2` from the `intel/intel-graphics-compiler` release that the driver package pairs with.
 - `ocl-icd-libopencl1` from Debian. Debian packages no IGC, and its compute-runtime is too old.
 
-The four Intel `.deb`s are pinned by checksum in the [Dockerfile](Dockerfile), and Renovate tracks only `COMPUTE_RUNTIME_VERSION`. A bump fails the build until the checksums and the IGC pin follow it. Set the IGC version to what the new `intel-opencl-icd` package depends on (`dpkg-deb -f <deb> Depends`); the apt install fails when the pinned IGC is outside that range, so a stale pair cannot ship.
+The four Intel `.deb`s are pinned by checksum in the [Dockerfile](Dockerfile), and Renovate tracks only `COMPUTE_RUNTIME_VERSION`. A bump fails the build until the checksums, `GMMLIB_VERSION` (the `libigdgmm12` file name changes between releases) and the IGC pin follow it. Set the IGC version to what the new `intel-opencl-icd` package depends on (`dpkg-deb -f <deb> Depends`); the apt install fails when the pinned IGC is outside that range, so a stale pair cannot ship.
 
 `INTEL_GPU_RUNTIME` names the installed versions and is part of the [verdict cache](#verdict-cache) namespace. The driver keeps its compiler cache in `$XDG_CACHE_HOME/neo_compiler_cache`, which is under `HF_HOME`, so mount a writable volume there.
 

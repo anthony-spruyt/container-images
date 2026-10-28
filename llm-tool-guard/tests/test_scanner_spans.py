@@ -169,8 +169,10 @@ def test_the_fingerprint_is_the_loaded_pipelines():
 
 
 def test_the_fingerprint_needs_a_loaded_model():
+    unloaded = PromptInjectionScanner(match_type="sliding_window")
+
     with pytest.raises(RuntimeError, match="not loaded"):
-        PromptInjectionScanner(match_type="sliding_window").fingerprint()
+        unloaded.fingerprint()
 
 
 def test_a_text_over_max_windows_is_flagged_without_spans():

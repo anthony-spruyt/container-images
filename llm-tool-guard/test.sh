@@ -76,7 +76,8 @@ wait_for() {
 
 # openvino_pin prints the OpenVINO version a pyproject.toml pins.
 openvino_pin() {
-  sed -n 's/^ *"openvino==\(.*\)",$/\1/p' "$1"
+  local file="$1"
+  sed -n 's/^ *"openvino==\(.*\)",$/\1/p' "$file"
 }
 
 echo "=== LLM Tool Guard Container Tests ==="

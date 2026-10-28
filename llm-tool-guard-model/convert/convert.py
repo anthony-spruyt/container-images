@@ -1,6 +1,7 @@
 """Convert the pinned model to an OpenVINO IR and fail unless it scores the parity texts like the original."""
 
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Any, NamedTuple
@@ -10,6 +11,9 @@ import openvino as ov
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+MODEL_DIR = Path("/source")
+OUT_DIR = Path("/ir")
+FIXTURE = Path(__file__).with_name("parity.jsonl")
 MAX_SCORE_DIFF = 1e-4
 MAX_LENGTH = 2048
 # The scanner flags at 0.9 by default: texts scoring in this band are the ones a drifting IR would flip.
@@ -73,20 +77,23 @@ def problem(cases: list[Case]) -> str | None:
         return f"only {in_band} parity texts score in {BAND}, need {MIN_IN_BAND}"
     if max(case.tokens for case in cases) < MIN_LONG_TOKENS:
         return f"no parity text reaches {MIN_LONG_TOKENS} tokens"
+    for case in cases:
+        if not math.isfinite(case.diff):
+            return f"{case.id} scores {case.diff} away from the original"
     worst = max(cases, key=lambda case: case.diff)
     if worst.diff > MAX_SCORE_DIFF:
         return f"{worst.id} scores {worst.diff:.2e} away from the original, limit {MAX_SCORE_DIFF:.0e}"
     return None
 
 
-def main(model_dir: Path, out_dir: Path, fixture: Path) -> int:
-    """Convert the model in model_dir into out_dir and check the IR against the original on the fixture's texts."""
-    tokenizer = AutoTokenizer.from_pretrained(model_dir)
-    model = AutoModelForSequenceClassification.from_pretrained(model_dir).eval()
-    out_dir.mkdir(parents=True, exist_ok=True)
-    xml = out_dir / "openvino_model.xml"
+def main() -> int:
+    """Convert the model in MODEL_DIR into OUT_DIR and check the IR against the original on the FIXTURE texts."""
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_DIR).eval()
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    xml = OUT_DIR / "openvino_model.xml"
     convert(model, tokenizer, xml)
-    cases = parity(model, tokenizer, xml, [json.loads(line) for line in fixture.read_text().splitlines()])
+    cases = parity(model, tokenizer, xml, [json.loads(line) for line in FIXTURE.read_text().splitlines()])
     worst = max(cases, key=lambda case: case.diff)
     print(
         f"parity: {len(cases)} texts, max score diff {worst.diff:.2e} ({worst.id}), limit {MAX_SCORE_DIFF:.0e}",
@@ -99,4 +106,4 @@ def main(model_dir: Path, out_dir: Path, fixture: Path) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])))
+    sys.exit(main())
