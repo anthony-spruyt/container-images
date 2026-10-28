@@ -23,7 +23,9 @@ RUN hf download "$MODEL" config.json tokenizer.json tokenizer_config.json specia
     && mkdir -p "$model_dir/refs" \
     && printf '%s' "$MODEL_REVISION" > "$model_dir/refs/main" \
     && weights="$(echo /weights/models--*/snapshots/"$MODEL_REVISION")" \
-    && sed -e "/model.safetensors\$/ s|  |  $weights/|" -e "/model.safetensors\$/! s|  |  $model_dir/snapshots/$MODEL_REVISION/|" SHA256SUMS > /build/sums \
+    && sed -e "/model.safetensors\$/ s|  |  $weights/|" \
+           -e "/model.safetensors\$/! s|  |  $model_dir/snapshots/$MODEL_REVISION/|" \
+           SHA256SUMS > /build/sums \
     && sha256sum --strict -c /build/sums \
     && rm -rf /hub/.locks \
     && find /hub -name '*.lock' -delete
