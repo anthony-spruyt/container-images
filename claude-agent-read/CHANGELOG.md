@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.10](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.1.9...claude-agent-read-1.1.10) (2026-10-28)
+
+
+### Dependencies
+
+* **deps:** update container image ubuntu to 19fcd1b ([#2573](https://github.com/anthony-spruyt/container-images/issues/2573)) ([4fdeddf](https://github.com/anthony-spruyt/container-images/commit/4fdeddf897d7f373ae506a788170360a05e63952))
+* **deps:** update dependency @aikidosec/safe-chain to v1.5.26 ([#2577](https://github.com/anthony-spruyt/container-images/issues/2577)) ([40e9925](https://github.com/anthony-spruyt/container-images/commit/40e99257df21fd2400e77f8f8bf7aa54b3382c56))
+* **deps:** update dependency @anthropic-ai/claude-code to v2.1.312 ([#2578](https://github.com/anthony-spruyt/container-images/issues/2578)) ([7fabfb3](https://github.com/anthony-spruyt/container-images/commit/7fabfb3067289d267580b056656b241ab229e76d))
+* **deps:** update dependency cli/cli to v2.103.3 ([#2580](https://github.com/anthony-spruyt/container-images/issues/2580)) ([5cb6aba](https://github.com/anthony-spruyt/container-images/commit/5cb6abab966d0630671741d72a1f7d9bd793068b))
+
 ## [1.1.9](https://github.com/anthony-spruyt/container-images/compare/claude-agent-read-1.1.8...claude-agent-read-1.1.9) (2026-10-27)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/anthony-spruyt/container-images/compare/llm-guard-cuda-1.1.10...llm-guard-cuda-1.2.0) (2026-10-28)
+
+
+### Dependencies
+
+* **deps:** update container image python to 82abc9f ([#2572](https://github.com/anthony-spruyt/container-images/issues/2572)) ([48d71b2](https://github.com/anthony-spruyt/container-images/commit/48d71b2cd13a2291ec72ae6d2dff43f7de8d43c2))
+
 ## [1.1.10](https://github.com/anthony-spruyt/container-images/compare/llm-guard-cuda-1.1.9...llm-guard-cuda-1.1.10) (2026-10-27)
 
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.4.7](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.6...devcontainer-common-2.4.7) (2026-10-28)
+
+
+### Dependencies
+
+* **deps:** update dependency @aikidosec/safe-chain to v1.5.26 ([#2577](https://github.com/anthony-spruyt/container-images/issues/2577)) ([40e9925](https://github.com/anthony-spruyt/container-images/commit/40e99257df21fd2400e77f8f8bf7aa54b3382c56))
+* **deps:** update dependency cli/cli to v2.103.3 ([#2580](https://github.com/anthony-spruyt/container-images/issues/2580)) ([5cb6aba](https://github.com/anthony-spruyt/container-images/commit/5cb6abab966d0630671741d72a1f7d9bd793068b))
+* **deps:** update dependency mdformat-frontmatter to v2.2.0 ([#2589](https://github.com/anthony-spruyt/container-images/issues/2589)) ([f6815cf](https://github.com/anthony-spruyt/container-images/commit/f6815cf1cae2d5e6e1992e6431601f796b4b1d37))
+
 ## [2.4.6](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.5...devcontainer-common-2.4.6) (2026-10-25)
 
 

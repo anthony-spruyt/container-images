@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.31](https://github.com/anthony-spruyt/container-images/compare/coder-gitops-1.0.30...coder-gitops-1.0.31) (2026-10-28)
+
+
+### Dependencies
+
+* **deps:** update dependency coder to v2.37.7 ([#2581](https://github.com/anthony-spruyt/container-images/issues/2581)) ([3dbdb93](https://github.com/anthony-spruyt/container-images/commit/3dbdb93d6fb0028796dcd15f814f94165c478185))
+
 ## [1.0.30](https://github.com/anthony-spruyt/container-images/compare/coder-gitops-1.0.29...coder-gitops-1.0.30) (2026-10-25)
 
 
