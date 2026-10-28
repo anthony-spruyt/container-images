@@ -1,4 +1,4 @@
-"""Tests for the Jev second check in the scan service: which texts go to Jev, what each answer means, what is stored."""
+"""Tests for the Jev second check in the scan service: which windows go to Jev, what answers mean, what is stored."""
 
 import asyncio
 import gc
@@ -7,7 +7,7 @@ import weakref
 import pytest
 
 from cache import JevCache, VerdictCache
-from fakes import FLAGGED_SCORE, FLAGGED_VALUE, INJECTION, FakeJudge, FakeScanner, FakeValkey, digest, sample
+from fakes import FLAGGED_SCORE, INJECTION, FakeJudge, FakeScanner, FakeValkey, digest, flagged_value, sample
 from guard import Judged, ToolGuard
 from judge import JevError
 from metrics import Metrics
@@ -56,6 +56,22 @@ def bad(name: str = "a") -> dict:
     return item(f"{INJECTION} {name}")
 
 
+def multi(*pieces: str, flagged: tuple[int, ...]) -> tuple[dict, tuple[tuple[int, int], ...]]:
+    """Return an item whose text is the pieces on separate lines, and the spans of the pieces at the flagged indexes."""
+    spans, at = [], 0
+    for piece in pieces:
+        spans.append((at, at + len(piece)))
+        at += len(piece) + 1
+    return item("\n".join(pieces)), tuple(spans[i] for i in flagged)
+
+
+def flagging(spans: tuple[tuple[int, int], ...], **kwargs) -> FakeScanner:
+    """Return a scanner that flags every text, with the model's flagged windows at spans."""
+    scanner = FakeScanner(**kwargs)
+    scanner.verdict = lambda _text: (True, FLAGGED_SCORE, spans)
+    return scanner
+
+
 def horizon_key(hash_: str) -> str:
     return f"llm-tool-guard:ns:{hash_}"
 
@@ -65,7 +81,7 @@ def jev_key(hash_: str) -> str:
 
 
 def judged(guard: ToolGuard, new=(), known=()) -> Judged:
-    return asyncio.run(guard.check_with_jev(list(new), list(known)))
+    return asyncio.run(guard.check(list(new), list(known)))
 
 
 async def wait_for(predicate):
@@ -166,34 +182,6 @@ def test_a_clean_text_never_goes_to_jev(metrics, valkey):
     assert judge.calls == []
 
 
-def test_check_without_the_opt_in_never_asks_jev_and_flags_as_before(metrics, valkey):
-    judge = FakeJudge(0.99)
-    guard = make_guard(judge, metrics, valkey)
-    text = bad()
-
-    flagged, unknown, scores = asyncio.run(guard.check([text], []))
-
-    assert (flagged, unknown, scores) == ([text["hash"]], [], {text["hash"]: FLAGGED_SCORE})
-    assert judge.calls == []
-    assert [k for k in valkey.data if "jev" in k] == []
-
-
-def test_check_without_the_opt_in_flags_a_new_text_and_a_known_hash_that_jev_has_cleared(metrics, valkey):
-    text = bad()
-    h = text["hash"]
-    first = judged(make_guard(FakeJudge(0.0), metrics, valkey), [text])
-    judge = FakeJudge(0.0)
-    guard = make_guard(judge, metrics, valkey)
-
-    by_text = asyncio.run(guard.check([text], []))
-    by_hash = asyncio.run(guard.check([], [h]))
-
-    assert first.cleared == [h]
-    assert by_text == ([h], [], {h: FLAGGED_SCORE})
-    assert by_hash == ([h], [], {h: FLAGGED_SCORE})
-    assert judge.calls == []
-
-
 def test_flags_that_are_not_model_verdicts_never_go_to_jev(metrics, valkey):
     judge = FakeJudge(0.0)
     scanner = FakeScanner(error=RuntimeError("boom"))
@@ -215,7 +203,7 @@ def test_the_horizon_cache_is_untouched_and_the_answer_is_stored_as_the_raw_prob
     judged(guard, [text])
 
     h = text["hash"]
-    assert valkey.data == {horizon_key(h): FLAGGED_VALUE, jev_key(h): "0.5"}
+    assert valkey.data == {horizon_key(h): flagged_value(text["text"]), jev_key(h): "0.5"}
     assert valkey.ttls[jev_key(h)] == TTL
 
 
@@ -239,7 +227,7 @@ def test_a_known_hash_the_model_flagged_without_a_stored_answer_stays_flagged(me
     judge = FakeJudge(0.0)
     guard = make_guard(judge, metrics, valkey)
     h = digest("old")
-    valkey.data[horizon_key(h)] = FLAGGED_VALUE
+    valkey.data[horizon_key(h)] = flagged_value("old")
 
     result = judged(guard, known=[h])
 
@@ -252,7 +240,7 @@ def test_a_flagged_text_the_model_cached_is_sent_to_jev_when_it_arrives_as_new(m
     scanner = FakeScanner()
     guard = make_guard(judge, metrics, valkey, scanner=scanner)
     text = bad()
-    valkey.data[horizon_key(text["hash"])] = FLAGGED_VALUE
+    valkey.data[horizon_key(text["hash"])] = flagged_value(text["text"])
 
     result = judged(guard, [text])
 
@@ -348,10 +336,10 @@ def test_concurrent_requests_for_one_text_ask_jev_once(metrics, valkey):
     text = bad()
 
     async def run():
-        first = asyncio.create_task(guard.check_with_jev([text], []))
+        first = asyncio.create_task(guard.check([text], []))
         await wait_for(judge.started.is_set)
-        second = asyncio.create_task(guard.check_with_jev([text], []))
-        third = asyncio.create_task(guard.check_with_jev([], [text["hash"]]))
+        second = asyncio.create_task(guard.check([text], []))
+        third = asyncio.create_task(guard.check([], [text["hash"]]))
         await asyncio.sleep(0.05)
         judge.release()
         return await asyncio.gather(first, second, third)
@@ -378,8 +366,8 @@ def test_two_replicas_asking_at_once_serve_the_first_answer_stored(metrics, valk
     text = bad()
 
     async def run():
-        first = asyncio.create_task(guard_a.check_with_jev([text], []))
-        second = asyncio.create_task(guard_b.check_with_jev([text], []))
+        first = asyncio.create_task(guard_a.check([text], []))
+        second = asyncio.create_task(guard_b.check([text], []))
         await wait_for(lambda: judge_a.started.is_set() and judge_b.started.is_set())
         judge_a.release()
         won = await first
@@ -401,8 +389,8 @@ def test_a_marker_stored_by_another_replica_wins_over_a_late_answer(metrics, val
     text = bad()
 
     async def run():
-        first = asyncio.create_task(guard_a.check_with_jev([text], []))
-        second = asyncio.create_task(guard_b.check_with_jev([text], []))
+        first = asyncio.create_task(guard_a.check([text], []))
+        second = asyncio.create_task(guard_b.check([text], []))
         await wait_for(lambda: judge_a.started.is_set() and judge_b.started.is_set())
         judge_a.release()
         await first
@@ -421,9 +409,9 @@ def test_a_known_hash_waits_for_the_jev_answer_in_flight(metrics, valkey):
     text = bad()
 
     async def run():
-        request = asyncio.create_task(guard.check_with_jev([text], []))
+        request = asyncio.create_task(guard.check([text], []))
         await wait_for(judge.started.is_set)
-        lookup = asyncio.create_task(guard.check_with_jev([], [text["hash"]]))
+        lookup = asyncio.create_task(guard.check([], [text["hash"]]))
         await asyncio.sleep(0.05)
         waiting = not lookup.done()
         judge.release()
@@ -442,7 +430,7 @@ def test_the_ask_finishes_and_is_stored_after_the_request_is_cancelled(metrics, 
     text = bad()
 
     async def run():
-        request = asyncio.create_task(guard.check_with_jev([text], []))
+        request = asyncio.create_task(guard.check([text], []))
         await wait_for(judge.started.is_set)
         request.cancel()
         with pytest.raises(asyncio.CancelledError):
@@ -455,9 +443,9 @@ def test_the_ask_finishes_and_is_stored_after_the_request_is_cancelled(metrics, 
     assert valkey.data[jev_key(text["hash"])] == "0.97"
 
 
-async def cancel_mid_scan(guard: ToolGuard, scanner: FakeScanner, text: dict, *, jev: bool = True) -> None:
+async def cancel_mid_scan(guard: ToolGuard, scanner: FakeScanner, text: dict) -> None:
     """Start a request, drop it while its scan runs, then let the scan finish and the guard settle."""
-    request = asyncio.create_task(guard.check_with_jev([text], []) if jev else guard.check([text], []))
+    request = asyncio.create_task(guard.check([text], []))
     await wait_for(scanner.started.is_set)
     request.cancel()
     with pytest.raises(asyncio.CancelledError):
@@ -507,24 +495,13 @@ def test_a_clean_scan_is_not_followed_by_an_ask_after_a_cancelled_request(metric
     assert judge.calls == []
 
 
-def test_a_request_without_the_opt_in_leaves_no_ask_behind_when_cancelled(metrics, valkey):
-    judge = FakeJudge(0.97)
-    scanner = FakeScanner(gated=True)
-    guard = make_guard(judge, metrics, valkey, scanner=scanner)
-
-    asyncio.run(cancel_mid_scan(guard, scanner, bad(), jev=False))
-
-    assert judge.calls == []
-    assert [k for k in valkey.data if "jev" in k] == []
-
-
 def test_close_cancels_asks_in_flight_and_stores_nothing(metrics, valkey):
     judge = FakeJudge(0.97, gated=True)
     guard = make_guard(judge, metrics, valkey)
     text = bad()
 
     async def run():
-        request = asyncio.create_task(guard.check_with_jev([text], []))
+        request = asyncio.create_task(guard.check([text], []))
         await wait_for(judge.started.is_set)
         guard.close()
         return await request
@@ -543,7 +520,7 @@ def test_drain_waits_for_asks_in_flight(metrics, valkey):
     text = bad()
 
     async def run():
-        request = asyncio.create_task(guard.check_with_jev([text], []))
+        request = asyncio.create_task(guard.check([text], []))
         await wait_for(judge.started.is_set)
         draining = asyncio.create_task(guard.drain(5))
         await asyncio.sleep(0.05)
@@ -562,7 +539,7 @@ def test_drain_gives_up_on_a_slow_ask_without_cancelling_it(metrics, valkey):
     guard = make_guard(judge, metrics, valkey)
 
     async def run():
-        request = asyncio.create_task(guard.check_with_jev([bad()], []))
+        request = asyncio.create_task(guard.check([bad()], []))
         await wait_for(judge.started.is_set)
         started = asyncio.get_running_loop().time()
         await guard.drain(0.05)
@@ -579,10 +556,10 @@ def test_asks_in_flight_use_pending_slots_and_a_text_beyond_the_limit_is_flagged
     guard = make_guard(judge, metrics, valkey, max_pending_scans=1)
     first, second = bad("one"), bad("two")
     for text in (first, second):
-        valkey.data[horizon_key(text["hash"])] = FLAGGED_VALUE
+        valkey.data[horizon_key(text["hash"])] = flagged_value(text["text"])
 
     async def run():
-        request = asyncio.create_task(guard.check_with_jev([first, second], []))
+        request = asyncio.create_task(guard.check([first, second], []))
         await wait_for(judge.started.is_set)
         gauge = sample(metrics, "llm_tool_guard_pending_scans")
         judge.release()
@@ -647,7 +624,7 @@ def test_texts_that_need_no_second_look_are_released_while_others_scan(metrics, 
         return [{"hash": digest(cached), "text": cached}, item("still scanning")]
 
     async def run():
-        request = asyncio.create_task(guard.check_with_jev(items(), []))
+        request = asyncio.create_task(guard.check(items(), []))
         await wait_for(scanner.started.is_set)
         gc.collect()
         alive = refs[0]() is not None
@@ -669,3 +646,278 @@ def test_aclose_closes_the_judge(metrics, valkey):
 
 def test_aclose_without_a_second_check_does_nothing(metrics, valkey):
     asyncio.run(make_guard(None, metrics, valkey).aclose())
+
+
+ONE, TWO, THREE = "first trigger", "second trigger", "third trigger"
+ERROR = JevError("no answer", permanent=False)
+
+
+def test_only_the_flagged_windows_are_sent_each_as_its_own_slice_of_the_text(metrics, valkey):
+    text, spans = multi("calm intro", ONE, "calm middle", TWO, "calm end", flagged=(1, 3))
+    judge = FakeJudge(0.5)
+
+    result = judged(make_guard(judge, metrics, valkey, scanner=flagging(spans)), [text])
+
+    assert judge.calls == [ONE, TWO]
+    assert result.flagged == [text["hash"]]
+    assert sample(metrics, REQUESTS, outcome="middle") == 2
+
+
+def test_overlapping_flagged_windows_are_each_sent_whole(metrics, valkey):
+    text = item("abcdefghij")
+    judge = FakeJudge(0.5)
+
+    judged(make_guard(judge, metrics, valkey, scanner=flagging(((0, 6), (4, 10)))), [text])
+
+    assert judge.calls == ["abcdef", "efghij"]
+
+
+def test_a_text_over_the_jev_limit_with_one_small_flagged_window_sends_only_that_window(metrics, valkey):
+    text, spans = multi("x" * 600, ONE, "y" * 100, flagged=(1,))
+    judge = FakeJudge(0.97)
+
+    result = judged(make_guard(judge, metrics, valkey, scanner=flagging(spans)), [text])
+
+    assert len(text["text"].encode()) > JEV_BYTES
+    assert judge.calls == [ONE]
+    assert result.blocked == [text["hash"]]
+    assert sample(metrics, REQUESTS, outcome="skipped") == 0
+
+
+@pytest.mark.parametrize(("p", "blocked"), [(0.97, True), (0.01, False)])
+def test_a_flagged_window_over_the_jev_limit_is_not_sent_and_leaves_the_text_flagged_unless_another_window_blocks(
+    metrics, valkey, p, blocked
+):
+    text, spans = multi(ONE, "z" * (JEV_BYTES + 1), flagged=(0, 1))
+    judge = FakeJudge(p)
+    h = text["hash"]
+
+    result = judged(make_guard(judge, metrics, valkey, scanner=flagging(spans)), [text])
+
+    assert judge.calls == [ONE]
+    assert result.flagged == [h]
+    assert (result.blocked, result.cleared) == ([h] if blocked else [], [])
+    assert jev_key(h) not in valkey.data
+    assert sample(metrics, REQUESTS, outcome="skipped") == 1
+
+
+@pytest.mark.parametrize(
+    ("answers", "outcome"),
+    [
+        ([0.97, 0.01], "blocked"),
+        ([0.01, 0.97], "blocked"),
+        ([BLOCK_AT, 0.0], "blocked"),
+        ([0.97, ERROR], "blocked"),
+        ([ERROR, 0.97], "blocked"),
+        ([0.01, 0.02], "cleared"),
+        ([0.0799, 0.0], "cleared"),
+        ([0.01, 0.5], "flagged"),
+        ([0.5, 0.5], "flagged"),
+        ([CLEAR_BELOW, 0.0], "flagged"),
+        ([0.01, ERROR], "flagged"),
+        ([ERROR, 0.01], "flagged"),
+        ([ERROR, ERROR], "flagged"),
+    ],
+)
+def test_a_text_is_blocked_when_any_window_blocks_cleared_only_when_every_window_clears_else_flagged(
+    metrics, valkey, answers, outcome
+):
+    text, spans = multi(ONE, "calm", TWO, flagged=(0, 2))
+    judge = FakeJudge()
+    judge.answers = dict(zip([ONE, TWO], answers, strict=True))
+    h = text["hash"]
+
+    result = judged(make_guard(judge, metrics, valkey, scanner=flagging(spans)), [text])
+
+    assert judge.calls == [ONE, TWO]
+    assert result.blocked == ([h] if outcome == "blocked" else [])
+    assert result.cleared == ([h] if outcome == "cleared" else [])
+    assert result.flagged == ([] if outcome == "cleared" else [h])
+
+
+def test_the_jev_score_and_the_stored_answer_of_a_text_are_the_highest_probability_of_its_windows(metrics, valkey):
+    text, spans = multi(ONE, TWO, THREE, flagged=(0, 1, 2))
+    judge = FakeJudge()
+    judge.answers = {ONE: 0.3, TWO: 0.6, THREE: 0.1}
+    h = text["hash"]
+
+    result = judged(make_guard(judge, metrics, valkey, scanner=flagging(spans)), [text])
+
+    assert result.jev_scores == {h: 0.6}
+    assert valkey.data[jev_key(h)] == "0.6"
+    assert valkey.ttls[jev_key(h)] == TTL
+    assert sample(metrics, REQUESTS, outcome="middle") == 3
+
+
+@pytest.mark.parametrize(("permanent", "ttl"), [(True, TTL), (False, 3600)])
+def test_a_window_without_an_answer_makes_the_stored_answer_partial_for_the_ttl_its_failure_calls_for(
+    metrics, valkey, permanent, ttl
+):
+    text, spans = multi(ONE, TWO, flagged=(0, 1))
+    judge = FakeJudge()
+    judge.answers = {ONE: 0.4, TWO: JevError("no", permanent=permanent)}
+    h = text["hash"]
+
+    result = judged(make_guard(judge, metrics, valkey, scanner=flagging(spans)), [text])
+
+    assert result.jev_scores == {h: 0.4}
+    assert valkey.data[jev_key(h)] == "0.4+"
+    assert valkey.ttls[jev_key(h)] == ttl
+    assert sample(metrics, REQUESTS, outcome="error") == 1
+
+
+@pytest.mark.parametrize(("stored", "blocked"), [("0.01+", False), ("0.95+", True), ("0.5+", False)])
+def test_a_partial_answer_never_clears_even_under_thresholds_that_would_but_can_still_block(
+    metrics, valkey, stored, blocked
+):
+    text = bad()
+    h = text["hash"]
+    valkey.data[jev_key(h)] = stored
+    judge = FakeJudge(0.0)
+
+    result = judged(make_guard(judge, metrics, valkey, clear_below=0.6), [text])
+
+    assert result.flagged == [h]
+    assert (result.blocked, result.cleared) == ([h] if blocked else [], [])
+    assert judge.calls == []
+
+
+def test_a_text_the_model_flagged_with_no_window_to_ask_about_stays_flagged_unasked(metrics, valkey):
+    text = bad()
+    h = text["hash"]
+    judge = FakeJudge(0.0)
+    scanner = FakeScanner()
+    scanner.verdict = lambda _text: (True, 1.0, ())
+
+    result = judged(make_guard(judge, metrics, valkey, scanner=scanner), [text])
+
+    assert result == Judged([h], [], {h: 1.0}, [], [], {})
+    assert judge.calls == []
+    assert jev_key(h) not in valkey.data
+    assert sample(metrics, REQUESTS, outcome="skipped") == 0
+
+
+def test_a_flagged_verdict_cached_without_spans_is_not_asked_about(metrics, valkey):
+    text = bad()
+    h = text["hash"]
+    valkey.data[horizon_key(h)] = "1:1.0"
+    judge = FakeJudge(0.0)
+
+    result = judged(make_guard(judge, metrics, valkey), [text])
+
+    assert result == Judged([h], [], {h: 1.0}, [], [], {})
+    assert judge.calls == []
+    assert jev_key(h) not in valkey.data
+
+
+def test_a_flagged_text_cached_without_a_jev_answer_is_asked_about_its_stored_windows_and_not_rescanned(
+    metrics, valkey
+):
+    text, spans = multi("calm intro", ONE, "calm middle", TWO, flagged=(1, 3))
+    h = text["hash"]
+    judged(make_guard(None, metrics, valkey, scanner=flagging(spans)), [text])
+    scanner = FakeScanner()
+    judge = FakeJudge(0.01)
+
+    result = judged(make_guard(judge, metrics, valkey, scanner=scanner), [text])
+
+    assert valkey.data[horizon_key(h)] == f"1:{FLAGGED_SCORE}:11-24,37-51"
+    assert scanner.calls == []
+    assert judge.calls == [ONE, TWO]
+    assert result.cleared == [h]
+
+
+def test_the_windows_of_a_text_are_asked_at_once(metrics, valkey):
+    text, spans = multi(ONE, TWO, THREE, flagged=(0, 1, 2))
+    judge = FakeJudge(0.01, gated=True)
+    guard = make_guard(judge, metrics, valkey, scanner=flagging(spans))
+
+    async def run():
+        request = asyncio.create_task(guard.check([text], []))
+        await wait_for(lambda: len(judge.calls) == 3)
+        judge.release()
+        return await request
+
+    assert asyncio.run(run()).cleared == [text["hash"]]
+    assert sorted(judge.calls) == sorted([ONE, TWO, THREE])
+
+
+def test_each_window_asked_holds_a_pending_slot_and_a_window_without_a_slot_is_skipped(metrics, valkey):
+    text, spans = multi(ONE, TWO, THREE, flagged=(0, 1, 2))
+    judge = FakeJudge(0.01, gated=True)
+    guard = make_guard(judge, metrics, valkey, scanner=flagging(spans), max_pending_scans=2)
+    h = text["hash"]
+
+    async def run():
+        request = asyncio.create_task(guard.check([text], []))
+        await wait_for(lambda: len(judge.calls) == 2)
+        await asyncio.sleep(0.05)
+        gauge = sample(metrics, "llm_tool_guard_pending_scans")
+        judge.release()
+        return gauge, await request
+
+    gauge, result = asyncio.run(run())
+
+    assert gauge == 2
+    assert judge.calls == [ONE, TWO]
+    assert result.flagged == [h]
+    assert result.cleared == []
+    assert jev_key(h) not in valkey.data
+    assert sample(metrics, REQUESTS, outcome="skipped") == 1
+    assert sample(metrics, "llm_tool_guard_pending_scans") == 0
+
+
+def test_a_window_without_a_slot_does_not_stop_another_window_blocking_the_text(metrics, valkey):
+    text, spans = multi(ONE, TWO, flagged=(0, 1))
+    judge = FakeJudge(0.97, gated=True)
+    guard = make_guard(judge, metrics, valkey, scanner=flagging(spans), max_pending_scans=1)
+    h = text["hash"]
+
+    async def run():
+        request = asyncio.create_task(guard.check([text], []))
+        await wait_for(judge.started.is_set)
+        await asyncio.sleep(0.05)
+        judge.release()
+        return await request
+
+    result = asyncio.run(run())
+
+    assert judge.calls == [ONE]
+    assert result.blocked == [h]
+    assert jev_key(h) not in valkey.data
+
+
+def test_replicas_asking_about_the_windows_of_one_text_serve_the_first_answer_stored(metrics, valkey):
+    text, spans = multi(ONE, TWO, flagged=(0, 1))
+    judge_a, judge_b = FakeJudge(gated=True), FakeJudge(0.02, gated=True)
+    judge_a.answers = {ONE: 0.99, TWO: 0.01}
+    guard_a = make_guard(judge_a, metrics, valkey, scanner=flagging(spans))
+    guard_b = make_guard(judge_b, metrics, valkey, scanner=flagging(spans))
+    h = text["hash"]
+
+    async def run():
+        first = asyncio.create_task(guard_a.check([text], []))
+        second = asyncio.create_task(guard_b.check([text], []))
+        await wait_for(lambda: len(judge_a.calls) == 2 and len(judge_b.calls) == 2)
+        judge_a.release()
+        won = await first
+        judge_b.release()
+        return won, await second
+
+    first, second = asyncio.run(run())
+
+    assert first.blocked == second.blocked == [h]
+    assert second.jev_scores == {h: 0.99}
+    assert valkey.data[jev_key(h)] == "0.99"
+
+
+def test_after_a_cancelled_request_the_flagged_windows_are_asked_once_the_scan_ends(metrics, valkey):
+    text, spans = multi("calm", ONE, TWO, flagged=(1, 2))
+    scanner = flagging(spans, gated=True)
+    judge = FakeJudge(0.97)
+    guard = make_guard(judge, metrics, valkey, scanner=scanner)
+
+    asyncio.run(cancel_mid_scan(guard, scanner, text))
+
+    assert judge.calls == [ONE, TWO]
+    assert valkey.data[jev_key(text["hash"])] == "0.97"

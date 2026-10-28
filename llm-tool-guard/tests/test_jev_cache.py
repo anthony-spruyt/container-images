@@ -8,7 +8,12 @@ from cache import JevAnswer, JevCache, jev_namespace
 from fakes import FakeValkey, digest, sample
 
 TTL = 3600 * 24
-BASE = {"model": "jev-1.13.0", "question": '{"type": "noul"}', "runtime": {"judge.py": "aaa"}}
+BASE = {
+    "model": "jev-1.13.0",
+    "question": '{"type": "noul"}',
+    "runtime": {"judge.py": "aaa"},
+    "scan_namespace": "0123456789abcdef",
+}
 
 
 def make_cache(valkey, metrics, *, ttl=TTL, namespace="jns"):
@@ -29,9 +34,10 @@ def test_namespace_is_stable_for_the_same_settings():
         ("model", "jev-1.14.0"),
         ("question", '{"type": "choice"}'),
         ("runtime", {"judge.py": "bbb"}),
+        ("scan_namespace", "fedcba9876543210"),
     ],
 )
-def test_namespace_changes_with_the_model_the_question_and_the_client_source(field, value):
+def test_namespace_changes_with_the_model_the_question_the_client_source_and_the_scan_namespace(field, value):
     assert jev_namespace(**{**BASE, field: value}) != jev_namespace(**BASE)
 
 
@@ -43,6 +49,41 @@ def test_an_answer_is_stored_as_the_raw_probability_for_the_full_ttl(metrics, va
     assert winner == JevAnswer(0.0312)
     assert valkey.data == {key(digest("a")): "0.0312"}
     assert valkey.ttls == {key(digest("a")): TTL}
+
+
+def test_an_answer_with_a_window_missing_is_stored_as_the_highest_probability_marked_partial(metrics, valkey):
+    cache = make_cache(valkey, metrics)
+
+    winner = asyncio.run(cache.settle(digest("a"), 0.97, permanent=True, partial=True))
+
+    assert winner == JevAnswer(0.97, partial=True)
+    assert valkey.data == {key(digest("a")): "0.97+"}
+    assert valkey.ttls == {key(digest("a")): TTL}
+
+
+@pytest.mark.parametrize(("permanent", "ttl"), [(True, TTL), (False, 3600)])
+def test_a_partial_answer_lasts_as_long_as_its_missing_windows_would_have_stayed_missing(
+    metrics, valkey, permanent, ttl
+):
+    asyncio.run(make_cache(valkey, metrics).settle(digest("a"), 0.2, permanent=permanent, partial=True))
+
+    assert valkey.ttls == {key(digest("a")): ttl}
+
+
+def test_a_complete_answer_lasts_the_full_ttl_whatever_the_flag_says(metrics, valkey):
+    asyncio.run(make_cache(valkey, metrics).settle(digest("a"), 0.2, permanent=False))
+
+    assert valkey.ttls == {key(digest("a")): TTL}
+
+
+def test_a_stored_partial_answer_wins_over_a_later_complete_one(metrics, valkey):
+    cache = make_cache(valkey, metrics)
+    hash_ = digest("a")
+
+    asyncio.run(cache.settle(hash_, 0.4, permanent=False, partial=True))
+    winner = asyncio.run(cache.settle(hash_, 0.01, permanent=True))
+
+    assert winner == JevAnswer(0.4, partial=True)
 
 
 def test_it_is_written_only_if_absent_and_the_stored_value_is_read_back(metrics, valkey):
@@ -144,7 +185,9 @@ def test_jev_keys_do_not_overlap_the_verdict_keys(metrics, valkey):
     assert asyncio.run(make_cache(valkey, metrics).get_many([digest("a")])) == {digest("a"): JevAnswer(0.5)}
 
 
-@pytest.mark.parametrize("value", ["", "high", "nan", "inf", "1.5", "-0.1", "0.5:1", "1:0.9", "--"])
+@pytest.mark.parametrize(
+    "value", ["", "high", "nan", "inf", "1.5", "-0.1", "0.5:1", "1:0.9", "--", "+", "-+", "0.5++", "1.5+"]
+)
 def test_an_unexpected_stored_value_is_a_miss(metrics, valkey, value):
     valkey.data[key(digest("a"))] = value
 
@@ -154,10 +197,11 @@ def test_an_unexpected_stored_value_is_a_miss(metrics, valkey, value):
 def test_bytes_values_are_read(metrics, valkey):
     valkey.data[key(digest("a"))] = b"0.5"
     valkey.data[key(digest("b"))] = b"-"
+    valkey.data[key(digest("c"))] = b"0.7+"
 
-    answers = asyncio.run(make_cache(valkey, metrics).get_many([digest("a"), digest("b")]))
+    answers = asyncio.run(make_cache(valkey, metrics).get_many([digest("a"), digest("b"), digest("c")]))
 
-    assert answers == {digest("a"): JevAnswer(0.5), digest("b"): JevAnswer(None)}
+    assert answers == {digest("a"): JevAnswer(0.5), digest("b"): JevAnswer(None), digest("c"): JevAnswer(0.7, True)}
 
 
 def test_the_probability_bounds_are_stored_and_read(metrics, valkey):

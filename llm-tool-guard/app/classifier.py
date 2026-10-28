@@ -13,7 +13,7 @@ _SURROGATE = re.compile("[\ud800-\udfff]")
 
 
 def model_input(text: str) -> str:
-    """Replace lone surrogates, which the tokenizer cannot encode, with U+FFFD."""
+    """Replace lone surrogates, which the tokenizer cannot encode, with U+FFFD, one for one: spans index either text."""
     return _SURROGATE.sub("\ufffd", text)
 
 
@@ -24,7 +24,7 @@ def _hub_lookup(model: str, filename: str) -> Any:
 
 
 class Classifier:
-    """Blocking scan function over a PromptInjectionScanner, returning (flagged, score)."""
+    """Blocking scan function over a PromptInjectionScanner, returning (flagged, score, flagged_spans)."""
 
     def __init__(
         self,
@@ -72,12 +72,15 @@ class Classifier:
 
         pipe.forward = bounded
 
-    def __call__(self, text: str) -> tuple[bool, float]:
-        """Return (flagged, score): flagged when the scanner finds text unsafe, score as the scanner reports it."""
+    def __call__(self, text: str) -> tuple[bool, float, tuple[tuple[int, int], ...]]:
+        """Return (flagged, score, flagged_spans), each as the scanner reports it; flagged when it finds text unsafe.
+
+        flagged_spans are the character spans of text for the windows that scored at or above the threshold.
+        """
         if self._budget is not None:
             self._local.deadline = time.monotonic() + self._budget
         try:
             result = self._scanner.scan(model_input(text))
-            return not result.is_safe, float(result.score)
+            return not result.is_safe, float(result.score), tuple(result.flagged_spans)
         finally:
             self._local.deadline = None

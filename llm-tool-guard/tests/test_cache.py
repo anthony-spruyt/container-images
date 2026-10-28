@@ -119,6 +119,24 @@ def test_keys_carry_the_namespace_and_hash(metrics, valkey):
     assert valkey.ttls == {f"llm-tool-guard:n1:{hash_}": 60}
 
 
+def test_a_flagged_verdict_stores_the_spans_of_its_flagged_windows(metrics, valkey):
+    cache = VerdictCache(valkey, namespace="n1", ttl_seconds=60, metrics=metrics)
+    hash_ = digest("x")
+
+    asyncio.run(cache.put(hash_, Verdict(True, 0.97312, ((0, 4096), (3000, 7000)))))
+
+    assert valkey.data == {f"llm-tool-guard:n1:{hash_}": "1:0.97312:0-4096,3000-7000"}
+    assert asyncio.run(cache.get_many([hash_])) == {hash_: Verdict(True, 0.97312, ((0, 4096), (3000, 7000)))}
+
+
+def test_a_flagged_verdict_without_spans_is_stored_and_read_without_them(metrics, valkey):
+    cache = VerdictCache(valkey, namespace="n1", ttl_seconds=60, metrics=metrics)
+    hash_ = digest("x")
+    valkey.data[f"llm-tool-guard:n1:{hash_}"] = "1:0.5"
+
+    assert asyncio.run(cache.get_many([hash_])) == {hash_: Verdict(True, 0.5, ())}
+
+
 def test_verdicts_from_another_namespace_are_not_read(metrics, valkey):
     old = VerdictCache(valkey, namespace="old", ttl_seconds=60, metrics=metrics)
     new = VerdictCache(valkey, namespace="new", ttl_seconds=60, metrics=metrics)
@@ -156,7 +174,32 @@ def test_verdict_and_score_round_trip_exactly(metrics, valkey):
     assert asyncio.run(cache.get_many([hash_])) == {hash_: just_under}
 
 
-@pytest.mark.parametrize("value", ["maybe", "1", "0", "", "2:0.5", "1:", "1:high", "1:nan", "1:inf", "0:0.5:1", ":0.5"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "maybe",
+        "1",
+        "0",
+        "",
+        "2:0.5",
+        "1:",
+        "1:high",
+        "1:nan",
+        "1:inf",
+        "0:0.5:1",
+        ":0.5",
+        "0:0.5:1-2",
+        "1:0.5:",
+        "1:0.5:1",
+        "1:0.5:a-b",
+        "1:0.5:5-3",
+        "1:0.5:-1-4",
+        "1:0.5:1-2,",
+        "1:0.5:1-2,,3-4",
+        "1:0.5:1-2:3-4",
+        "1:0.5:1.5-2",
+    ],
+)
 def test_unexpected_stored_value_is_a_miss(metrics, valkey, value):
     cache = VerdictCache(valkey, namespace="n", ttl_seconds=60, metrics=metrics)
     hash_ = digest("a")

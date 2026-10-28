@@ -1,4 +1,4 @@
-"""Answers scan requests: verifies each hash, serves cached verdicts and scans the rest once."""
+"""Answers scan requests: verifies each hash, serves cached verdicts, scans the rest once and asks Jev about flags."""
 
 import asyncio
 import hashlib
@@ -10,9 +10,9 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from typing import NamedTuple
 
-from cache import JevAnswer, Verdict, VerdictCache
+from cache import JevAnswer, Span, Verdict, VerdictCache
 from metrics import Metrics
-from second_check import SecondCheck
+from second_check import SKIPPED, Asked, SecondCheck
 
 logger = logging.getLogger(__name__)
 
@@ -32,15 +32,21 @@ def content_hash(text: str) -> str:
     return _digest(_encode(text))
 
 
+def _slices(text: str, spans: Sequence[Span]) -> list[str]:
+    """Return the part of text each span covers; the spans index characters of the text the model scanned."""
+    return [text[start:end] for start, end in spans]
+
+
 class ScanStoppedError(Exception):
     """Raised by a scan that ended early because the service is shutting down."""
 
 
-_ModelVerdicts = tuple[list[str], list[str], dict[str, float]]
-
-
 class Judged(NamedTuple):
-    """A check with Jev's second opinion: blocked is a subset of flagged, cleared is not in flagged."""
+    """The answer to a check: blocked is a subset of flagged, cleared is not in flagged.
+
+    scores holds the model score of each hash it flagged; a flagged hash without one failed a scan, a limit or a hash
+    check. jev_scores holds, per hash, the highest probability Jev gave across the windows it was asked about.
+    """
 
     flagged: list[str]
     unknown: list[str]
@@ -55,7 +61,7 @@ class ToolGuard:
 
     def __init__(  # noqa: PLR0913 - keyword-only limits
         self,
-        scan: Callable[[str], tuple[bool, float]],
+        scan: Callable[[str], tuple[bool, float, tuple[Span, ...]]],
         cache: VerdictCache,
         metrics: Metrics,
         *,
@@ -65,11 +71,11 @@ class ToolGuard:
         stop_scans: Callable[[], None] | None = None,
         second_check: SecondCheck | None = None,
     ):
-        """scan is a blocking function returning (flagged, score) for a text; it runs on scan_workers threads.
+        """scan is a blocking function returning (flagged, score, spans) for a text; it runs on scan_workers threads.
 
-        stop_scans makes running scans raise ScanStoppedError at their next safe point; close() calls it.
-        second_check, when set, gives Jev's opinion on texts the model flagged to check_with_jev; asks in flight take
-        pending slots like scans.
+        spans are the character spans of the windows the model flagged. stop_scans makes running scans raise
+        ScanStoppedError at their next safe point; close() calls it. second_check, when set, gives Jev's opinion on
+        the flagged windows of every text the model flagged; each window asked takes a pending slot like a scan.
         """
         self._scan = scan
         self._stop_scans = stop_scans
@@ -81,29 +87,22 @@ class ToolGuard:
         self._second = second_check
         self._inflight: dict[str, asyncio.Task[Verdict | None]] = {}
         self._jev_inflight: dict[str, asyncio.Task[JevAnswer]] = {}
+        self._jev_asks = 0
 
-    async def check(self, new: Sequence[dict], known: Sequence[str]) -> _ModelVerdicts:
-        """Return (flagged, unknown, scores): hashes to mark, known hashes without a verdict, and model scores.
+    async def check(self, new: Sequence[dict], known: Sequence[str]) -> Judged:
+        """Return the hashes to mark (flagged), the known hashes without a verdict (unknown) and the rest of Judged.
 
-        scores covers the hashes the model flagged; a flagged hash without one failed a scan, a limit or a hash check.
+        While a second check is set, Jev is asked about each window the model flagged in a flagged text. Its answer for
+        the text blocks it when any window answered blocks, clears it only when every window asked clears, and
+        otherwise leaves it flagged, as it does a window with no answer, no slot or over the size limit. A cleared hash
+        is dropped from flagged. If the caller goes away while a scan runs, the scan is followed by its Jev asks, so
+        later turns find the answer.
         """
-        checking = self._check(new, known, second_opinion=False)
-        del new
-        result = await checking
-        return result.flagged, result.unknown, result.scores
-
-    async def check_with_jev(self, new: Sequence[dict], known: Sequence[str]) -> Judged:
-        """Like check, with Jev's answer for the hashes the model flagged: blocked, cleared and jev_scores.
-
-        A cleared hash is dropped from flagged; one Jev did not answer, or answered in between, stays flagged. If the
-        caller goes away while a scan runs, the scan is followed by its Jev ask, so later turns find the answer.
-        """
-        checking = self._check(new, known, second_opinion=True)
+        checking = self._check(new, known)
         del new
         return await checking
 
-    async def _check(self, new: Sequence[dict], known: Sequence[str], *, second_opinion: bool) -> Judged:
-        second_opinion = second_opinion and self._second is not None
+    async def _check(self, new: Sequence[dict], known: Sequence[str]) -> Judged:
         texts, flagged = self._verify(new)
         order = [*(item["hash"] for item in new), *known]
         del new
@@ -114,11 +113,11 @@ class ToolGuard:
         )
         waits = {h: self._inflight[h] for h in lookups if h not in verdicts and h in self._inflight}
         waits.update(self._schedule({h: t for h, t in texts.items() if h not in verdicts}, flagged))
-        held = {h: t for h, t in texts.items() if h not in verdicts or verdicts[h].flagged} if second_opinion else {}
+        held = {h: t for h, t in texts.items() if h not in verdicts or verdicts[h].flagged} if self._second else {}
         del texts
-        scores = await self._settle(verdicts, waits, flagged, held)
-        held = {h: t for h, t in held.items() if h in scores}
-        answers = await self._second_opinions(list(scores), held) if second_opinion else {}
+        modelled = await self._settle(verdicts, waits, flagged, held)
+        held = {h: t for h, t in held.items() if h in modelled}
+        answers = await self._second_opinions(modelled, held)
         blocked, cleared = self._apply_thresholds(answers)
         for hash_, reason in flagged.items():
             if hash_ not in cleared:
@@ -127,7 +126,7 @@ class ToolGuard:
         return Judged(
             [h for h in ordered if h in flagged and h not in cleared],
             [h for h in unknown if h not in verdicts],
-            scores,
+            {h: v.score for h, v in modelled.items()},
             [h for h in ordered if h in blocked],
             [h for h in ordered if h in cleared],
             {h: a.p for h in ordered if (a := answers.get(h)) is not None and a.p is not None},
@@ -139,8 +138,8 @@ class ToolGuard:
         waits: dict[str, asyncio.Task[Verdict | None]],
         flagged: dict[str, str],
         held: dict[str, str],
-    ) -> dict[str, float]:
-        """Wait for the scans into verdicts, flag what the model flagged or failed to scan; return the model scores.
+    ) -> dict[str, Verdict]:
+        """Wait for the scans into verdicts, flag what the model flagged or failed to scan; return the model's flags.
 
         If the request is cancelled meanwhile, each scan it waits on asks Jev about its text (from held) when it ends.
         """
@@ -154,25 +153,23 @@ class ToolGuard:
         for hash_, verdict in verdicts.items():
             if verdict is None or verdict.flagged:
                 flagged.setdefault(hash_, "error" if verdict is None else "verdict")
-        return {h: v.score for h, v in verdicts.items() if v is not None and v.flagged and flagged[h] == "verdict"}
+        return {h: v for h, v in verdicts.items() if v is not None and v.flagged and flagged[h] == "verdict"}
 
-    async def _second_opinions(self, candidates: list[str], held: dict[str, str]) -> dict[str, JevAnswer]:
-        """Return the stored answer or no-answer of each candidate Jev has one for; held is emptied as texts are used.
+    async def _second_opinions(self, modelled: dict[str, Verdict], held: dict[str, str]) -> dict[str, JevAnswer]:
+        """Return the stored answer or no-answer of each flagged hash Jev has one for; held is emptied as used.
 
-        Joins an ask already in flight, reads the cache, then asks about the rest that have a text and a free slot.
+        Joins asks already in flight, reads the cache, then asks about the flagged windows of the rest that have a
+        text. A flagged text without windows (the model flagged it for its length) is not asked about.
         """
-        if self._second is None or not candidates:
+        if self._second is None or not modelled:
             return {}
-        waits = {h: self._jev_inflight[h] for h in candidates if h in self._jev_inflight}
-        answers = await self._second.lookup([h for h in candidates if h not in waits])
-        for hash_ in candidates:
-            if hash_ in answers or hash_ in waits or hash_ not in held:
+        waits = {h: self._jev_inflight[h] for h in modelled if h in self._jev_inflight}
+        answers = await self._second.lookup([h for h in modelled if h not in waits])
+        for hash_, verdict in modelled.items():
+            if hash_ in answers or hash_ in waits or hash_ not in held or not verdict.spans:
                 continue
-            task = self._jev_inflight.get(hash_) or self._start_jev(self._second, hash_, held.pop(hash_))
-            if task is None:
-                self._metrics.jev_requests.labels("skipped").inc()
-            else:
-                waits[hash_] = task
+            pieces = _slices(held.pop(hash_), verdict.spans)
+            waits[hash_] = self._jev_inflight.get(hash_) or self._start_jev(self._second, hash_, pieces)
         held.clear()
         if waits:
             await asyncio.wait(waits.values())
@@ -187,7 +184,7 @@ class ToolGuard:
         for hash_, answer in answers.items():
             if answer.p is None:
                 continue
-            outcome = self._second.classify(answer.p)
+            outcome = self._second.classify(answer.p, partial=answer.partial)
             if outcome == "blocked":
                 blocked.add(hash_)
             elif outcome == "cleared":
@@ -226,7 +223,7 @@ class ToolGuard:
         return texts, flagged
 
     def _pending(self) -> int:
-        return len(self._inflight) + len(self._jev_inflight)
+        return len(self._inflight) + self._jev_asks
 
     def _start(self, hash_: str, text: str) -> asyncio.Task[Verdict | None] | None:
         if self._pending() >= self._max_pending:
@@ -246,27 +243,41 @@ class ToolGuard:
         if self._second is None or scan.cancelled() or scan.exception() is not None:
             return
         verdict = scan.result()
-        if verdict is not None and verdict.flagged and hash_ not in self._jev_inflight:
-            self._start_jev(self._second, hash_, text, recheck=True)
+        if verdict is not None and verdict.flagged and verdict.spans and hash_ not in self._jev_inflight:
+            self._start_jev(self._second, hash_, _slices(text, verdict.spans), recheck=True)
 
     def _start_jev(
-        self, second: SecondCheck, hash_: str, text: str, *, recheck: bool = False
-    ) -> asyncio.Task[JevAnswer] | None:
-        if self._pending() >= self._max_pending:
-            return None
-        task = asyncio.get_running_loop().create_task(
-            self._answer(second, hash_, text) if recheck else second.ask(hash_, text)
-        )
+        self, second: SecondCheck, hash_: str, pieces: list[str], *, recheck: bool = False
+    ) -> asyncio.Task[JevAnswer]:
+        task = asyncio.get_running_loop().create_task(self._ask_windows(second, hash_, pieces, recheck=recheck))
         self._jev_inflight[hash_] = task
         task.add_done_callback(lambda _: self._finished(self._jev_inflight, hash_))
-        self._metrics.pending_scans.set(self._pending())
         return task
 
-    @staticmethod
-    async def _answer(second: SecondCheck, hash_: str, text: str) -> JevAnswer:
-        """Return the stored answer, or ask Jev when there is none."""
-        stored = await second.lookup([hash_])
-        return stored[hash_] if hash_ in stored else await second.ask(hash_, text)
+    async def _ask_windows(self, second: SecondCheck, hash_: str, pieces: list[str], *, recheck: bool) -> JevAnswer:
+        """Ask Jev about every window of a text at once and return the answer stored for the text.
+
+        With recheck, a stored answer is returned instead of asking.
+        """
+        if recheck:
+            stored = await second.lookup([hash_])
+            if hash_ in stored:
+                return stored[hash_]
+        asked = await asyncio.gather(*(self._ask_window(second, hash_, i, piece) for i, piece in enumerate(pieces)))
+        return await second.settle(hash_, asked)
+
+    async def _ask_window(self, second: SecondCheck, hash_: str, index: int, text: str) -> Asked:
+        """Ask about one window while holding a pending slot; a window with no free slot is skipped."""
+        if self._pending() >= self._max_pending:
+            self._metrics.jev_requests.labels("skipped").inc()
+            return SKIPPED
+        self._jev_asks += 1
+        self._metrics.pending_scans.set(self._pending())
+        try:
+            return await second.ask_window(hash_, index, text)
+        finally:
+            self._jev_asks -= 1
+            self._metrics.pending_scans.set(self._pending())
 
     def _finished(self, inflight: dict, hash_: str) -> None:
         inflight.pop(hash_, None)
@@ -307,7 +318,7 @@ class ToolGuard:
     async def drain(self, max_wait: float | None = None) -> None:
         """Wait for scans and Jev asks in flight to finish and be cached, for at most max_wait seconds."""
         deadline = None if max_wait is None else time.monotonic() + max_wait
-        while self._pending():
+        while self._inflight or self._jev_inflight:
             remaining = None if deadline is None else deadline - time.monotonic()
             if remaining is not None and remaining <= 0:
                 return
