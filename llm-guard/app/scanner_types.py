@@ -45,14 +45,27 @@ def _is_int(value) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
+def _span(offsets: list) -> tuple[int, int]:
+    """Return the character span covered by one window's token offsets; special tokens have an empty (0, 0) offset."""
+    spans = [(start, end) for start, end in offsets if end > start]
+    return (min(s for s, _ in spans), max(e for _, e in spans)) if spans else (0, 0)
+
+
 @dataclass
 class ScanResult:
-    """Result from a single scanner."""
+    """
+    Result from a single scanner.
+
+    ``flagged_spans`` holds the character span ``(start, end)`` of the text each ``"sliding_window"`` window
+    scored at or above the threshold, in text order. It is empty for the other match types and for input
+    spanning more than ``max_windows``.
+    """
 
     scanner: str
     is_safe: bool
     score: float
     reason: str | None = None
+    flagged_spans: tuple[tuple[int, int], ...] = ()
 
 
 class PromptInjectionScanner:
@@ -220,21 +233,27 @@ class PromptInjectionScanner:
             **kwargs,
         )
 
-    def _split_windows(self, text: str) -> list:
-        """Tokenize text once into overlapping model inputs of at most model_max_length tokens each."""
-        enc = self._encode_windows(text)
-        enc.pop("overflow_to_sample_mapping", None)
-        return [{key: rows[i] for key, rows in enc.items()} for i in range(len(enc["input_ids"]))]
+    def _split_windows(self, text: str) -> tuple[list, list[tuple[int, int]]]:
+        """Tokenize text once into overlapping model inputs of at most model_max_length tokens each.
 
-    def _score_windows(self, windows: list) -> float:
-        """Return the highest injection score across windows, scoring window_batch_size of them per model call."""
-        best = 0.0
+        Also returns the character span of text each window covers, from the same tokenizer pass.
+        """
+        enc = self._encode_windows(text, return_offsets_mapping=True)
+        enc.pop("overflow_to_sample_mapping", None)
+        offsets = enc.pop("offset_mapping")
+        windows = [{key: rows[i] for key, rows in enc.items()} for i in range(len(enc["input_ids"]))]
+        return windows, [_span(row) for row in offsets]
+
+    def _score_windows(self, windows: list) -> list[float]:
+        """Return the injection score of each window, scoring window_batch_size of them per model call."""
+        scores = []
         for start in range(0, len(windows), self._window_batch_size):
             batch = self._pipe.tokenizer.pad(windows[start : start + self._window_batch_size], return_tensors="pt")
             logits = self._pipe.forward(dict(batch))["logits"]
-            for row in logits:
-                best = max(best, self._injection_score(self._pipe.postprocess({"logits": row[None]}, top_k=None)))
-        return best
+            scores.extend(
+                self._injection_score(self._pipe.postprocess({"logits": row[None]}, top_k=None)) for row in logits
+            )
+        return scores
 
     def scan(self, text: str) -> ScanResult:
         """
@@ -245,11 +264,12 @@ class PromptInjectionScanner:
         """
         if self._pipe is None:
             raise RuntimeError("PromptInjectionScanner not loaded; call load() first")
+        flagged_spans: tuple[tuple[int, int], ...] = ()
         if self._match_type == "sentence":
             sentences = self._split_sentences(text) or [text]
             injection_score = max(self._score_text(s) for s in sentences)
         elif self._match_type == "sliding_window":
-            windows = self._split_windows(text)
+            windows, spans = self._split_windows(text)
             if len(windows) > self._max_windows:
                 logger.warning("input spans %d windows, over max_windows %d; blocking", len(windows), self._max_windows)
                 return ScanResult(
@@ -258,7 +278,9 @@ class PromptInjectionScanner:
                     score=1.0,
                     reason=f"input spans {len(windows)} windows, over max_windows {self._max_windows}",
                 )
-            injection_score = self._score_windows(windows)
+            scores = self._score_windows(windows)
+            injection_score = max(scores, default=0.0)
+            flagged_spans = tuple(span for span, score in zip(spans, scores, strict=True) if score >= self._threshold)
         else:
             injection_score = self._score_text(text)
 
@@ -268,6 +290,7 @@ class PromptInjectionScanner:
             is_safe=is_safe,
             score=round(injection_score, 4),
             reason=None if is_safe else (f"injection score {injection_score:.4f} >= {self._threshold}"),
+            flagged_spans=flagged_spans,
         )
 
 

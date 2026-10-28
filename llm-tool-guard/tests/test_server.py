@@ -17,6 +17,8 @@ from fakes import FLAGGED_SCORE, INJECTION, FakeScanner, FakeValkey, digest
 from guard import ToolGuard
 from metrics import Metrics
 
+OFF = {"blocked": [], "cleared": [], "jev_scores": {}}
+
 
 def wait_until(predicate: Callable[[], bool], what: str, seconds: float = 5) -> None:
     deadline = time.monotonic() + seconds
@@ -109,8 +111,10 @@ def test_a_client_that_gives_up_frees_the_request_slot_and_its_scan_still_lands_
     served.scanner.release()
     wait_until(lambda: served.cached(abandoned), "the abandoned scan cached")
 
-    assert answers == [(200, {"flagged": [digest(cached)], "unknown": [], "scores": {digest(cached): FLAGGED_SCORE}})]
+    assert answers == [
+        (200, {"flagged": [digest(cached)], "unknown": [], "scores": {digest(cached): FLAGGED_SCORE}, **OFF})
+    ]
     assert served.scan(known=[digest(abandoned)]) == (
         200,
-        {"flagged": [digest(abandoned)], "unknown": [], "scores": {digest(abandoned): FLAGGED_SCORE}},
+        {"flagged": [digest(abandoned)], "unknown": [], "scores": {digest(abandoned): FLAGGED_SCORE}, **OFF},
     )

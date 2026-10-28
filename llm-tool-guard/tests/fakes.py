@@ -12,8 +12,12 @@ from metrics import Metrics
 INJECTION = "INJECT"
 FLAGGED_SCORE = 0.97312
 CLEAN_SCORE = 0.01234
-FLAGGED_VALUE = f"1:{FLAGGED_SCORE}"
 CLEAN_VALUE = f"0:{CLEAN_SCORE}"
+
+
+def flagged_value(text: str) -> str:
+    """Return the verdict-cache value of a flagged text the default FakeScanner scanned: one window, all of it."""
+    return f"1:{FLAGGED_SCORE}:0-{len(text)}"
 
 
 def digest(text: str) -> str:
@@ -57,7 +61,10 @@ class FakeValkey:
 
 
 class FakeScanner:
-    """Synchronous scan function: flags text containing INJECTION, records calls, and can hold scans on a gate."""
+    """Synchronous scan function: flags text containing INJECTION, records calls, and can hold scans on a gate.
+
+    A flagged text is one flagged window covering all of it; set verdict to return (flagged, score, spans) instead.
+    """
 
     def __init__(self, *, gated: bool = False, error: Exception | None = None):
         """Gated scans wait for release(); error makes every scan raise it."""
@@ -68,7 +75,7 @@ class FakeScanner:
         self.peak = 0
         self._lock = threading.Lock()
         self._error = error
-        self.verdict: Callable[[str], tuple[bool, float]] | None = None
+        self.verdict: Callable[[str], tuple] | None = None
         if not gated:
             self.gate.set()
 
@@ -76,8 +83,8 @@ class FakeScanner:
         """Let held scans finish."""
         self.gate.set()
 
-    def __call__(self, text: str) -> tuple[bool, float]:
-        """Return (flagged, score); flagged when text looks like an injection."""
+    def __call__(self, text: str) -> tuple:
+        """Return (flagged, score, spans); flagged when text looks like an injection."""
         with self._lock:
             self.calls.append(text)
             self.active += 1
@@ -91,7 +98,7 @@ class FakeScanner:
             if self.verdict is not None:
                 return self.verdict(text)
             flagged = INJECTION in text
-            return flagged, FLAGGED_SCORE if flagged else CLEAN_SCORE
+            return (True, FLAGGED_SCORE, ((0, len(text)),)) if flagged else (False, CLEAN_SCORE, ())
         finally:
             with self._lock:
                 self.active -= 1

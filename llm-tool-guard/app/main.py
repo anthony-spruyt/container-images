@@ -79,7 +79,7 @@ def build(settings: Settings, metrics: Metrics):
             max_pending_scans=settings.max_pending_scans,
             scan_workers=settings.scan_workers,
             stop_scans=classifier.stop,
-            second_check=build_second_check(settings, client, metrics),
+            second_check=build_second_check(settings, client, metrics, scan_namespace=namespace),
         )
 
     return load
