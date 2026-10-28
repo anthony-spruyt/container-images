@@ -198,6 +198,7 @@ def test_verdict_and_score_round_trip_exactly(metrics, valkey):
         "1:0.5:1-2,,3-4",
         "1:0.5:1-2:3-4",
         "1:0.5:1.5-2",
+        "1:0.5:\u0661-\u0662",
     ],
 )
 def test_unexpected_stored_value_is_a_miss(metrics, valkey, value):

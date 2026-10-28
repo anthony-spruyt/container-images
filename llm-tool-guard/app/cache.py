@@ -20,7 +20,7 @@ _PREFIX = "llm-tool-guard"
 _FLAGS = {"1": True, "0": False}
 _NO_ANSWER = "-"
 _PARTIAL = "+"
-_SPANS = re.compile(r"[0-9]+-[0-9]+(,[0-9]+-[0-9]+)*")
+_SPANS = re.compile(r"\d+-\d+(,\d+-\d+)*", re.ASCII)
 _TRANSIENT_TTL_SECONDS = 3600
 _LIBRARIES = ("transformers", "tokenizers", "torch")
 
