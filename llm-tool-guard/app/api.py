@@ -36,7 +36,6 @@ class ScanRequest(BaseModel):
 
     new: list[NewItem] = []
     known: list[str] = []
-    jev: bool = False
 
 
 class _RequestError(Exception):
@@ -48,15 +47,15 @@ def _error(status: int, detail: str, headers: dict | None = None) -> JSONRespons
     return JSONResponse(status_code=status, content={"detail": detail}, headers=headers)
 
 
-def _parse(raw: bytes) -> tuple[list[dict], list[str], bool]:
-    """Return the items to scan, the hashes to look up and whether the caller wants Jev's answers, holding no more."""
+def _parse(raw: bytes) -> tuple[list[dict], list[str]]:
+    """Return the items to scan and the hashes to look up, holding no more."""
     try:
         body = ScanRequest.model_validate(json.loads(raw))
     except ValidationError:
         raise _RequestError(_error(422, "body does not match the scan request schema")) from None
     except ValueError:
         raise _RequestError(_error(400, "body is not valid JSON")) from None
-    return [item.model_dump() for item in body.new], body.known, body.jev
+    return [item.model_dump() for item in body.new], body.known
 
 
 async def _wait_for_disconnect(request: Request) -> None:
@@ -120,7 +119,8 @@ class _Service:
     async def scan(self, request: Request):
         """Return the hashes to flag, the known hashes without a verdict and the model score of each hash it flagged.
 
-        With "jev": true the response also lists the hashes Jev blocked and cleared and the answer it gave for each.
+        The response also lists the hashes Jev blocked and cleared and the answer it gave for each; all three are
+        empty while the second check is off.
         """
         with self._metrics.request_seconds.time():
             try:
@@ -134,10 +134,10 @@ class _Service:
 
     async def _answer(self, guard: ToolGuard, request: Request):
         try:
-            new, known, jev = _parse(await self._read_body(request))
+            new, known = _parse(await self._read_body(request))
         except _RequestError as exc:
             return exc.response
-        check = asyncio.create_task(guard.check_with_jev(new, known) if jev else guard.check(new, known))
+        check = asyncio.create_task(guard.check(new, known))
         del new
         gone = asyncio.create_task(_wait_for_disconnect(request))
         try:
@@ -145,11 +145,7 @@ class _Service:
             await asyncio.wait({check, gone}, return_when=asyncio.FIRST_COMPLETED)
             if not check.done():
                 return _error(499, "client disconnected")
-            result = check.result()
-            if jev:
-                return result._asdict()
-            flagged, unknown, scores = result
-            return {"flagged": flagged, "unknown": unknown, "scores": scores}
+            return check.result()._asdict()
         finally:
             gone.cancel()
             check.cancel()

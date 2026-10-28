@@ -53,7 +53,7 @@ class Metrics:
         )
         self.jev_requests = Counter(
             "llm_tool_guard_jev_requests_total",
-            "Jev questions by outcome (blocked, cleared, middle, error, skipped)",
+            "Jev questions, one per flagged window, by outcome (blocked, cleared, middle, error, skipped)",
             ["outcome"],
             registry=registry,
         )

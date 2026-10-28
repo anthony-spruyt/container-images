@@ -11,9 +11,11 @@ from fastapi.testclient import TestClient
 from api import create_app
 from cache import JevCache, VerdictCache
 from config import Settings
-from fakes import FLAGGED_SCORE, FLAGGED_VALUE, INJECTION, FakeJudge, FakeScanner, FakeValkey, digest, sample
+from fakes import FLAGGED_SCORE, INJECTION, FakeJudge, FakeScanner, FakeValkey, digest, flagged_value, sample
 from guard import ToolGuard
 from second_check import SecondCheck
+
+NO_SECOND_CHECK = {"blocked": [], "cleared": [], "jev_scores": {}}
 
 
 def make_guard(metrics, valkey=None, scanner=None, judge=None, **settings_env) -> ToolGuard:
@@ -22,7 +24,9 @@ def make_guard(metrics, valkey=None, scanner=None, judge=None, **settings_env) -
     second = None
     if judge is not None:
         jev_cache = JevCache(valkey, namespace="jns", ttl_seconds=60, metrics=metrics)
-        second = SecondCheck(judge, jev_cache, metrics, block_at=0.9, clear_below=0.08, max_text_bytes=1024)
+        second = SecondCheck(
+            judge, jev_cache, metrics, block_at=0.9, clear_below=0.08, max_text_bytes=1024, max_windows=16
+        )
     return ToolGuard(
         scanner or FakeScanner(),
         cache,
@@ -63,6 +67,7 @@ def test_scan_returns_flagged_and_unknown(client):
         "flagged": [digest(f"{INJECTION} me")],
         "unknown": [digest("never seen")],
         "scores": {digest(f"{INJECTION} me"): FLAGGED_SCORE},
+        **NO_SECOND_CHECK,
     }
 
 
@@ -75,6 +80,7 @@ def test_known_lookup_after_scan_uses_the_cache(client):
         "flagged": [digest(f"{INJECTION} me")],
         "unknown": [],
         "scores": {digest(f"{INJECTION} me"): FLAGGED_SCORE},
+        **NO_SECOND_CHECK,
     }
 
 
@@ -83,7 +89,7 @@ def test_missing_lists_default_to_empty(client, payload):
     response = client.post("/v1/scan", json=payload)
 
     assert response.status_code == 200
-    assert response.json() == {"flagged": [], "unknown": [], "scores": {}}
+    assert response.json() == {"flagged": [], "unknown": [], "scores": {}, **NO_SECOND_CHECK}
 
 
 @pytest.mark.parametrize(
@@ -115,7 +121,7 @@ def test_lone_surrogates_in_json_hash_like_the_middleware(client):
 
     response = client.post("/v1/scan", content=raw.encode(), headers={"Content-Type": "application/json"})
 
-    assert response.json() == {"flagged": [], "unknown": [], "scores": {}}
+    assert response.json() == {"flagged": [], "unknown": [], "scores": {}, **NO_SECOND_CHECK}
 
 
 def test_forged_hash_is_flagged_without_a_score(client):
@@ -133,7 +139,7 @@ def test_scan_error_is_flagged_without_a_score(metrics):
     with client_for(metrics, guard=guard) as client:
         response = client.post("/v1/scan", json=body(["fine"]))
 
-    assert response.json() == {"flagged": [digest("fine")], "unknown": [], "scores": {}}
+    assert response.json() == {"flagged": [digest("fine")], "unknown": [], "scores": {}, **NO_SECOND_CHECK}
 
 
 def test_scores_cover_only_the_model_flags_in_a_mixed_request(metrics):
@@ -144,6 +150,7 @@ def test_scores_cover_only_the_model_flags_in_a_mixed_request(metrics):
         "flagged": [digest(f"{INJECTION} x"), digest("y" * 41)],
         "unknown": [],
         "scores": {digest(f"{INJECTION} x"): FLAGGED_SCORE},
+        **NO_SECOND_CHECK,
     }
 
 
@@ -229,7 +236,7 @@ def test_text_over_the_item_limit_is_flagged(metrics):
     with client_for(metrics, guard=make_guard(metrics, FakeValkey(), MAX_TEXT_BYTES="10")) as client:
         response = client.post("/v1/scan", json=body(["x" * 11, "short"]))
 
-    assert response.json() == {"flagged": [digest("x" * 11)], "unknown": [], "scores": {}}
+    assert response.json() == {"flagged": [digest("x" * 11)], "unknown": [], "scores": {}, **NO_SECOND_CHECK}
 
 
 def test_auth_not_required_without_a_token(client):
@@ -308,23 +315,21 @@ def jev_client(metrics, judge, **env):
     return client_for(metrics, guard=make_guard(metrics, FakeValkey(), judge=judge), **env)
 
 
-def test_the_response_has_only_the_three_fields_unless_the_request_opts_in(metrics):
-    judge = FakeJudge(0.99)
-    with jev_client(metrics, judge) as client:
-        plain = client.post("/v1/scan", json=body([f"{INJECTION} me"]))
-        declined = client.post("/v1/scan", json=body([f"{INJECTION} me"], jev=False))
+def test_the_response_has_the_same_six_fields_with_the_second_check_on_or_off(metrics, client):
+    with jev_client(metrics, FakeJudge(0.99)) as on:
+        with_jev = on.post("/v1/scan", json=body([f"{INJECTION} me"]))
+    without_jev = client.post("/v1/scan", json=body([f"{INJECTION} me"]))
 
-    assert set(plain.json()) == set(declined.json()) == {"flagged", "unknown", "scores"}
-    assert plain.json()["flagged"] == [digest(f"{INJECTION} me")]
-    assert judge.calls == []
+    assert set(with_jev.json()) == set(without_jev.json())
+    assert set(with_jev.json()) == {"flagged", "unknown", "scores", "blocked", "cleared", "jev_scores"}
 
 
-def test_an_opted_in_request_gets_blocked_cleared_and_jev_scores(metrics):
+def test_a_request_without_a_jev_field_gets_blocked_cleared_and_jev_scores(metrics):
     judge = FakeJudge(0.5)
     blocked, cleared, middle = f"{INJECTION} block", f"{INJECTION} clear", f"{INJECTION} middle"
     judge.answers = {blocked: 0.99, cleared: 0.01}
     with jev_client(metrics, judge) as client:
-        response = client.post("/v1/scan", json=body([blocked, cleared, middle, "clean"], jev=True))
+        response = client.post("/v1/scan", json=body([blocked, cleared, middle, "clean"]))
 
     assert response.status_code == 200
     assert response.json() == {
@@ -337,12 +342,24 @@ def test_an_opted_in_request_gets_blocked_cleared_and_jev_scores(metrics):
     }
 
 
+@pytest.mark.parametrize("value", [True, False, "true", 1, None, [], {}])
+def test_the_jev_request_field_is_ignored_whatever_it_holds(metrics, value):
+    judge = FakeJudge(0.01)
+    text = f"{INJECTION} me"
+    with jev_client(metrics, judge) as client:
+        response = client.post("/v1/scan", json=body([text], jev=value))
+
+    assert response.status_code == 200
+    assert response.json()["cleared"] == [digest(text)]
+    assert judge.calls == [text]
+
+
 def test_known_hashes_get_the_same_fields_from_the_caches(metrics):
     judge = FakeJudge(0.01)
     text = f"{INJECTION} me"
     with jev_client(metrics, judge) as client:
-        client.post("/v1/scan", json=body([text], jev=True))
-        response = client.post("/v1/scan", json=body(known=[digest(text), digest("unseen")], jev=True))
+        client.post("/v1/scan", json=body([text]))
+        response = client.post("/v1/scan", json=body(known=[digest(text), digest("unseen")]))
 
     assert response.json() == {
         "flagged": [],
@@ -353,24 +370,6 @@ def test_known_hashes_get_the_same_fields_from_the_caches(metrics):
         "jev_scores": {digest(text): 0.01},
     }
     assert judge.calls == [text]
-
-
-def test_with_jev_off_an_opted_in_request_gets_empty_fields_and_every_flag(client):
-    response = client.post("/v1/scan", json=body([f"{INJECTION} me"], jev=True))
-
-    assert response.json() == {
-        "flagged": [digest(f"{INJECTION} me")],
-        "unknown": [],
-        "scores": {digest(f"{INJECTION} me"): FLAGGED_SCORE},
-        "blocked": [],
-        "cleared": [],
-        "jev_scores": {},
-    }
-
-
-@pytest.mark.parametrize("value", ["true", 1, None, [], {}])
-def test_a_jev_field_that_is_not_a_boolean_is_rejected(client, value):
-    assert client.post("/v1/scan", json={"new": [], "jev": value}).status_code == 422
 
 
 def test_shutdown_closes_the_jev_client(metrics):
@@ -442,7 +441,7 @@ def test_shutdown_waits_for_scans_in_flight_and_caches_them(metrics, background)
         assert scanner.started.wait(timeout=5)
         threading.Timer(0.2, scanner.release).start()
 
-    assert list(valkey.data.values()) == [FLAGGED_VALUE]
+    assert list(valkey.data.values()) == [flagged_value(text)]
 
 
 def test_shutdown_stops_waiting_after_the_drain_budget(metrics, background):
@@ -520,5 +519,5 @@ def test_a_request_whose_client_disconnects_frees_its_slot_while_its_scan_still_
             return lookup
 
     assert asyncio.run(run()) == 200
-    assert valkey.data == {f"llm-tool-guard:ns:{digest(abandoned)}": FLAGGED_VALUE}
+    assert valkey.data == {f"llm-tool-guard:ns:{digest(abandoned)}": flagged_value(abandoned)}
     assert sample(metrics, "llm_tool_guard_over_limit_total", limit="requests") == 0

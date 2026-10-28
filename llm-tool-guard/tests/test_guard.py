@@ -11,7 +11,7 @@ from collections.abc import Callable
 import pytest
 
 from cache import VerdictCache
-from fakes import CLEAN_VALUE, FLAGGED_SCORE, FLAGGED_VALUE, INJECTION, FakeScanner, FakeValkey, digest, sample
+from fakes import CLEAN_VALUE, FLAGGED_SCORE, INJECTION, FakeScanner, FakeValkey, digest, flagged_value, sample
 from guard import ScanStoppedError, ToolGuard, content_hash
 from metrics import Metrics
 
@@ -49,6 +49,14 @@ def cache_key(hash_: str) -> str:
     return f"llm-tool-guard:{NAMESPACE}:{hash_}"
 
 
+async def checked(guard: ToolGuard, new: list[dict], known: list[str]) -> tuple[list[str], list[str], dict[str, float]]:
+    """Check with no second check set, and return what the model decided: flagged, unknown and scores."""
+    checking = guard.check(new, known)
+    del new
+    result = await checking
+    return result.flagged, result.unknown, result.scores
+
+
 async def wait_for(predicate):
     for _ in range(500):
         if predicate():
@@ -72,7 +80,7 @@ def test_clean_item_is_not_flagged_and_its_verdict_is_cached(metrics, valkey):
     guard = make_guard(scanner, metrics, valkey)
     clean = item("NAME READY STATUS")
 
-    flagged, unknown, scores = asyncio.run(guard.check([clean], []))
+    flagged, unknown, scores = asyncio.run(checked(guard, [clean], []))
 
     assert (flagged, unknown, scores) == ([], [], {})
     assert valkey.data == {cache_key(clean["hash"]): CLEAN_VALUE}
@@ -84,11 +92,11 @@ def test_injection_item_is_flagged_and_cached(metrics, valkey):
     guard = make_guard(FakeScanner(), metrics, valkey)
     bad = item(f"log line {INJECTION} here")
 
-    flagged, _, scores = asyncio.run(guard.check([bad], []))
+    flagged, _, scores = asyncio.run(checked(guard, [bad], []))
 
     assert flagged == [bad["hash"]]
     assert scores == {bad["hash"]: FLAGGED_SCORE}
-    assert valkey.data == {cache_key(bad["hash"]): FLAGGED_VALUE}
+    assert valkey.data == {cache_key(bad["hash"]): flagged_value(bad["text"])}
     assert sample(metrics, "llm_tool_guard_scans_total", verdict="flagged") == 1
     assert sample(metrics, "llm_tool_guard_flagged_total", reason="verdict") == 1
 
@@ -99,8 +107,8 @@ def test_clean_score_just_under_the_threshold_stays_clean_through_the_cache(metr
     guard = make_guard(scanner, metrics, valkey)
     text = "borderline but clean"
 
-    first = asyncio.run(guard.check([item(text)], []))
-    second = asyncio.run(guard.check([], [digest(text)]))
+    first = asyncio.run(checked(guard, [item(text)], []))
+    second = asyncio.run(checked(guard, [], [digest(text)]))
 
     assert first == ([], [], {})
     assert second == ([], [], {})
@@ -113,7 +121,7 @@ def test_stored_verdict_is_served_as_stored_whatever_its_score(metrics, valkey):
     valkey.data[cache_key(high_but_clean)] = "0:0.99"
     valkey.data[cache_key(low_but_flagged)] = "1:0.1"
 
-    assert asyncio.run(guard.check([], [high_but_clean, low_but_flagged])) == (
+    assert asyncio.run(checked(guard, [], [high_but_clean, low_but_flagged])) == (
         [low_but_flagged],
         [],
         {low_but_flagged: 0.1},
@@ -124,7 +132,7 @@ def test_scan_log_line_includes_the_score(metrics, valkey, caplog):
     guard = make_guard(FakeScanner(), metrics, valkey)
 
     with caplog.at_level("INFO", logger="guard"):
-        asyncio.run(guard.check([item(f"{INJECTION} logged")], []))
+        asyncio.run(checked(guard, [item(f"{INJECTION} logged")], []))
 
     assert "flagged=True score=0.9731" in caplog.text
 
@@ -133,9 +141,9 @@ def test_new_item_with_cached_verdict_is_not_rescanned(metrics, valkey):
     scanner = FakeScanner()
     guard = make_guard(scanner, metrics, valkey)
     text = "plain output"
-    valkey.data[cache_key(digest(text))] = FLAGGED_VALUE
+    valkey.data[cache_key(digest(text))] = flagged_value(text)
 
-    flagged, _, scores = asyncio.run(guard.check([item(text)], []))
+    flagged, _, scores = asyncio.run(checked(guard, [item(text)], []))
 
     assert flagged == [digest(text)]
     assert scores == {digest(text): FLAGGED_SCORE}
@@ -147,10 +155,10 @@ def test_known_hashes_are_answered_from_the_cache(metrics, valkey):
     scanner = FakeScanner()
     guard = make_guard(scanner, metrics, valkey)
     bad, clean, missing = digest("a"), digest("b"), digest("c")
-    valkey.data[cache_key(bad)] = FLAGGED_VALUE
+    valkey.data[cache_key(bad)] = flagged_value("old")
     valkey.data[cache_key(clean)] = CLEAN_VALUE
 
-    flagged, unknown, scores = asyncio.run(guard.check([], [bad, clean, missing]))
+    flagged, unknown, scores = asyncio.run(checked(guard, [], [bad, clean, missing]))
 
     assert flagged == [bad]
     assert unknown == [missing]
@@ -174,7 +182,7 @@ def test_malformed_known_hash_is_unknown_without_a_lookup(metrics, valkey, known
     guard = make_guard(FakeScanner(), metrics, valkey)
     valkey.data[cache_key(known)] = CLEAN_VALUE
 
-    flagged, unknown, _ = asyncio.run(guard.check([], [known]))
+    flagged, unknown, _ = asyncio.run(checked(guard, [], [known]))
 
     assert (flagged, unknown) == ([], [known])
     assert valkey.mget_calls == []
@@ -184,7 +192,7 @@ def test_known_hash_also_sent_as_new_is_scanned_not_unknown(metrics, valkey):
     guard = make_guard(FakeScanner(), metrics, valkey)
     clean = item("fine")
 
-    flagged, unknown, _ = asyncio.run(guard.check([clean], [clean["hash"]]))
+    flagged, unknown, _ = asyncio.run(checked(guard, [clean], [clean["hash"]]))
 
     assert (flagged, unknown) == ([], [])
 
@@ -195,7 +203,7 @@ def test_hash_mismatch_is_flagged_and_nothing_is_cached(metrics, valkey):
     victim = digest(f"{INJECTION} the agent")
     forged = {"hash": victim, "text": "harmless text"}
 
-    flagged, unknown, scores = asyncio.run(guard.check([forged], []))
+    flagged, unknown, scores = asyncio.run(checked(guard, [forged], []))
 
     assert (flagged, unknown, scores) == ([victim], [], {})
     assert valkey.data == {}
@@ -207,8 +215,8 @@ def test_hash_mismatch_cannot_make_a_later_known_lookup_clean(metrics, valkey):
     guard = make_guard(FakeScanner(), metrics, valkey)
     victim = digest(f"{INJECTION} the agent")
 
-    asyncio.run(guard.check([{"hash": victim, "text": "harmless text"}], []))
-    flagged, unknown, _ = asyncio.run(guard.check([], [victim]))
+    asyncio.run(checked(guard, [{"hash": victim, "text": "harmless text"}], []))
+    flagged, unknown, _ = asyncio.run(checked(guard, [], [victim]))
 
     assert (flagged, unknown) == ([], [victim])
 
@@ -217,7 +225,7 @@ def test_hash_mismatch_wins_over_a_matching_duplicate(metrics, valkey):
     guard = make_guard(FakeScanner(), metrics, valkey)
     clean = item("fine")
 
-    flagged, *_ = asyncio.run(guard.check([clean, {"hash": clean["hash"], "text": "other"}], []))
+    flagged, *_ = asyncio.run(checked(guard, [clean, {"hash": clean["hash"], "text": "other"}], []))
 
     assert flagged == [clean["hash"]]
     assert valkey.data == {}
@@ -228,7 +236,7 @@ def test_uppercase_hex_does_not_match(metrics, valkey):
     text = "fine"
     upper = "sha256:" + digest(text).removeprefix("sha256:").upper()
 
-    flagged, *_ = asyncio.run(guard.check([item(text, upper)], []))
+    flagged, *_ = asyncio.run(checked(guard, [item(text, upper)], []))
 
     assert flagged == [upper]
 
@@ -238,7 +246,7 @@ def test_text_over_the_byte_limit_is_flagged_without_a_scan(metrics, valkey):
     guard = make_guard(scanner, metrics, valkey, max_text_bytes=8)
     over = item("é" * 5)
 
-    flagged, _, scores = asyncio.run(guard.check([over], []))
+    flagged, _, scores = asyncio.run(checked(guard, [over], []))
 
     assert flagged == [over["hash"]]
     assert scores == {}
@@ -252,7 +260,7 @@ def test_text_at_the_byte_limit_is_scanned(metrics, valkey):
     scanner = FakeScanner()
     guard = make_guard(scanner, metrics, valkey, max_text_bytes=8)
 
-    flagged, *_ = asyncio.run(guard.check([item("é" * 4)], []))
+    flagged, *_ = asyncio.run(checked(guard, [item("é" * 4)], []))
 
     assert flagged == []
     assert scanner.calls == ["é" * 4]
@@ -262,7 +270,7 @@ def test_flagged_hashes_are_unique_and_in_request_order(metrics, valkey):
     guard = make_guard(FakeScanner(), metrics, valkey)
     first, second = item(f"{INJECTION} 1"), item(f"{INJECTION} 2")
 
-    flagged, *_ = asyncio.run(guard.check([second, first, second], [first["hash"]]))
+    flagged, *_ = asyncio.run(checked(guard, [second, first, second], [first["hash"]]))
 
     assert flagged == [second["hash"], first["hash"]]
 
@@ -273,8 +281,8 @@ def test_concurrent_requests_for_one_text_scan_it_once(metrics, valkey):
     bad = item(f"{INJECTION} once")
 
     async def run():
-        first = asyncio.create_task(guard.check([bad], []))
-        second = asyncio.create_task(guard.check([bad], []))
+        first = asyncio.create_task(checked(guard, [bad], []))
+        second = asyncio.create_task(checked(guard, [bad], []))
         await wait_for(scanner.started.is_set)
         await asyncio.sleep(0.05)
         scanner.release()
@@ -292,17 +300,17 @@ def test_scan_finishes_and_is_cached_after_the_request_is_cancelled(metrics, val
     bad = item(f"{INJECTION} slow")
 
     async def run():
-        request = asyncio.create_task(guard.check([bad], []))
+        request = asyncio.create_task(checked(guard, [bad], []))
         await wait_for(scanner.started.is_set)
         request.cancel()
         with pytest.raises(asyncio.CancelledError):
             await request
         scanner.release()
         await guard.drain()
-        return await guard.check([], [bad["hash"]])
+        return await checked(guard, [], [bad["hash"]])
 
     assert asyncio.run(run()) == ([bad["hash"]], [], {bad["hash"]: FLAGGED_SCORE})
-    assert valkey.data == {cache_key(bad["hash"]): FLAGGED_VALUE}
+    assert valkey.data == {cache_key(bad["hash"]): flagged_value(bad["text"])}
 
 
 def test_scan_finishes_after_a_client_timeout(metrics, valkey):
@@ -311,7 +319,7 @@ def test_scan_finishes_after_a_client_timeout(metrics, valkey):
     clean = item("slow but fine")
 
     async def run():
-        request = asyncio.wait_for(guard.check([clean], []), 0.05)
+        request = asyncio.wait_for(checked(guard, [clean], []), 0.05)
         with pytest.raises(TimeoutError):
             await request
         scanner.release()
@@ -328,9 +336,9 @@ def test_known_hash_waits_for_its_scan_in_flight(metrics, valkey):
     bad = item(f"{INJECTION} pending")
 
     async def run():
-        scanning = asyncio.create_task(guard.check([bad], []))
+        scanning = asyncio.create_task(checked(guard, [bad], []))
         await wait_for(scanner.started.is_set)
-        lookup = asyncio.create_task(guard.check([], [bad["hash"]]))
+        lookup = asyncio.create_task(checked(guard, [], [bad["hash"]]))
         await asyncio.sleep(0.05)
         scanner.release()
         await scanning
@@ -346,9 +354,9 @@ def test_items_beyond_the_pending_scan_limit_are_flagged(metrics, valkey):
     first, second = item("first"), item("second")
 
     async def run():
-        held = asyncio.create_task(guard.check([first], []))
+        held = asyncio.create_task(checked(guard, [first], []))
         await wait_for(scanner.started.is_set)
-        rejected = await guard.check([second], [])
+        rejected = await checked(guard, [second], [])
         scanner.release()
         return await held, rejected
 
@@ -365,7 +373,7 @@ def test_pending_scans_gauge_tracks_the_queue(metrics, valkey):
     guard = make_guard(scanner, metrics, valkey)
 
     async def run():
-        request = asyncio.create_task(guard.check([item("a"), item("b")], []))
+        request = asyncio.create_task(checked(guard, [item("a"), item("b")], []))
         await wait_for(scanner.started.is_set)
         during = sample(metrics, "llm_tool_guard_pending_scans")
         scanner.release()
@@ -381,7 +389,7 @@ def test_scans_run_at_most_scan_workers_at_a_time(metrics, valkey):
     guard = make_guard(scanner, metrics, valkey, scan_workers=2)
 
     async def run():
-        request = asyncio.create_task(guard.check([item(str(i)) for i in range(5)], []))
+        request = asyncio.create_task(checked(guard, [item(str(i)) for i in range(5)], []))
         await wait_for(lambda: scanner.active == 2)
         await asyncio.sleep(0.05)
         scanner.release()
@@ -397,7 +405,7 @@ def test_scan_error_is_flagged_and_not_cached(metrics, valkey):
     guard = make_guard(FakeScanner(error=RuntimeError("model failed")), metrics, valkey)
     clean = item("fine")
 
-    flagged, _, scores = asyncio.run(guard.check([clean], []))
+    flagged, _, scores = asyncio.run(checked(guard, [clean], []))
 
     assert flagged == [clean["hash"]]
     assert scores == {}
@@ -410,7 +418,7 @@ def test_scan_over_its_time_budget_is_flagged_and_not_cached(metrics, valkey):
     guard = make_guard(FakeScanner(error=TimeoutError("scan over budget")), metrics, valkey)
     slow = item("slow")
 
-    flagged, _, scores = asyncio.run(guard.check([slow], []))
+    flagged, _, scores = asyncio.run(checked(guard, [slow], []))
 
     assert flagged == [slow["hash"]]
     assert scores == {}
@@ -425,8 +433,8 @@ def test_timed_out_scan_frees_its_slot_and_the_text_is_scanned_again_next_time(m
     guard = make_guard(scanner, metrics, valkey, max_pending_scans=1)
     slow = item("slow")
 
-    asyncio.run(guard.check([slow], []))
-    asyncio.run(guard.check([slow], []))
+    asyncio.run(checked(guard, [slow], []))
+    asyncio.run(checked(guard, [slow], []))
 
     assert len(scanner.calls) == 2
     assert sample(metrics, "llm_tool_guard_pending_scans") == 0
@@ -448,7 +456,7 @@ def test_texts_not_waiting_on_a_scan_are_released_while_others_scan(metrics, val
         return [{"hash": digest(cached), "text": cached}, item("still scanning")]
 
     async def run():
-        request = asyncio.create_task(guard.check(items(), []))
+        request = asyncio.create_task(checked(guard, items(), []))
         await wait_for(scanner.started.is_set)
         gc.collect()
         alive = refs[0]() is not None
@@ -462,7 +470,7 @@ def test_texts_not_waiting_on_a_scan_are_released_while_others_scan(metrics, val
 def test_scan_latency_is_observed(metrics, valkey):
     guard = make_guard(FakeScanner(), metrics, valkey)
 
-    asyncio.run(guard.check([item("fine")], []))
+    asyncio.run(checked(guard, [item("fine")], []))
 
     assert sample(metrics, "llm_tool_guard_scan_duration_seconds_count") == 1
 
@@ -473,7 +481,7 @@ def test_valkey_down_still_scans_and_reports_known_as_unknown(metrics, valkey):
     valkey.down = True
     bad = item(f"{INJECTION} x")
 
-    flagged, unknown, _ = asyncio.run(guard.check([bad], [digest("old")]))
+    flagged, unknown, _ = asyncio.run(checked(guard, [bad], [digest("old")]))
 
     assert flagged == [bad["hash"]]
     assert unknown == [digest("old")]
@@ -488,8 +496,8 @@ def test_without_valkey_items_are_scanned_and_known_is_unknown(metrics):
     guard = make_guard(scanner, metrics, None)
     clean = item("fine")
 
-    assert asyncio.run(guard.check([clean], [digest("old")])) == ([], [digest("old")], {})
-    assert asyncio.run(guard.check([clean], [])) == ([], [], {})
+    assert asyncio.run(checked(guard, [clean], [digest("old")])) == ([], [digest("old")], {})
+    assert asyncio.run(checked(guard, [clean], [])) == ([], [], {})
     assert len(scanner.calls) == 2
 
 
@@ -500,7 +508,7 @@ def test_drain_returns_once_scans_finish_within_the_timeout(metrics, valkey):
 
     async def run():
         asyncio.get_running_loop().call_later(0.05, scanner.release)
-        request = asyncio.create_task(guard.check([clean], []))
+        request = asyncio.create_task(checked(guard, [clean], []))
         await wait_for(scanner.started.is_set)
         await guard.drain(max_wait=5)
         await request
@@ -516,7 +524,7 @@ def test_drain_gives_up_after_the_timeout_without_cancelling_scans(metrics, valk
     clean = item("slow but fine")
 
     async def run():
-        request = asyncio.create_task(guard.check([clean], []))
+        request = asyncio.create_task(checked(guard, [clean], []))
         await wait_for(scanner.started.is_set)
         start = time.monotonic()
         await guard.drain(max_wait=0.05)
@@ -566,7 +574,7 @@ def test_close_stops_the_running_scan_and_its_verdict_is_not_cached(metrics, val
     slow = item("slow")
 
     async def run():
-        request = asyncio.create_task(guard.check([slow], []))
+        request = asyncio.create_task(checked(guard, [slow], []))
         await wait_for(scanner.started.is_set)
         start = time.monotonic()
         guard.close()

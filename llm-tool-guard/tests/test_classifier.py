@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from classifier import Classifier
+from classifier import Classifier, model_input
 from guard import ScanStoppedError
 
 MODEL = "org/model"
@@ -16,10 +16,11 @@ SNAPSHOT = "/hf/hub/models--org--model/snapshots/0123abc/config.json"
 class StubScanner:
     """Records scanned text and answers with a fixed verdict."""
 
-    def __init__(self, is_safe: bool, score: float = 0.0):
-        """Build a scanner with a fixed verdict and score."""
+    def __init__(self, is_safe: bool, score: float = 0.0, flagged_spans: tuple = ()):
+        """Build a scanner with a fixed verdict, score and flagged spans."""
         self.is_safe = is_safe
         self.score = score
+        self.flagged_spans = flagged_spans
         self.texts: list[str] = []
         self.loaded = False
         self._pipe = SimpleNamespace(forward=lambda batch: batch)
@@ -31,7 +32,7 @@ class StubScanner:
     def scan(self, text: str):
         """Return the fixed verdict."""
         self.texts.append(text)
-        return SimpleNamespace(is_safe=self.is_safe, score=self.score)
+        return SimpleNamespace(is_safe=self.is_safe, score=self.score, flagged_spans=self.flagged_spans)
 
 
 def locate(found):
@@ -45,8 +46,14 @@ def locate(found):
 
 
 def test_returns_the_verdict_and_the_scanner_score():
-    assert Classifier(StubScanner(is_safe=False, score=0.97312), MODEL)("x") == (True, 0.97312)
-    assert Classifier(StubScanner(is_safe=True, score=0.89999), MODEL)("x") == (False, 0.89999)
+    assert Classifier(StubScanner(is_safe=False, score=0.97312), MODEL)("x") == (True, 0.97312, ())
+    assert Classifier(StubScanner(is_safe=True, score=0.89999), MODEL)("x") == (False, 0.89999, ())
+
+
+def test_returns_the_spans_of_the_windows_the_scanner_flagged():
+    scanner = StubScanner(is_safe=False, score=0.97312, flagged_spans=((0, 40), (30, 70)))
+
+    assert Classifier(scanner, MODEL)("x" * 70) == (True, 0.97312, ((0, 40), (30, 70)))
 
 
 def test_lone_surrogates_are_replaced_before_tokenizing():
@@ -55,6 +62,12 @@ def test_lone_surrogates_are_replaced_before_tokenizing():
     Classifier(scanner, MODEL)("a \ud800 b")
 
     assert scanner.texts == ["a � b"]
+
+
+def test_replacing_surrogates_keeps_every_character_position():
+    text = "a \ud800 b \udfff\ud83d c"
+
+    assert len(model_input(text)) == len(text)
 
 
 def test_load_loads_the_scanner_and_reads_the_cached_snapshot_revision():
@@ -109,7 +122,7 @@ class WindowedScanner:
         """Run every window through the pipeline."""
         for _ in range(self.windows):
             self._pipe.forward(text)
-        return SimpleNamespace(is_safe=True, score=0.0)
+        return SimpleNamespace(is_safe=True, score=0.0, flagged_spans=())
 
 
 def loaded(scanner, **kwargs) -> Classifier:
@@ -131,21 +144,21 @@ def test_scan_over_its_time_budget_stops_between_windows():
 def test_scan_within_its_time_budget_is_unaffected():
     scanner = WindowedScanner(windows=3, seconds=0)
 
-    assert loaded(scanner, time_budget_seconds=5)("x") == (False, 0.0)
+    assert loaded(scanner, time_budget_seconds=5)("x") == (False, 0.0, ())
     assert scanner.forwards == 3
 
 
 def test_each_scan_gets_a_fresh_time_budget():
     classifier = loaded(WindowedScanner(windows=3, seconds=0.05), time_budget_seconds=0.25)
 
-    assert classifier("x") == (False, 0.0)
-    assert classifier("y") == (False, 0.0)
+    assert classifier("x") == (False, 0.0, ())
+    assert classifier("y") == (False, 0.0, ())
 
 
 def test_without_a_time_budget_scans_run_to_the_end():
     scanner = WindowedScanner(windows=5, seconds=0.01)
 
-    assert loaded(scanner)("x") == (False, 0.0)
+    assert loaded(scanner)("x") == (False, 0.0, ())
     assert scanner.forwards == 5
 
 
@@ -165,7 +178,7 @@ def test_time_budgets_are_per_thread():
     for thread in threads:
         thread.join()
 
-    assert outcomes == [(False, 0.0)] * 3
+    assert outcomes == [(False, 0.0, ())] * 3
 
 
 @pytest.mark.parametrize("budget", [None, 60])
