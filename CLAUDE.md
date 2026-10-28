@@ -42,12 +42,12 @@ The test runs against the built image on every CI build and before each publish.
 For a variant that shares another image's sources but needs its own Dockerfile, set `build_context` in its `metadata.yaml` to that image's directory. The variant directory then only needs a `Dockerfile` (plus optionally `test.sh`) — no copy of the shared `app/` or `assets/`:
 
 ```yaml
-build_context: llm-guard
+build_context: <source-image>
 ```
 
 CI builds with `context: <build_context>` and `file: <image-name>/Dockerfile`, and change detection fans out — a change in the source directory rebuilds the variant too.
 
-Note that release-please only sees the variant's own directory, so a source-only change does not cut a release for the variant. It picks the change up on its next release; to release immediately, include a commit touching the variant's directory.
+Add the variant to a `linked-versions` group in `release-please-config.json` with its source image, so a commit touching either directory releases both. See [docs/releases.md](docs/releases.md#variant-images).
 
 ### Sharing a file with another image
 

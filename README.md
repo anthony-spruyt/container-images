@@ -45,8 +45,10 @@ CI and releases find images in `release-please-config.json`, so no workflow chan
 To share another image's sources but use your own `Dockerfile`, add a `metadata.yaml` setting `build_context`:
 
 ```yaml
-build_context: llm-guard
+build_context: <source-image>
 ```
+
+Add the variant to a `linked-versions` group in `release-please-config.json` with its source image, so a commit touching either directory releases both. See [docs/releases.md](docs/releases.md#variant-images).
 
 ## Adding a Custom MegaLinter Flavor
 
