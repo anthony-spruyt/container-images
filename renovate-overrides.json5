@@ -44,31 +44,6 @@
       "matchFileNames": ["megalinter-factory/base.yaml", "megalinter-factory/languages/*.yaml"],
       "addLabels": ["renovate/megalinter-flavor"],
     },
-    // A major floor would force past ranges that dependents pin exactly (effect 4 vs @prisma/config).
-    {
-      "description": "Keep happy-server dependency floors within their major",
-      "matchFileNames": ["happy-server/Dockerfile"],
-      "matchDepNames": ["@fastify/static", "deepmerge-ts", "effect", "sharp", "zod"],
-      "matchUpdateTypes": ["major"],
-      "enabled": false,
-    },
-    // A caret range treats a 0.x minor as a major (sharp ^0.35.5 excludes 0.36), but Renovate calls it "minor".
-    // Patches get their own bucket: Renovate keeps only the highest non-major update, so blocking it would hide them.
-    {
-      "description": "Offer happy-server 0.x dependency floor patches apart from their minors",
-      "matchFileNames": ["happy-server/Dockerfile"],
-      "matchDepNames": ["@fastify/static", "deepmerge-ts", "effect", "sharp", "zod"],
-      "matchCurrentVersion": "/^0\\./",
-      "separateMinorPatch": true,
-    },
-    {
-      "description": "Keep happy-server 0.x dependency floors within their minor",
-      "matchFileNames": ["happy-server/Dockerfile"],
-      "matchDepNames": ["@fastify/static", "deepmerge-ts", "effect", "sharp", "zod"],
-      "matchCurrentVersion": "/^0\\./",
-      "matchUpdateTypes": ["minor"],
-      "enabled": false,
-    },
     // release-please writes a CHANGELOG.md per image directory. Without
     // sourceDirectory Renovate looks for release notes at the repo root and
     // finds none, so updates to our own images render with an empty body.
@@ -107,12 +82,6 @@
       "matchDatasources": ["docker"],
       "matchPackageNames": ["ghcr.io/anthony-spruyt/devcontainer-common"],
       "sourceDirectory": "devcontainer-common",
-    },
-    {
-      "description": "Release notes for own images: happy-server",
-      "matchDatasources": ["docker"],
-      "matchPackageNames": ["ghcr.io/anthony-spruyt/happy-server"],
-      "sourceDirectory": "happy-server",
     },
     {
       "description": "Release notes for own images: llm-tool-guard",
