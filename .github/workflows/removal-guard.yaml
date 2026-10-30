@@ -28,7 +28,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Harden Runner
-        uses: anthony-spruyt/repo-operator/.github/actions/harden-runner@62512235d2a245f1de477ce0424ba390c67229aa # main
+        uses: anthony-spruyt/repo-operator/.github/actions/harden-runner@785a1624691d232d9e7e4282ab0ea98114dc8802 # main
         with:
           allowed-endpoints: >-
             api.github.com:443
