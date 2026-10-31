@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.2](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.1...llm-tool-guard-1.7.2) (2026-10-31)
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.161.0 ([#2670](https://github.com/anthony-spruyt/container-images/issues/2670)) ([31f8138](https://github.com/anthony-spruyt/container-images/commit/31f813890a653fe90527e5cdbaabb18c3441a5ee))
+* **deps:** update dependency fastapi to v0.161.1 ([#2676](https://github.com/anthony-spruyt/container-images/issues/2676)) ([3ff0149](https://github.com/anthony-spruyt/container-images/commit/3ff0149b86492c3b4d2498dae6608d7b14857c91))
+
 ## [1.7.1](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.0...llm-tool-guard-1.7.1) (2026-10-28)
 
 
