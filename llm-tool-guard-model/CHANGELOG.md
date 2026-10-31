@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.1.0...llm-tool-guard-model-1.1.1) (2026-10-31)
+
+
+### Dependencies
+
+* **deps:** update dependency huggingface_hub to v2.3.0 ([#2588](https://github.com/anthony-spruyt/container-images/issues/2588)) ([b8af922](https://github.com/anthony-spruyt/container-images/commit/b8af922b891e58630845d6f189b57fb22aeaaa9e))
+
 ## [1.1.0](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.0.5...llm-tool-guard-model-1.1.0) (2026-10-28)
 
 
