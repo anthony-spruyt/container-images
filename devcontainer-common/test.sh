@@ -28,6 +28,24 @@ docker run --rm "$IMAGE_REF" bash -c '
   test -x /usr/local/bin/devcontainer-claude-plugins && echo "devcontainer-claude-plugins: OK"
 '
 
+echo "=== nodeenv in the pre-commit venv ==="
+pinned=$(sed -n 's/^ARG NODEENV_VERSION="\(.*\)"$/\1/p' "$(dirname "$0")/Dockerfile")
+if [[ -z "$pinned" ]]; then
+  echo "FAIL: no NODEENV_VERSION pin in Dockerfile"
+  exit 1
+fi
+installed=$(docker run --rm "$IMAGE_REF" /usr/local/py-utils/venvs/pre-commit/bin/python -m nodeenv --version)
+if [[ "$installed" != "$pinned" ]]; then
+  echo "FAIL: nodeenv $installed installed, Dockerfile pins $pinned"
+  exit 1
+fi
+# 1.11.0 crashes when "latest" resolves to a Node.js pre-release (ekalinin/nodeenv#453)
+if [[ "$(printf '%s\n' 1.11.1 "$installed" | sort -V | head -n1)" != 1.11.1 ]]; then
+  echo "FAIL: nodeenv $installed predates the 1.11.1 pre-release fix"
+  exit 1
+fi
+echo "nodeenv $installed: OK"
+
 echo "=== Build leftovers ==="
 leftovers=$(docker run --rm "$IMAGE_REF" find /tmp -mindepth 1 -maxdepth 1)
 if [[ -n "$leftovers" ]]; then

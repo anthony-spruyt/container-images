@@ -27,11 +27,16 @@ RUN chmod +x /tmp/scripts/*.sh \
 ARG PRE_COMMIT_VERSION="4.7.0"
 # renovate: datasource=pypi depName=pipx
 ARG PIPX_VERSION="1.18.4"
+# pre-commit leaves nodeenv unpinned; 1.11.0 crashes on Node.js pre-releases (ekalinin/nodeenv#453)
+# renovate: datasource=pypi depName=nodeenv
+ARG NODEENV_VERSION="1.12.0"
 RUN export PIPX_HOME="/usr/local/py-utils" \
     && export PIPX_BIN_DIR="/usr/local/py-utils/bin" \
     && mkdir -p "$PIPX_HOME" "$PIPX_BIN_DIR" \
     && pip install --no-cache-dir "pipx==${PIPX_VERSION}" \
-    && pipx install "pre-commit==${PRE_COMMIT_VERSION}"
+    && pipx install "pre-commit==${PRE_COMMIT_VERSION}" \
+    # without --force, inject skips nodeenv (exit 0) because pre-commit already installed it
+    && pipx inject --force pre-commit "nodeenv==${NODEENV_VERSION}"
 
 # renovate: datasource=pypi depName=mdformat
 ARG MDFORMAT_VERSION="1.0.0"
