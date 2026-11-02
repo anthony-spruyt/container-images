@@ -35,7 +35,7 @@ RUN export PIPX_HOME="/usr/local/py-utils" \
     && mkdir -p "$PIPX_HOME" "$PIPX_BIN_DIR" \
     && pip install --no-cache-dir "pipx==${PIPX_VERSION}" \
     && pipx install "pre-commit==${PRE_COMMIT_VERSION}" \
-    # inject is a silent no-op without --force when pre-commit already pulled in nodeenv
+    # without --force, inject skips nodeenv (exit 0) because pre-commit already installed it
     && pipx inject --force pre-commit "nodeenv==${NODEENV_VERSION}"
 
 # renovate: datasource=pypi depName=mdformat
