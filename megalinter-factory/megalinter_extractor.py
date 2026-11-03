@@ -15,7 +15,7 @@ import json
 import re
 import shutil
 import subprocess
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import yaml
 
@@ -87,11 +87,11 @@ def _instruction_lines(dockerfile_lines: list[str]):
                 yield line
 
 
-def _scan_instructions(dockerfile_lines: list[str], linter_name: str) -> tuple[dict, dict, dict]:
-    """Collect ARG values, named FROM stages, and the first COPY out of the linter's stage."""
+def _scan_instructions(dockerfile_lines: list[str]) -> tuple[dict, dict, list[dict]]:
+    """Collect ARG values, named FROM stages, and every COPY out of a stage, in order."""
     args = {}
     stages = {}
-    copy = {"binary_path": None, "target_path": None, "stage_name": None}
+    copies = []
 
     for line in _instruction_lines(dockerfile_lines):
         # ARG ACTION_ACTIONLINT_VERSION=1.7.10
@@ -103,18 +103,31 @@ def _scan_instructions(dockerfile_lines: list[str], linter_name: str) -> tuple[d
             stages[match.group(3).lower()] = {"image": match.group(1), "version_ref": match.group(2)}
 
         # COPY --link --from=actionlint /usr/local/bin/actionlint /usr/bin/actionlint
-        if copy["binary_path"] is None and (match := _COPY_FROM.search(line)):
-            stage_name = match.group(1).lower()
-            if linter_name in stage_name:
-                copy = {"binary_path": match.group(2), "target_path": match.group(3), "stage_name": stage_name}
+        if match := _COPY_FROM.search(line):
+            copies.append(
+                {"binary_path": match.group(2), "target_path": match.group(3), "stage_name": match.group(1).lower()}
+            )
 
-    return args, stages, copy
+    return args, stages, copies
 
 
-def _match_stage(stages: dict, linter_name: str) -> tuple[str | None, dict | None]:
-    """Return the first stage whose name contains the linter name."""
+def _stage_key(stages: dict, copies: list[dict], linter_name: str, cli_executable: str | None) -> str:
+    """Return the text a stage name must contain to belong to the linter."""
+    if len(stages) != 1 or any(linter_name in stage_name for stage_name in stages):
+        return linter_name
+    # terraform-fmt copies `terraform` out of a stage named `terragrunt`, which the key (`fmt`) never matches.
+    # Only a copy of the linter's own executable claims the stage: a lone helper stage (uv) is not the linter.
+    (sole_stage,) = stages
+    cli_name = PurePosixPath(cli_executable).name if cli_executable else None
+    if any(c["stage_name"] == sole_stage and PurePosixPath(c["binary_path"]).name == cli_name for c in copies):
+        return sole_stage
+    return linter_name
+
+
+def _match_stage(stages: dict, stage_key: str) -> tuple[str | None, dict | None]:
+    """Return the first stage whose name contains the key."""
     for stage_name, stage_info in stages.items():
-        if linter_name in stage_name:
+        if stage_key in stage_name:
             return stage_name, stage_info
     return None, None
 
@@ -140,23 +153,32 @@ def _linter_version_arg(args: dict, linter_key: str) -> str | None:
     return None
 
 
-def parse_dockerfile_instructions(dockerfile_lines: list[str], linter_key: str) -> dict[str, str | None]:
+def parse_dockerfile_instructions(
+    dockerfile_lines: list[str], linter_key: str, cli_executable: str | None = None
+) -> dict[str, str | None]:
     """
     Parse ARG, FROM, COPY from dockerfile instructions for a specific linter.
 
     Args:
         dockerfile_lines: List of dockerfile instruction strings
         linter_key: The linter key to match (e.g., ACTION_ACTIONLINT)
+        cli_executable: The linter's CLI executable; lets a lone stage not named after the linter
+            count as the linter's when it copies out that executable
 
     Returns:
         Dictionary with version, image, binary_path, target_path, stage_name
     """
     # ACTION_ACTIONLINT -> actionlint
     linter_name = linter_key.split("_")[-1].lower().replace("-", "")
-    args, stages, copy = _scan_instructions(dockerfile_lines, linter_name)
+    args, stages, copies = _scan_instructions(dockerfile_lines)
+    stage_key = _stage_key(stages, copies, linter_name, cli_executable)
+    copy = next(
+        (c for c in copies if stage_key in c["stage_name"]),
+        {"binary_path": None, "target_path": None, "stage_name": None},
+    )
     result: dict[str, str | None] = {"version": None, "image": None, **copy}
 
-    stage_name, stage = _match_stage(stages, linter_name)
+    stage_name, stage = _match_stage(stages, stage_key)
     if stage is not None:
         result["stage_name"] = stage_name
         result["image"] = stage["image"]
@@ -249,7 +271,7 @@ def detect_docker_binary(linter_info: dict, install: dict) -> dict | None:
     if not dockerfile:
         return None
 
-    df_info = parse_dockerfile_instructions(dockerfile, linter_info["linter_key"])
+    df_info = parse_dockerfile_instructions(dockerfile, linter_info["linter_key"], linter_info["cli_executable"])
     if not (df_info["image"] and df_info["binary_path"]):
         return None
 
@@ -272,7 +294,7 @@ def detect_npm(_linter_info: dict, install: dict) -> dict | None:
     all_packages = [strip_npm_version(p) for p in packages]
     return {
         "type": "npm",
-        "package": all_packages[0],  # Primary package
+        "package": all_packages[0],
         "npm_packages": all_packages,
         "version": find_version_arg(install.get("dockerfile", []), "NPM"),
     }
@@ -420,9 +442,10 @@ def build_linter_info(linter: dict, descriptor_id: str) -> dict:
         "descriptor_id": descriptor_id,
         "linter_name": linter_name_raw,
         "cli_version_arg_name": version_arg,
+        "cli_executable": cli_name,
         "version_command": f"{cli_name} {version_arg}",
         "type": None,
-        "apk_packages": install.get("apk", []),  # Alpine package dependencies
+        "apk_packages": install.get("apk", []),
     }
 
     for detector in INSTALL_DETECTORS:
