@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.3](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.2...llm-tool-guard-1.7.3) (2026-11-03)
+
+
+### Documentation
+
+* fix markdown lint drift ([#2719](https://github.com/anthony-spruyt/container-images/issues/2719)) ([d3848b8](https://github.com/anthony-spruyt/container-images/commit/d3848b895ee5cb0548b287699730fa7784448198))
+
 ## [1.7.2](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.1...llm-tool-guard-1.7.2) (2026-11-03)
 
 
