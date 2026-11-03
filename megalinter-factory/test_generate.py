@@ -8,6 +8,7 @@ import yaml
 
 import generate
 from generate import flavor_dir_error, resolve_linters, unique_by_package
+from megalinter_extractor import extract_linter_info
 
 FACTORY_DIR = Path(__file__).parent
 
@@ -48,6 +49,52 @@ def test_generate_files_composes_languages_into_outputs(tmp_path: Path, monkeypa
     assert "# - BASE_LINT, GO_LINT\n" in dockerfile
     assert "ENV GOTOOLCHAIN=local\n" in dockerfile
     assert 'check_linter "go" "go version"' in (flavor_dir / "test.sh").read_text()
+
+
+TERRAFORM_FMT_DESCRIPTOR = """---
+descriptor_id: TERRAFORM
+linters:
+  - linter_name: terraform-fmt
+    name: TERRAFORM_TERRAFORM_FMT
+    cli_executable: terraform
+    install:
+      dockerfile:
+        - |-
+          # renovate: datasource=docker depName=alpine/terragrunt
+          ARG TERRAFORM_TERRAGRUNT_VERSION=1.2.3
+        - FROM alpine/terragrunt:${TERRAFORM_TERRAGRUNT_VERSION} AS terragrunt
+        - COPY --link --from=terragrunt /bin/terraform /usr/bin/
+"""
+
+
+def test_generate_files_ships_the_terraform_binary_for_terraform_fmt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """terraform-fmt's stage and key are not named `terraform`, yet the image copies and tests that binary."""
+    descriptors = tmp_path / "descriptors"
+    descriptors.mkdir()
+    (descriptors / "terraform.megalinter-descriptor.yml").write_text(TERRAFORM_FMT_DESCRIPTOR)
+    factory = tmp_path / "factory"
+    shutil.copytree(FACTORY_DIR / "templates", factory / "templates")
+    (factory / "base.yaml").write_text(yaml.safe_dump({"linters": []}))
+    (factory / "languages").mkdir()
+    flavor_dir = tmp_path / "megalinter-x"
+    flavor_dir.mkdir()
+    (flavor_dir / "flavor.yaml").write_text(
+        yaml.safe_dump({"name": "x", "upstream_image": "img:1", "custom_linters": ["TERRAFORM_TERRAFORM_FMT"]})
+    )
+    monkeypatch.setattr(
+        generate,
+        "get_megalinter_linters",
+        lambda: {"linters": extract_linter_info(descriptors), "base_flavor_linters": {}},
+    )
+
+    generate.generate_files(flavor_dir, factory)
+
+    dockerfile = (flavor_dir / "Dockerfile").read_text()
+    assert "FROM alpine/terragrunt:1.2.3 AS terraform\n" in dockerfile
+    assert "COPY --link --from=terraform /bin/terraform /usr/bin/\n" in dockerfile
+    assert 'check_linter "terraform" "terraform --version"' in (flavor_dir / "test.sh").read_text()
 
 
 def test_unique_by_package_drops_linters_sharing_a_package() -> None:

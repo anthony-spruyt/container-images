@@ -74,7 +74,6 @@ Some linters are built-in (no install needed) but require tools only available i
 
 | Linter                  | Required Base Flavor              |
 | ----------------------- | --------------------------------- |
-| TERRAFORM_TERRAFORM_FMT | `terraform`                       |
 | CSHARP_DOTNET_FORMAT    | `dotnet` or `dotnetweb`           |
 | VBDOTNET_DOTNET_FORMAT  | `dotnet` or `dotnetweb`           |
 | SWIFT_SWIFTLINT         | `swift`                           |
