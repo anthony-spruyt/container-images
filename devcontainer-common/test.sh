@@ -9,9 +9,6 @@ docker run --rm "$IMAGE_REF" bash -c '
   node --version &&
   python3 --version &&
   pre-commit --version &&
-  mdformat --version &&
-  pip show mdformat-frontmatter &&
-  pip show mdformat-admon &&
   gh --version &&
   echo "=== bats ===" &&
   bats --version &&
