@@ -87,11 +87,11 @@ def _instruction_lines(dockerfile_lines: list[str]):
                 yield line
 
 
-def _scan_instructions(dockerfile_lines: list[str], linter_name: str) -> tuple[dict, dict, dict]:
-    """Collect ARG values, named FROM stages, and the first COPY out of the linter's stage."""
+def _scan_instructions(dockerfile_lines: list[str]) -> tuple[dict, dict, list[dict]]:
+    """Collect ARG values, named FROM stages, and every COPY out of a stage, in order."""
     args = {}
     stages = {}
-    copy = {"binary_path": None, "target_path": None, "stage_name": None}
+    copies = []
 
     for line in _instruction_lines(dockerfile_lines):
         # ARG ACTION_ACTIONLINT_VERSION=1.7.10
@@ -103,18 +103,28 @@ def _scan_instructions(dockerfile_lines: list[str], linter_name: str) -> tuple[d
             stages[match.group(3).lower()] = {"image": match.group(1), "version_ref": match.group(2)}
 
         # COPY --link --from=actionlint /usr/local/bin/actionlint /usr/bin/actionlint
-        if copy["binary_path"] is None and (match := _COPY_FROM.search(line)):
-            stage_name = match.group(1).lower()
-            if linter_name in stage_name:
-                copy = {"binary_path": match.group(2), "target_path": match.group(3), "stage_name": stage_name}
+        if match := _COPY_FROM.search(line):
+            copies.append(
+                {"binary_path": match.group(2), "target_path": match.group(3), "stage_name": match.group(1).lower()}
+            )
 
-    return args, stages, copy
+    return args, stages, copies
 
 
-def _match_stage(stages: dict, linter_name: str) -> tuple[str | None, dict | None]:
-    """Return the first stage whose name contains the linter name."""
+def _stage_key(stages: dict, linter_name: str) -> str:
+    """Return the text a stage name must contain to belong to the linter."""
+    if any(linter_name in stage_name for stage_name in stages):
+        return linter_name
+    # terraform-fmt copies out of a stage named `terragrunt`, which the key's last part (`fmt`) never matches
+    if len(stages) == 1:
+        return next(iter(stages))
+    return linter_name
+
+
+def _match_stage(stages: dict, stage_key: str) -> tuple[str | None, dict | None]:
+    """Return the first stage whose name contains the key."""
     for stage_name, stage_info in stages.items():
-        if linter_name in stage_name:
+        if stage_key in stage_name:
             return stage_name, stage_info
     return None, None
 
@@ -153,10 +163,15 @@ def parse_dockerfile_instructions(dockerfile_lines: list[str], linter_key: str) 
     """
     # ACTION_ACTIONLINT -> actionlint
     linter_name = linter_key.split("_")[-1].lower().replace("-", "")
-    args, stages, copy = _scan_instructions(dockerfile_lines, linter_name)
+    args, stages, copies = _scan_instructions(dockerfile_lines)
+    stage_key = _stage_key(stages, linter_name)
+    copy = next(
+        (c for c in copies if stage_key in c["stage_name"]),
+        {"binary_path": None, "target_path": None, "stage_name": None},
+    )
     result: dict[str, str | None] = {"version": None, "image": None, **copy}
 
-    stage_name, stage = _match_stage(stages, linter_name)
+    stage_name, stage = _match_stage(stages, stage_key)
     if stage is not None:
         result["stage_name"] = stage_name
         result["image"] = stage["image"]

@@ -282,6 +282,53 @@ def test_dockerfile_skips_comments_blanks_and_other_stages() -> None:
     assert result["version"] is None
 
 
+def test_dockerfile_sole_stage_is_the_linters_when_no_stage_is_named_after_it() -> None:
+    """terraform-fmt copies out of a `terragrunt` stage, so the key's last part (`fmt`) matches nothing."""
+    lines = [
+        "# renovate: datasource=docker depName=alpine/terragrunt\nARG TERRAFORM_TERRAGRUNT_VERSION=1.2.3",
+        "FROM alpine/terragrunt:${TERRAFORM_TERRAGRUNT_VERSION} AS terragrunt",
+        "COPY --link --from=terragrunt /bin/terraform /usr/bin/",
+    ]
+
+    assert parse_dockerfile_instructions(lines, "TERRAFORM_TERRAFORM_FMT") == {
+        "version": "1.2.3",
+        "image": "alpine/terragrunt",
+        "binary_path": "/bin/terraform",
+        "target_path": "/usr/bin/",
+        "stage_name": "terragrunt",
+    }
+
+
+def test_dockerfile_with_several_unrelated_stages_is_not_guessed() -> None:
+    """Only a sole stage is taken for the linter; picking one of two would ship the wrong binary."""
+    lines = [
+        "FROM org/one:1 AS one",
+        "FROM org/two:2 AS two",
+        "COPY --link --from=one /bin/one /usr/bin/",
+        "COPY --link --from=two /bin/two /usr/bin/",
+    ]
+
+    result = parse_dockerfile_instructions(lines, "X_TOOL")
+
+    assert result["image"] is None
+    assert result["binary_path"] is None
+
+
+def test_dockerfile_stage_named_after_the_linter_wins_among_several() -> None:
+    """The linter's own stage and its COPY are chosen even when other stages come first."""
+    lines = [
+        "FROM org/helper:1 AS helper",
+        "FROM org/tool:2 AS tool",
+        "COPY --link --from=helper /bin/helper /usr/bin/",
+        "COPY --link --from=tool /bin/tool /usr/bin/",
+    ]
+
+    result = parse_dockerfile_instructions(lines, "X_TOOL")
+
+    assert result["image"] == "org/tool"
+    assert result["binary_path"] == "/bin/tool"
+
+
 def test_dockerfile_copy_parse_is_linear_on_long_lines() -> None:
     """A long COPY line that never completes a --from= must not backtrack quadratically."""
     line = "COPY" + " " * 40000 + "x"

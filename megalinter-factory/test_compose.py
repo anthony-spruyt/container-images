@@ -292,6 +292,7 @@ EXPECTED_LINTERS = {
         "DOCKERFILE_HADOLINT",
         "MARKDOWN_MARKDOWNLINT",
         "SPELL_LYCHEE",
+        "TERRAFORM_TERRAFORM_FMT",
         "TERRAFORM_TFLINT",
     ],
     "megalinter-typescript": [
