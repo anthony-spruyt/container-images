@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from megalinter_extractor import (
+    build_linter_info,
     extract_base_flavor_linters,
     extract_linter_info,
     has_download_install_run,
@@ -290,13 +291,35 @@ def test_dockerfile_sole_stage_is_the_linters_when_no_stage_is_named_after_it() 
         "COPY --link --from=terragrunt /bin/terraform /usr/bin/",
     ]
 
-    assert parse_dockerfile_instructions(lines, "TERRAFORM_TERRAFORM_FMT") == {
+    assert parse_dockerfile_instructions(lines, "TERRAFORM_TERRAFORM_FMT", "terraform") == {
         "version": "1.2.3",
         "image": "alpine/terragrunt",
         "binary_path": "/bin/terraform",
         "target_path": "/usr/bin/",
         "stage_name": "terragrunt",
     }
+
+
+def test_terraform_fmt_is_a_docker_binary_from_the_terragrunt_stage() -> None:
+    """The descriptor's cli_executable reaches the stage match, so the copied `terraform` is the linter."""
+    linter = {
+        "linter_name": "terraform-fmt",
+        "name": "TERRAFORM_TERRAFORM_FMT",
+        "cli_executable": "terraform",
+        "install": {
+            "dockerfile": [
+                "# renovate: datasource=docker depName=alpine/terragrunt\nARG TERRAFORM_TERRAGRUNT_VERSION=1.2.3",
+                "FROM alpine/terragrunt:${TERRAFORM_TERRAGRUNT_VERSION} AS terragrunt",
+                "COPY --link --from=terragrunt /bin/terraform /usr/bin/",
+            ],
+        },
+    }
+
+    info = build_linter_info(linter, "TERRAFORM")
+
+    assert info["type"] == "docker_binary"
+    assert info["source_image"] == "alpine/terragrunt"
+    assert info["binary_path"] == "/bin/terraform"
 
 
 def test_dockerfile_with_several_unrelated_stages_is_not_guessed() -> None:
@@ -312,6 +335,27 @@ def test_dockerfile_with_several_unrelated_stages_is_not_guessed() -> None:
 
     assert result["image"] is None
     assert result["binary_path"] is None
+
+
+def test_helper_stage_copy_does_not_make_a_pip_linter_a_docker_binary() -> None:
+    """A lone helper stage such as uv is not the linter, so the pip install is kept."""
+    linter = {
+        "linter_name": "ruff",
+        "name": "PYTHON_RUFF",
+        "cli_executable": "ruff",
+        "install": {
+            "dockerfile": [
+                "FROM ghcr.io/astral-sh/uv:0.5 AS uv",
+                "COPY --from=uv /uv /usr/bin/",
+            ],
+            "pip": ["ruff"],
+        },
+    }
+
+    info = build_linter_info(linter, "PYTHON")
+
+    assert info["type"] == "pip"
+    assert info["package"] == "ruff"
 
 
 def test_dockerfile_stage_named_after_the_linter_wins_among_several() -> None:
