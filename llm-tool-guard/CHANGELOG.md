@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.7.2](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.1...llm-tool-guard-1.7.2) (2026-11-03)
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.161.0 ([#2670](https://github.com/anthony-spruyt/container-images/issues/2670)) ([31f8138](https://github.com/anthony-spruyt/container-images/commit/31f813890a653fe90527e5cdbaabb18c3441a5ee))
+* **deps:** update dependency fastapi to v0.161.1 ([#2676](https://github.com/anthony-spruyt/container-images/issues/2676)) ([3ff0149](https://github.com/anthony-spruyt/container-images/commit/3ff0149b86492c3b4d2498dae6608d7b14857c91))
+* **deps:** update dependency transformers to v5.21.0 ([#2592](https://github.com/anthony-spruyt/container-images/issues/2592)) ([9cf8101](https://github.com/anthony-spruyt/container-images/commit/9cf8101689b3fc02d9889d8439ba5052bbd9971a))
+
+
+### Dependencies
+
+* **deps:** lock file maintenance ([#2684](https://github.com/anthony-spruyt/container-images/issues/2684)) ([3ef7ec7](https://github.com/anthony-spruyt/container-images/commit/3ef7ec71a22acb4d0574255f598bc2ff71e2e8cf))
+* **deps:** update container image docker.io/astral/uv to v0.13.7 ([#2699](https://github.com/anthony-spruyt/container-images/issues/2699)) ([5e634ba](https://github.com/anthony-spruyt/container-images/commit/5e634ba0ed62b96186016041c189a8b659ebb54c))
+
 ## [1.7.1](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.0...llm-tool-guard-1.7.1) (2026-10-28)
 
 
