@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.8](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v3.1.7...megalinter-spruyt-labs-v3.1.8) (2026-11-03)
+
+
+### Dependencies
+
+* **megalinter:** rebuild flavors for updated language definitions ([#2711](https://github.com/anthony-spruyt/container-images/issues/2711)) ([2f261a6](https://github.com/anthony-spruyt/container-images/commit/2f261a668f83a8095374b424ba4002efe4ecaa79))
+
 ## [3.1.7](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v3.1.6...megalinter-spruyt-labs-v3.1.7) (2026-11-03)
 
 
