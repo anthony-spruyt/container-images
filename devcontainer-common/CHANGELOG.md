@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.0](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.8...devcontainer-common-2.5.0) (2026-11-03)
+
+
+### Features
+
+* **devcontainer-common:** drop mdformat ([#2721](https://github.com/anthony-spruyt/container-images/issues/2721)) ([919ab24](https://github.com/anthony-spruyt/container-images/commit/919ab24d3cd75cd86f00e3fa3cfb3949fde4f056))
+
 ## [2.4.8](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.7...devcontainer-common-2.4.8) (2026-11-03)
 
 
