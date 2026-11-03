@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.4.8](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.7...devcontainer-common-2.4.8) (2026-11-03)
+
+
+### Bug Fixes
+
+* **devcontainer-common:** pin nodeenv in the pre-commit venv ([#2697](https://github.com/anthony-spruyt/container-images/issues/2697)) ([c081053](https://github.com/anthony-spruyt/container-images/commit/c081053c3b36a828405558ad43811e29a38d0ace))
+
+
+### Dependencies
+
+* **deps:** update node.js to v24.22.2 ([#2701](https://github.com/anthony-spruyt/container-images/issues/2701)) ([21cb07c](https://github.com/anthony-spruyt/container-images/commit/21cb07ccc5ddddcd165392e8dc0d27481e95ca7f))
+
 ## [2.4.7](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.6...devcontainer-common-2.4.7) (2026-10-28)
 
 

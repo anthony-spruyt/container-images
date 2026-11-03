@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.1](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.1.0...llm-tool-guard-model-1.1.1) (2026-11-03)
+
+
+### Bug Fixes
+
+* **deps:** update dependency transformers to v5.21.0 ([#2592](https://github.com/anthony-spruyt/container-images/issues/2592)) ([9cf8101](https://github.com/anthony-spruyt/container-images/commit/9cf8101689b3fc02d9889d8439ba5052bbd9971a))
+
+
+### Dependencies
+
+* **deps:** lock file maintenance ([#2684](https://github.com/anthony-spruyt/container-images/issues/2684)) ([3ef7ec7](https://github.com/anthony-spruyt/container-images/commit/3ef7ec71a22acb4d0574255f598bc2ff71e2e8cf))
+* **deps:** update container image docker.io/astral/uv to v0.13.7 ([#2699](https://github.com/anthony-spruyt/container-images/issues/2699)) ([5e634ba](https://github.com/anthony-spruyt/container-images/commit/5e634ba0ed62b96186016041c189a8b659ebb54c))
+* **deps:** update dependency huggingface_hub to v2.3.0 ([#2588](https://github.com/anthony-spruyt/container-images/issues/2588)) ([b8af922](https://github.com/anthony-spruyt/container-images/commit/b8af922b891e58630845d6f189b57fb22aeaaa9e))
+
 ## [1.1.0](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.0.5...llm-tool-guard-model-1.1.0) (2026-10-28)
 
 
