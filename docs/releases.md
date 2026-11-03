@@ -25,7 +25,8 @@ If step 5 fails, the release stays a draft. The image push comes before the publ
 
 ### The build is always the tag's commit
 
-The image job checks out the commit its run started from (`github.sha`), never the tag by name, and refuses to build unless the release tag points at that commit. The provenance attestation always names the run's commit and no input overrides it, so building any other commit would sign the wrong source. The `org.opencontainers.image.revision` label comes from the checked-out commit (`docker/metadata-action` `context: git`), so it matches too. release-please tags the release PR's merge commit, which is the commit its run starts from, so on the normal path the check passes.
+The image job checks out the commit its run started from (`github.sha`), never the tag by name, and refuses to build unless the release tag points at that commit. The provenance attestation always names the run's commit and no input overrides it, so building any other commit would sign the wrong source.
+The `org.opencontainers.image.revision` label comes from the checked-out commit (`docker/metadata-action` `context: git`), so it matches too. release-please tags the release PR's merge commit, which is the commit its run starts from, so on the normal path the check passes.
 
 A push to `main` while a `Release Please` run is still pending makes GitHub cancel that run. If the cancelled run was the release PR's merge, the next run's release-please creates the release for the earlier merge commit, and its image job refuses: the run fails, the release stays a draft, and the error says to cut the next release and then delete the draft.
 
@@ -93,7 +94,8 @@ It compares composed linter sets (base, languages and `custom_linters`), not ups
 
 ## Variant images
 
-An image that builds from another image's directory via `build_context` belongs in a release-please [`linked-versions`][linked] group in the `plugins` list of `release-please-config.json`, so it is never released without its source. A commit touching either directory then releases both images at the same version: the highest bump either one would take on its own. The image without a matching commit gets a `Synchronize <group> versions` changelog entry. `merge: false` keeps both in the single release PR.
+An image that builds from another image's directory via `build_context` belongs in a release-please [`linked-versions`][linked] group in the `plugins` list of `release-please-config.json`, so it is never released without its source. A commit touching either directory then releases both images at the same version: the highest bump either one would take on its own.
+The image without a matching commit gets a `Synchronize <group> versions` changelog entry. `merge: false` keeps both in the single release PR.
 
 ```json
 "plugins": [
