@@ -38,20 +38,6 @@ RUN export PIPX_HOME="/usr/local/py-utils" \
     # without --force, inject skips nodeenv (exit 0) because pre-commit already installed it
     && pipx inject --force pre-commit "nodeenv==${NODEENV_VERSION}"
 
-# renovate: datasource=pypi depName=mdformat
-ARG MDFORMAT_VERSION="1.0.0"
-# renovate: datasource=pypi depName=mdformat-gfm
-ARG MDFORMAT_GFM_VERSION="1.0.0"
-# renovate: datasource=pypi depName=mdformat-frontmatter
-ARG MDFORMAT_FRONTMATTER_VERSION="2.2.0"
-# renovate: datasource=pypi depName=mdformat-admon
-ARG MDFORMAT_ADMON_VERSION="2.1.1"
-RUN pip install --no-cache-dir \
-    "mdformat==${MDFORMAT_VERSION}" \
-    "mdformat-gfm==${MDFORMAT_GFM_VERSION}" \
-    "mdformat-frontmatter==${MDFORMAT_FRONTMATTER_VERSION}" \
-    "mdformat-admon==${MDFORMAT_ADMON_VERSION}"
-
 COPY assets/podman /usr/local/bin/podman
 COPY assets/agent-run /usr/local/bin/agent-run
 COPY assets/post-create.sh /usr/local/bin/devcontainer-post-create
