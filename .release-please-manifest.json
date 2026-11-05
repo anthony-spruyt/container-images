@@ -1,17 +1,17 @@
 {
   "chrony": "5.0.8",
-  "claude-agent-read": "1.1.12",
-  "claude-agent-spruyt-labs": "1.0.132",
+  "claude-agent-read": "1.1.13",
+  "claude-agent-spruyt-labs": "1.0.133",
   "claude-agent-write": "1.0.116",
-  "coder-gitops": "1.0.31",
-  "devcontainer-common": "2.5.0",
+  "coder-gitops": "1.0.32",
+  "devcontainer-common": "2.5.1",
   "llm-tool-guard": "1.7.3",
-  "llm-tool-guard-model": "1.1.1",
+  "llm-tool-guard-model": "1.1.2",
   "megalinter-base": "1.0.6",
   "megalinter-cpp": "1.1.6",
   "megalinter-go": "2.1.7",
   "megalinter-python": "1.1.6",
-  "megalinter-spruyt-labs": "3.1.8",
+  "megalinter-spruyt-labs": "3.1.9",
   "megalinter-typescript": "1.0.6",
-  "ssh-key-rotation": "2.0.12"
+  "ssh-key-rotation": "2.0.13"
 }

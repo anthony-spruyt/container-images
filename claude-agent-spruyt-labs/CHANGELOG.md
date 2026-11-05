@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.133](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.132...claude-agent-spruyt-labs-1.0.133) (2026-11-05)
+
+
+### Dependencies
+
+* **deps:** update dependency fluxcd/flux2 to v2.10.0 ([#2745](https://github.com/anthony-spruyt/container-images/issues/2745)) ([bc1902c](https://github.com/anthony-spruyt/container-images/commit/bc1902c828dfffc28afbbdaa88147fbbce2eae27))
+* **deps:** update dependency kubernetes/kubernetes to v1.37.2 ([#2741](https://github.com/anthony-spruyt/container-images/issues/2741)) ([7645664](https://github.com/anthony-spruyt/container-images/commit/7645664cf9818effa5522d115b760add8b165de7))
+
 ## [1.0.132](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.131...claude-agent-spruyt-labs-1.0.132) (2026-11-03)
 
 

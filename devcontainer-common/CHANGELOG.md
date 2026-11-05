@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.5.1](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.5.0...devcontainer-common-2.5.1) (2026-11-05)
+
+
+### Dependencies
+
+* **deps:** update container image mcr.microsoft.com/devcontainers/base to b1e3b08 ([#2747](https://github.com/anthony-spruyt/container-images/issues/2747)) ([d052882](https://github.com/anthony-spruyt/container-images/commit/d05288280a9e39c482f7fc2450dc0949415f2220))
+* **deps:** update dependency pipx to v1.18.6 ([#2739](https://github.com/anthony-spruyt/container-images/issues/2739)) ([f393c0c](https://github.com/anthony-spruyt/container-images/commit/f393c0c5e79e30bb9444f09ad4c449d4227456ae))
+* **deps:** update dependency pipx to v1.18.7 ([#2742](https://github.com/anthony-spruyt/container-images/issues/2742)) ([8188265](https://github.com/anthony-spruyt/container-images/commit/818826591f0e7bbdf99e55c16778a85fbb806a3c))
+* **deps:** update dependency pipx to v1.18.8 ([#2752](https://github.com/anthony-spruyt/container-images/issues/2752)) ([113644b](https://github.com/anthony-spruyt/container-images/commit/113644bf3bc01a767e1922c97389553ba8f89acf))
+
 ## [2.5.0](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.4.8...devcontainer-common-2.5.0) (2026-11-03)
 
 
