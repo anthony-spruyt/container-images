@@ -18,7 +18,7 @@ FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cab
 HEALTHCHECK NONE
 
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
-ARG KUBECTL_VERSION=v1.37.1
+ARG KUBECTL_VERSION=v1.37.2
 
 # Changing the stamp busts the build cache so apk upgrade fetches current packages
 COPY .rebuild-stamp /etc/rebuild-stamp
