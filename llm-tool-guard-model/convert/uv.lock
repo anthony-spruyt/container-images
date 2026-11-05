@@ -166,7 +166,7 @@ dependencies = [
 requires-dist = [
     { name = "numpy", specifier = "==2.5.4" },
     { name = "openvino", specifier = "==2026.4.1" },
-    { name = "torch", specifier = "==2.14.1+cpu", index = "https://download.pytorch.org/whl/cpu" },
+    { name = "torch", specifier = "==2.15.0+cpu", index = "https://download.pytorch.org/whl/cpu" },
     { name = "transformers", specifier = "==5.21.1" },
 ]
 
@@ -381,7 +381,7 @@ wheels = [
 
 [[package]]
 name = "torch"
-version = "2.14.1+cpu"
+version = "2.15.0+cpu"
 source = { registry = "https://download.pytorch.org/whl/cpu" }
 dependencies = [
     { name = "filelock" },
@@ -393,10 +393,10 @@ dependencies = [
     { name = "typing-extensions" },
 ]
 wheels = [
-    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp314-cp314-manylinux_2_28_x86_64.whl", hash = "sha256:35103e180214793207f95d7e12e100ecba3ace6f5fb37e1fcefbb07e096ed180", upload-time = "2026-09-30T19:48:48Z" },
-    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp314-cp314t-manylinux_2_28_x86_64.whl", hash = "sha256:7d2c35e915793f3ae82e8ee4041a960140bcd0bd35f3ec6eb06e1f1f37a89dba", upload-time = "2026-09-30T19:49:18Z" },
-    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp315-cp315-manylinux_2_28_x86_64.whl", hash = "sha256:94edee897fbd15a73f91aa38e22e2d2b7b60ac3acf6e8afc6b8dad89229c810c", upload-time = "2026-09-30T19:49:42Z" },
-    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.14.1%2Bcpu-cp315-cp315t-manylinux_2_28_x86_64.whl", hash = "sha256:2948f065d848178a0402791baf87493b7ebf067dae48a8e04c498d6668e94895", upload-time = "2026-09-30T19:50:06Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.15.0%2Bcpu-cp314-cp314-manylinux_2_28_x86_64.whl", hash = "sha256:f089c94912c955269a20e5fee6b6a371209b610849c9ece26e908a748d87a723", upload-time = "2026-10-28T13:19:32Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.15.0%2Bcpu-cp314-cp314t-manylinux_2_28_x86_64.whl", hash = "sha256:17d66ae6f8a49d4dfca368b50b7dc15f7129175e80b4ae2832dfa0cce86d3159", upload-time = "2026-10-28T13:19:55Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.15.0%2Bcpu-cp315-cp315-manylinux_2_28_x86_64.whl", hash = "sha256:3552930ba3d358d3ff0b6fee19cb296e199767443c0c86be2a715471036d9233", upload-time = "2026-10-28T13:20:15Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.15.0%2Bcpu-cp315-cp315t-manylinux_2_28_x86_64.whl", hash = "sha256:92551daf5873fc6db15be48fe9644398f13143291c151ab6769f19e7c5ebd10c", upload-time = "2026-10-28T13:20:33Z" },
 ]
 
 [[package]]
