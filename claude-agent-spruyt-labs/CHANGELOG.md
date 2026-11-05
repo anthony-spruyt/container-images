@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.134](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.133...claude-agent-spruyt-labs-1.0.134) (2026-11-05)
+
+
+### Dependencies
+
+* **deps:** update dependency cilium/cilium-cli to v0.20.2 ([#2766](https://github.com/anthony-spruyt/container-images/issues/2766)) ([ac86a94](https://github.com/anthony-spruyt/container-images/commit/ac86a9408cb94ced0cc619c1b8355fd1e5ea5890))
+
 ## [1.0.133](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.132...claude-agent-spruyt-labs-1.0.133) (2026-11-05)
 
 
