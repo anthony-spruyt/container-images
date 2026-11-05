@@ -17,7 +17,7 @@ HEALTHCHECK NONE
 ARG CODER_VERSION=2.37.7
 
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
-ARG KUBECTL_VERSION=v1.37.1
+ARG KUBECTL_VERSION=v1.37.2
 
 RUN apk upgrade --no-cache \
     && apk add --no-cache curl jq ca-certificates tzdata bash \
