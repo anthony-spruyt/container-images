@@ -10,7 +10,7 @@ dependencies = [
     "tokenizers==0.23.3",
     "openvino==2026.4.1",
     "numpy==2.5.4",
-    "pydantic==2.14.1",
+    "pydantic==2.14.2",
     "redis==8.1.0",
     "prometheus-client==0.26.0",
 ]
