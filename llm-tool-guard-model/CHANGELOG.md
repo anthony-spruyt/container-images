@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.1.1...llm-tool-guard-model-1.1.2) (2026-11-05)
+
+
+### Dependencies
+
+* **deps:** refresh pip-compile outputs ([#2685](https://github.com/anthony-spruyt/container-images/issues/2685)) ([7856cf9](https://github.com/anthony-spruyt/container-images/commit/7856cf91c98b3ff3d92e798f519b993009260b93))
+
 ## [1.1.1](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.1.0...llm-tool-guard-model-1.1.1) (2026-11-03)
 
 
