@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.5](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.4...llm-tool-guard-1.7.5) (2026-11-06)
+
+
+### Bug Fixes
+
+* **deps:** update dependency transformers to v5.22.1 ([#2784](https://github.com/anthony-spruyt/container-images/issues/2784)) ([44cb6db](https://github.com/anthony-spruyt/container-images/commit/44cb6db6423b27f42f7906ce1d647a39040d7fc7))
+
 ## [1.7.4](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.3...llm-tool-guard-1.7.4) (2026-11-05)
 
 
