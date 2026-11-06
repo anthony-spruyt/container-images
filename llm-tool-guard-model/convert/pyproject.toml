@@ -4,7 +4,7 @@ version = "0.0.0"
 requires-python = ">=3.14"
 dependencies = [
     "torch==2.15.0+cpu",
-    "transformers==5.22.0",
+    "transformers==5.22.1",
     "openvino==2026.4.1",
     "numpy==2.5.4",
 ]
