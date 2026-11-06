@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.7.4](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.3...llm-tool-guard-1.7.4) (2026-11-05)
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.162.0 ([#2498](https://github.com/anthony-spruyt/container-images/issues/2498)) ([ecbea05](https://github.com/anthony-spruyt/container-images/commit/ecbea0536a5954efa40780ca13d970f725d57672))
+* **deps:** update dependency pydantic to v2.14.2 ([#2693](https://github.com/anthony-spruyt/container-images/issues/2693)) ([3961c5f](https://github.com/anthony-spruyt/container-images/commit/3961c5fc5d641f0d6e09de66a35b2e9ebb7bcc98))
+* **deps:** update dependency transformers to v5.21.1 ([#2761](https://github.com/anthony-spruyt/container-images/issues/2761)) ([bb854c6](https://github.com/anthony-spruyt/container-images/commit/bb854c65099c467dc793da9c613952518d41c93e))
+* **deps:** update dependency transformers to v5.22.0 ([#2771](https://github.com/anthony-spruyt/container-images/issues/2771)) ([d5a6b97](https://github.com/anthony-spruyt/container-images/commit/d5a6b97aaf9c11c3a2bcefa0f2e783e32a4045b0))
+
 ## [1.7.3](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.2...llm-tool-guard-1.7.3) (2026-11-03)
 
 

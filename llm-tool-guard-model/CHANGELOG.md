@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.3](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.1.2...llm-tool-guard-model-1.1.3) (2026-11-05)
+
+
+### Bug Fixes
+
+* **deps:** update dependency transformers to v5.21.1 ([#2761](https://github.com/anthony-spruyt/container-images/issues/2761)) ([bb854c6](https://github.com/anthony-spruyt/container-images/commit/bb854c65099c467dc793da9c613952518d41c93e))
+* **deps:** update dependency transformers to v5.22.0 ([#2771](https://github.com/anthony-spruyt/container-images/issues/2771)) ([d5a6b97](https://github.com/anthony-spruyt/container-images/commit/d5a6b97aaf9c11c3a2bcefa0f2e783e32a4045b0))
+
+
+### Dependencies
+
+* **deps:** update dependency huggingface_hub to v2.4.0 ([#2768](https://github.com/anthony-spruyt/container-images/issues/2768)) ([9ec6510](https://github.com/anthony-spruyt/container-images/commit/9ec65103c504059cb09bb85cd60bdbc5e9e095f0))
+* **deps:** update dependency torch to v2.15.0+cpu ([#2663](https://github.com/anthony-spruyt/container-images/issues/2663)) ([1160959](https://github.com/anthony-spruyt/container-images/commit/1160959f94173aee8a87017268d32e6033d65620))
+
 ## [1.1.2](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.1.1...llm-tool-guard-model-1.1.2) (2026-11-05)
 
 
