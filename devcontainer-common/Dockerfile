@@ -26,7 +26,7 @@ RUN chmod +x /tmp/scripts/*.sh \
 # renovate: datasource=pypi depName=pre-commit
 ARG PRE_COMMIT_VERSION="4.7.0"
 # renovate: datasource=pypi depName=pipx
-ARG PIPX_VERSION="1.18.11"
+ARG PIPX_VERSION="1.18.12"
 # pre-commit leaves nodeenv unpinned; 1.11.0 crashes on Node.js pre-releases (ekalinin/nodeenv#453)
 # renovate: datasource=pypi depName=nodeenv
 ARG NODEENV_VERSION="1.12.0"
