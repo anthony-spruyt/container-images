@@ -3,7 +3,7 @@ name: spruyt-labs
 description: "MegaLinter for spruyt-labs - Go, Terraform, TypeScript, and infrastructure repositories"
 
 # renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-go
-upstream_image: "ghcr.io/oxsecurity/megalinter-go:v10.1.0@sha256:42e091a4bcbe9141fe420c2520ed7addf75ae60a0c9d42e3df1278eef1c90a88"
+upstream_image: "ghcr.io/oxsecurity/megalinter-go:v10.2.0@sha256:e676b8e9dac00d148bf1abb6ab809f1df76f07e804d8061f78631975d0c90925"
 
 languages:
   - docker
