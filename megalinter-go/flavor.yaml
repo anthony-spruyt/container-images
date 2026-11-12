@@ -3,7 +3,7 @@ name: go
 description: "MegaLinter for Go repositories"
 
 # renovate: datasource=docker depName=ghcr.io/oxsecurity/megalinter-ci_light
-upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:v10.1.0@sha256:e40b320afe3152cd0e856019ff9c74a827d179ed45512148e5790871c3d08259"
+upstream_image: "ghcr.io/oxsecurity/megalinter-ci_light:v10.2.0@sha256:c8a03e7c1aa68460ae7cf5f943447f5ccb51410f400d394b96e085e8d49e7cb8"
 
 languages:
   - docker
