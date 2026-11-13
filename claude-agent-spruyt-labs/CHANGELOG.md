@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.136](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.135...claude-agent-spruyt-labs-1.0.136) (2026-11-13)
+
+
+### Dependencies
+
+* **deps:** update dependency helmfile/helmfile to v1.8.3 ([#2836](https://github.com/anthony-spruyt/container-images/issues/2836)) ([041d48e](https://github.com/anthony-spruyt/container-images/commit/041d48e62b760ba4a27d3ac00b0ef9326692b58b))
+
 ## [1.0.135](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.134...claude-agent-spruyt-labs-1.0.135) (2026-11-06)
 
 

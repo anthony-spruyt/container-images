@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.6](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.5...llm-tool-guard-1.7.6) (2026-11-13)
+
+
+### Bug Fixes
+
+* **deps:** update dependency transformers to v5.22.2 ([#2838](https://github.com/anthony-spruyt/container-images/issues/2838)) ([8102f90](https://github.com/anthony-spruyt/container-images/commit/8102f904f0793128cd9e7a741ff8bfce7431ae2d))
+
+
+### Dependencies
+
+* **deps:** update dependency opentelemetry-api to v1.45.2 [security] ([#2841](https://github.com/anthony-spruyt/container-images/issues/2841)) ([b444b59](https://github.com/anthony-spruyt/container-images/commit/b444b5914bab348c938df465c63284e0c98d0830))
+
 ## [1.7.5](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.4...llm-tool-guard-1.7.5) (2026-11-06)
 
 
