@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.1.10](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v3.1.9...megalinter-spruyt-labs-v3.1.10) (2026-11-13)
+
+
+### Dependencies
+
+* **deps:** update container image ghcr.io/oxsecurity/megalinter-go to v10.2.0 ([#2824](https://github.com/anthony-spruyt/container-images/issues/2824)) ([fdd0358](https://github.com/anthony-spruyt/container-images/commit/fdd03588b7145d0079f055833c8b6b1365e91850))
+* **deps:** update dependency @biomejs/biome to v2.6.5 ([#2820](https://github.com/anthony-spruyt/container-images/issues/2820)) ([3a62323](https://github.com/anthony-spruyt/container-images/commit/3a623230f822286e8ce66ef5d986a6c1c657dabe))
+* **deps:** update dependency @biomejs/biome to v2.6.6 ([#2835](https://github.com/anthony-spruyt/container-images/issues/2835)) ([78f935a](https://github.com/anthony-spruyt/container-images/commit/78f935aa2cfcfdc6a7110faed0cbd0ae3617fa8c))
+* **megalinter:** rebuild flavors for updated language definitions ([#2833](https://github.com/anthony-spruyt/container-images/issues/2833)) ([000b413](https://github.com/anthony-spruyt/container-images/commit/000b413c655bf0988e24e3c49434054f65b21cf9))
+
 ## [3.1.9](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v3.1.8...megalinter-spruyt-labs-v3.1.9) (2026-11-05)
 
 
