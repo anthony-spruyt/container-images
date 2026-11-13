@@ -1,10 +1,10 @@
 # renovate: datasource=docker depName=python
 ARG PYTHON_VERSION=3.14-slim@sha256:82abc9f53600280b0757126f83c5a7d47088592d2acb6b4c0b9e97f76865508c
 # renovate: datasource=github-releases depName=intel/compute-runtime versioning=loose
-ARG COMPUTE_RUNTIME_VERSION=26.35.39758.10
-ARG GMMLIB_VERSION=22.10.0
-ARG IGC_VERSION=2.41.5
-ARG IGC_BUILD=22716
+ARG COMPUTE_RUNTIME_VERSION=26.40.40196.8
+ARG GMMLIB_VERSION=22.10.2
+ARG IGC_VERSION=2.42.6
+ARG IGC_BUILD=23070
 
 FROM docker.io/astral/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490 AS uv
 
@@ -15,13 +15,13 @@ ARG COMPUTE_RUNTIME_VERSION
 ARG GMMLIB_VERSION
 ARG IGC_VERSION
 ARG IGC_BUILD
-ADD --checksum=sha256:61712caaddeba3d38e4f79e2a0fb23fea25596ca2d72c3144c6eea2331ec4301 \
+ADD --checksum=sha256:96046069e94680b761df6e83ddc64244721178b826e3e1f8af3ca104cfd0c7c2 \
     https://github.com/intel/compute-runtime/releases/download/${COMPUTE_RUNTIME_VERSION}/intel-opencl-icd_${COMPUTE_RUNTIME_VERSION}-0_amd64.deb /
-ADD --checksum=sha256:6031a63d6e8a12ce61c14efc15f2c8e727061286e3820b8594e6d00615e04d54 \
+ADD --checksum=sha256:053fceadb84a1d2f9a30a0d1bc9b16424b3f1a90cc49900fcd80aadcf25c8a4d \
     https://github.com/intel/compute-runtime/releases/download/${COMPUTE_RUNTIME_VERSION}/libigdgmm12_${GMMLIB_VERSION}_amd64.deb /
-ADD --checksum=sha256:0a6e64a663ae65a0fa02d6912ae3b6b37cf85b90c21cc423fd9fef70aaf4f628 \
+ADD --checksum=sha256:e20539632f2d99875d8f8b225d5da58b31f98baa54bb47c6328aa98ec473ab9d \
     https://github.com/intel/intel-graphics-compiler/releases/download/v${IGC_VERSION}/intel-igc-core-2_${IGC_VERSION}+${IGC_BUILD}_amd64.deb /
-ADD --checksum=sha256:779e1b9e88098eb25711e9a8f67c2752665bad22f134aa40ed5649f6e1b87058 \
+ADD --checksum=sha256:7f5593cf828503ffb8450967768bde9209e22753bc576296e846b5a751011fa3 \
     https://github.com/intel/intel-graphics-compiler/releases/download/v${IGC_VERSION}/intel-igc-opencl-2_${IGC_VERSION}+${IGC_BUILD}_amd64.deb /
 
 FROM python:${PYTHON_VERSION}
