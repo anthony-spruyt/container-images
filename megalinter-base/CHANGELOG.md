@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.7](https://github.com/anthony-spruyt/container-images/compare/megalinter-base-1.0.6...megalinter-base-1.0.7) (2026-11-13)
+
+
+### Dependencies
+
+* **deps:** update container image ghcr.io/oxsecurity/megalinter-ci_light to v10.2.0 ([#2823](https://github.com/anthony-spruyt/container-images/issues/2823)) ([8596f6f](https://github.com/anthony-spruyt/container-images/commit/8596f6ff9a8e9f6dfee3d797d2973a57543ff877))
+* **megalinter:** rebuild flavors for updated language definitions ([#2833](https://github.com/anthony-spruyt/container-images/issues/2833)) ([000b413](https://github.com/anthony-spruyt/container-images/commit/000b413c655bf0988e24e3c49434054f65b21cf9))
+
 ## [1.0.6](https://github.com/anthony-spruyt/container-images/compare/megalinter-base-1.0.5...megalinter-base-1.0.6) (2026-11-03)
 
 
