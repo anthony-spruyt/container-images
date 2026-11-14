@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.7.7](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.6...llm-tool-guard-1.7.7) (2026-11-14)
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.162.1 ([#2858](https://github.com/anthony-spruyt/container-images/issues/2858)) ([c6daf24](https://github.com/anthony-spruyt/container-images/commit/c6daf24b932ce92edd7d0557966ddd84e7c907c3))
+* **deps:** update dependency fastapi to v0.162.2 ([#2861](https://github.com/anthony-spruyt/container-images/issues/2861)) ([9092252](https://github.com/anthony-spruyt/container-images/commit/90922523bd6a2387620bd043ed45889b0a5ccb92))
+
+
+### Dependencies
+
+* **deps:** update dependency intel/compute-runtime to v26.40.40196.8 ([#2815](https://github.com/anthony-spruyt/container-images/issues/2815)) ([105b9fa](https://github.com/anthony-spruyt/container-images/commit/105b9fa8f03185e9ff2be1fe53abbae69126357c))
+
 ## [1.7.6](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.5...llm-tool-guard-1.7.6) (2026-11-13)
 
 
