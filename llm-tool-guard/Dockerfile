@@ -1,5 +1,5 @@
 # renovate: datasource=docker depName=python
-ARG PYTHON_VERSION=3.14-slim@sha256:82abc9f53600280b0757126f83c5a7d47088592d2acb6b4c0b9e97f76865508c
+ARG PYTHON_VERSION=3.14-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f
 # renovate: datasource=github-releases depName=intel/compute-runtime versioning=loose
 ARG COMPUTE_RUNTIME_VERSION=26.40.40196.8
 ARG GMMLIB_VERSION=22.10.2
