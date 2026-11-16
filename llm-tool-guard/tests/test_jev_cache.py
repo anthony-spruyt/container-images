@@ -231,6 +231,18 @@ def test_valkey_errors_are_counted_and_an_answer_that_could_not_be_stored_is_not
     assert sample(metrics, "llm_tool_guard_cache_up") == 0
 
 
+def test_a_failed_read_or_write_is_counted_and_no_answer_is_used(metrics, cache_error):
+    valkey = FakeValkey()
+    valkey.read_error = valkey.write_error = cache_error()
+    cache = make_cache(valkey, metrics)
+
+    assert asyncio.run(cache.get_many([digest("a")])) == {}
+    assert asyncio.run(cache.settle(digest("a"), 0.1, permanent=True)) == JevAnswer(None)
+    assert valkey.data == {}
+    assert sample(metrics, "llm_tool_guard_cache_errors_total", operation="get") == 1
+    assert sample(metrics, "llm_tool_guard_cache_errors_total", operation="set") == 1
+
+
 def test_no_client_means_misses_and_the_local_answer(metrics):
     cache = make_cache(None, metrics)
 

@@ -23,6 +23,9 @@ _PARTIAL = "+"
 _SPANS = re.compile(r"\d+-\d+(,\d+-\d+)*", re.ASCII)
 _TRANSIENT_TTL_SECONDS = 3600
 _LIBRARIES = ("transformers", "tokenizers", "openvino")
+# RuntimeError: redis-py 8.1.0 re-raises uvloop's closed-transport write error (redis/redis-py#4352).
+# Remove it once the redis pin includes redis/redis-py#4288, which wraps it as a ConnectionError.
+_CLIENT_ERRORS = (RedisError, OSError, RuntimeError)
 
 
 Span = tuple[int, int]
@@ -190,7 +193,7 @@ class VerdictCache:
             return {}
         try:
             values = await self._client.mget([self._key(h) for h in hashes])
-        except (RedisError, OSError) as exc:
+        except _CLIENT_ERRORS as exc:
             _failed(self._metrics, "get", exc)
             self._metrics.cache_misses.inc(len(hashes))
             return {}
@@ -210,7 +213,7 @@ class VerdictCache:
             return
         try:
             await self._client.set(self._key(hash_), _encode(verdict), ex=self._ttl)
-        except (RedisError, OSError) as exc:
+        except _CLIENT_ERRORS as exc:
             _failed(self._metrics, "set", exc)
             return
         self._metrics.cache_up.set(1)
@@ -236,7 +239,7 @@ class JevCache:
             return {}
         try:
             values = await self._client.mget([self._key(h) for h in hashes])
-        except (RedisError, OSError) as exc:
+        except _CLIENT_ERRORS as exc:
             _failed(self._metrics, "get", exc)
             return {}
         self._metrics.cache_up.set(1)
@@ -257,7 +260,7 @@ class JevCache:
         ttl = self._ttl if lasting else min(_TRANSIENT_TTL_SECONDS, self._ttl)
         try:
             stored = await self._client.set(self._key(hash_), _encode_answer(own), ex=ttl, nx=True, get=True)
-        except (RedisError, OSError) as exc:
+        except _CLIENT_ERRORS as exc:
             _failed(self._metrics, "set", exc)
             return JevAnswer(None)
         self._metrics.cache_up.set(1)
