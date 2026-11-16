@@ -2,6 +2,7 @@
 
 import asyncio
 import hashlib
+import logging
 from importlib.metadata import PackageNotFoundError
 
 import pytest
@@ -253,6 +254,28 @@ def test_timeouts_count_as_errors(metrics):
 
     assert asyncio.run(cache.get_many([digest("a")])) == {}
     assert sample(metrics, "llm_tool_guard_cache_errors_total", operation="get") == 1
+
+
+def test_a_failed_read_or_write_is_a_miss_counted_and_logged_once_without_the_error_text(metrics, caplog, cache_error):
+    valkey = FakeValkey()
+    error = cache_error()
+    error.args = ("redis://user:pw@cache.example:6379 refused",)
+    valkey.read_error = valkey.write_error = error
+    cache = VerdictCache(valkey, namespace="n", ttl_seconds=60, metrics=metrics)
+    hash_ = digest("a")
+
+    with caplog.at_level(logging.WARNING, logger="cache"):
+        assert asyncio.run(cache.get_many([hash_])) == {}
+        asyncio.run(cache.put(hash_, Verdict(flagged=False, score=0.1)))
+
+    assert [record.getMessage() for record in caplog.records] == [
+        f"cache get failed: {type(error).__name__}",
+        f"cache set failed: {type(error).__name__}",
+    ]
+    assert valkey.data == {}
+    assert sample(metrics, "llm_tool_guard_cache_misses_total") == 1
+    assert sample(metrics, "llm_tool_guard_cache_errors_total", operation="get") == 1
+    assert sample(metrics, "llm_tool_guard_cache_errors_total", operation="set") == 1
 
 
 def test_no_client_means_every_lookup_misses_without_errors(metrics):

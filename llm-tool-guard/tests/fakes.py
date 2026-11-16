@@ -42,32 +42,46 @@ def digest(text: str) -> str:
     return "sha256:" + hashlib.sha256(text.encode("utf-8", "surrogatepass")).hexdigest()
 
 
+def closed_transport_error() -> RuntimeError:
+    """Return what uvloop raises when a command is written to a connection whose transport is already closed."""
+    return RuntimeError(
+        "unable to perform operation on <TCPTransport closed=True reading=False 0x1>; the handler is closed"
+    )
+
+
 class FakeValkey:
-    """In-memory stand-in for the async Valkey client; set down=True to make every call fail."""
+    """In-memory stand-in for the async Valkey client; set down=True to make every call fail.
+
+    read_error and write_error make only the reads (mget) or only the writes (set) raise that exception.
+    """
 
     def __init__(self):
         """Start empty and up."""
         self.data: dict[str, str] = {}
         self.ttls: dict[str, int] = {}
         self.down = False
+        self.read_error: Exception | None = None
+        self.write_error: Exception | None = None
         self.mget_calls: list[list[str]] = []
         self.set_calls: list[tuple] = []
 
-    def _check(self):
+    def _check(self, error: Exception | None):
+        if error is not None:
+            raise error
         if self.down:
             raise ValkeyConnectionError("connection refused")
 
     async def mget(self, keys):
         """Return the stored value or None for each key."""
         await asyncio.sleep(0)
-        self._check()
+        self._check(self.read_error)
         self.mget_calls.append(list(keys))
         return [self.data.get(k) for k in keys]
 
     async def set(self, key, value, ex=None, nx=False, get=False):
         """Store value with its TTL; with nx an existing key is kept, and with get the previous value is returned."""
         await asyncio.sleep(0)
-        self._check()
+        self._check(self.write_error)
         self.set_calls.append((key, value, ex, nx, get))
         previous = self.data.get(key)
         if nx and previous is not None:

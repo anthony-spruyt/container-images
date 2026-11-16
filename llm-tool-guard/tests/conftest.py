@@ -3,10 +3,13 @@
 Run from llm-tool-guard/app so the app modules import: python -m pytest ../tests
 """
 
+from collections.abc import Callable
+
 import pytest
 from prometheus_client import CollectorRegistry
+from redis.exceptions import ConnectionError as ValkeyConnectionError
 
-from fakes import FakeValkey
+from fakes import FakeValkey, closed_transport_error
 from metrics import Metrics
 
 
@@ -20,3 +23,9 @@ def fixture_metrics() -> Metrics:
 def fixture_valkey() -> FakeValkey:
     """An empty fake Valkey."""
     return FakeValkey()
+
+
+@pytest.fixture(name="cache_error", params=[ValkeyConnectionError, closed_transport_error], ids=["refused", "closed"])
+def fixture_cache_error(request) -> Callable[[], Exception]:
+    """Make a failure of the Valkey client: a refused connection, or a write to an already closed transport."""
+    return request.param

@@ -142,6 +142,47 @@ def test_scan_error_is_flagged_without_a_score(metrics):
     assert response.json() == {"flagged": [digest("fine")], "unknown": [], "scores": {}, **NO_SECOND_CHECK}
 
 
+def test_a_cache_read_error_is_a_miss_and_every_text_is_scanned(metrics, cache_error):
+    valkey = FakeValkey()
+    valkey.read_error = cache_error()
+    scanner = FakeScanner()
+    texts = ["clean", f"{INJECTION} me"]
+
+    with client_for(metrics, guard=make_guard(metrics, valkey, scanner)) as client:
+        response = client.post("/v1/scan", json=body(texts, [digest("old")]))
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "flagged": [digest(f"{INJECTION} me")],
+        "unknown": [digest("old")],
+        "scores": {digest(f"{INJECTION} me"): FLAGGED_SCORE},
+        **NO_SECOND_CHECK,
+    }
+    assert sorted(scanner.calls) == sorted(texts)
+    assert sample(metrics, "llm_tool_guard_cache_errors_total", operation="get") == 1
+
+
+def test_a_cache_write_error_still_returns_the_real_results(metrics, cache_error):
+    valkey = FakeValkey()
+    valkey.write_error = cache_error()
+    scanner = FakeScanner()
+    texts = ["clean", f"{INJECTION} me"]
+
+    with client_for(metrics, guard=make_guard(metrics, valkey, scanner)) as client:
+        response = client.post("/v1/scan", json=body(texts))
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "flagged": [digest(f"{INJECTION} me")],
+        "unknown": [],
+        "scores": {digest(f"{INJECTION} me"): FLAGGED_SCORE},
+        **NO_SECOND_CHECK,
+    }
+    assert sorted(scanner.calls) == sorted(texts)
+    assert valkey.data == {}
+    assert sample(metrics, "llm_tool_guard_cache_errors_total", operation="set") == 2
+
+
 def test_scores_cover_only_the_model_flags_in_a_mixed_request(metrics):
     with client_for(metrics, guard=make_guard(metrics, FakeValkey(), MAX_TEXT_BYTES="40")) as client:
         response = client.post("/v1/scan", json=body([f"{INJECTION} x", "clean", "y" * 41]))
