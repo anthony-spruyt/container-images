@@ -23,7 +23,8 @@ _PARTIAL = "+"
 _SPANS = re.compile(r"\d+-\d+(,\d+-\d+)*", re.ASCII)
 _TRANSIENT_TTL_SECONDS = 3600
 _LIBRARIES = ("transformers", "tokenizers", "openvino")
-# RuntimeError: uvloop raises it, and redis-py passes it on unwrapped, for a write to a closed transport
+# RuntimeError: redis-py 8.1.0 re-raises uvloop's closed-transport write error (redis/redis-py#4352).
+# Remove it once the redis pin includes redis/redis-py#4288, which wraps it as a ConnectionError.
 _CLIENT_ERRORS = (RedisError, OSError, RuntimeError)
 
 
