@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.5.6](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.5.5...devcontainer-common-2.5.6) (2026-11-17)
+
+
+### Dependencies
+
+* **deps:** update container image ghcr.io/devcontainers/features/node to v2.1.2 ([#2897](https://github.com/anthony-spruyt/container-images/issues/2897)) ([1798c13](https://github.com/anthony-spruyt/container-images/commit/1798c13d62c9392b37f3a2897de1bd3434fbfb82))
+* **deps:** update container image ghcr.io/devcontainers/features/python to v1.8.1 ([#2898](https://github.com/anthony-spruyt/container-images/issues/2898)) ([206d15c](https://github.com/anthony-spruyt/container-images/commit/206d15cb68967177a1be8ac4c5f0b854f25ccd36))
+* **deps:** update dependency @aikidosec/safe-chain to v1.5.29 ([#2895](https://github.com/anthony-spruyt/container-images/issues/2895)) ([9f90a0a](https://github.com/anthony-spruyt/container-images/commit/9f90a0a8c7785aedada08ab04fd7b1165674242e))
+* **deps:** update node.js to v26.13.1 ([#2879](https://github.com/anthony-spruyt/container-images/issues/2879)) ([e353a0f](https://github.com/anthony-spruyt/container-images/commit/e353a0f3bf802e25987ea72cc5f236886552e109))
+
 ## [2.5.5](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.5.4...devcontainer-common-2.5.5) (2026-11-17)
 
 
