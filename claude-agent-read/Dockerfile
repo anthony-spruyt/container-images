@@ -5,8 +5,8 @@ HEALTHCHECK NONE
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# System deps. xz-utils is required to extract the node .tar.xz tarball below
-# (node:24-slim provided it implicitly; ubuntu minimal does not).
+# System deps. xz-utils extracts the node .tar.xz tarball below; libatomic1 is
+# linked by the official Node.js Linux binaries since Node 25.
 # archive.ubuntu.com times out intermittently on GitHub runners. Without
 # Error-Mode=any, apt-get update only warns on an unreachable mirror and the
 # install fails later with a confusing "has no installation candidate".
@@ -23,12 +23,12 @@ RUN { echo 'Acquire::Retries "5";'; \
   done; \
   [[ -n "${ok}" ]] \
   && apt-get install -y --no-install-recommends \
-  ca-certificates curl git jq openssh-client python3 python3-pip xz-utils \
+  ca-certificates curl git jq libatomic1 openssh-client python3 python3-pip xz-utils \
   && rm -rf /var/lib/apt/lists/*
 
 # Node.js (prebuilt binary tarball — Renovate tracks via node-version datasource)
 # renovate: depName=node datasource=node versioning=node
-ARG NODE_VERSION="24.22.2"
+ARG NODE_VERSION="26.13.0"
 RUN ARCH="$(dpkg --print-architecture)" \
   && case "${ARCH}" in amd64) ARCH=x64;; arm64) ARCH=arm64;; *) echo "unsupported: ${ARCH}"; exit 1;; esac \
   && TARBALL="node-v${NODE_VERSION}-linux-${ARCH}.tar.xz" \
