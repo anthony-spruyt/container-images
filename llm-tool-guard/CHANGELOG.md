@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.7.8](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.7...llm-tool-guard-1.7.8) (2026-11-17)
+
+
+### Bug Fixes
+
+* **llm-tool-guard:** treat a stored cache value that is not UTF-8 as a miss ([#2893](https://github.com/anthony-spruyt/container-images/issues/2893)) ([f882b60](https://github.com/anthony-spruyt/container-images/commit/f882b60362094b28de5cdb1e38eecc0b18ba5b10))
+
 ## [1.7.7](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.6...llm-tool-guard-1.7.7) (2026-11-17)
 
 
