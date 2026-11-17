@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.14](https://github.com/anthony-spruyt/container-images/compare/ssh-key-rotation-2.0.13...ssh-key-rotation-2.0.14) (2026-11-17)
+
+
+### Dependencies
+
+* **deps:** update container image alpine to f59abe6 ([#2867](https://github.com/anthony-spruyt/container-images/issues/2867)) ([4f26a7a](https://github.com/anthony-spruyt/container-images/commit/4f26a7a424275178c9ec9faea841c8410d86d151))
+
 ## [2.0.13](https://github.com/anthony-spruyt/container-images/compare/ssh-key-rotation-2.0.12...ssh-key-rotation-2.0.13) (2026-11-05)
 
 
