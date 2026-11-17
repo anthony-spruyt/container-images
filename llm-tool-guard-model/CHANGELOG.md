@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.6](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.1.5...llm-tool-guard-model-1.1.6) (2026-11-17)
+
+
+### Dependencies
+
+* **deps:** update container image python to 9aaa474 ([#2864](https://github.com/anthony-spruyt/container-images/issues/2864)) ([6f40e65](https://github.com/anthony-spruyt/container-images/commit/6f40e659da5652b200a7ccfa3bc92c5454930072))
+
 ## [1.1.5](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.1.4...llm-tool-guard-model-1.1.5) (2026-11-13)
 
 
