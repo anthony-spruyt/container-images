@@ -162,6 +162,13 @@ def test_an_unreadable_winner_counts_as_no_answer(metrics, valkey):
     assert asyncio.run(cache.settle(digest("a"), 0.5, permanent=True)) == JevAnswer(None)
 
 
+def test_a_winner_that_is_not_utf8_counts_as_no_answer(metrics, valkey):
+    valkey.data[key(digest("a"))] = b"0.5\xff"
+    cache = make_cache(valkey, metrics)
+
+    assert asyncio.run(cache.settle(digest("a"), 0.5, permanent=True)) == JevAnswer(None)
+
+
 def test_get_many_returns_answers_and_markers_and_skips_misses(metrics, valkey):
     cache = make_cache(valkey, metrics)
     a, b, c = digest("a"), digest("b"), digest("c")
@@ -206,6 +213,12 @@ def test_bytes_values_are_read(metrics, valkey):
     answers = asyncio.run(make_cache(valkey, metrics).get_many([digest("a"), digest("b"), digest("c")]))
 
     assert answers == {digest("a"): JevAnswer(0.5), digest("b"): JevAnswer(None), digest("c"): JevAnswer(0.7, True)}
+
+
+def test_a_stored_value_that_is_not_utf8_is_a_miss(metrics, valkey):
+    valkey.data[key(digest("a"))] = b"0.5\xff"
+
+    assert asyncio.run(make_cache(valkey, metrics).get_many([digest("a")])) == {}
 
 
 def test_the_probability_bounds_are_stored_and_read(metrics, valkey):
