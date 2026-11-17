@@ -57,11 +57,22 @@ def _decode_spans(raw: str) -> tuple[Span, ...] | None:
     return spans if all(start <= end for start, end in spans) else None
 
 
+def _text(value: str | bytes | None) -> str | None:
+    """Return a stored value as text; None when there is none or its bytes are not UTF-8."""
+    if not isinstance(value, bytes):
+        return value
+    try:
+        return value.decode()
+    except UnicodeDecodeError:
+        return None
+
+
 def _decode(value: str | bytes | None) -> Verdict | None:
     """Parse a stored "<0|1>:<score>[:<spans>]", spans only on a flagged verdict; anything else is a miss."""
-    if value is None:
+    text = _text(value)
+    if text is None:
         return None
-    flag, sep, rest = (value.decode() if isinstance(value, bytes) else value).partition(":")
+    flag, sep, rest = text.partition(":")
     if not sep or flag not in _FLAGS:
         return None
     raw, has_spans, raw_spans = rest.partition(":")
@@ -96,9 +107,9 @@ def _encode_answer(answer: JevAnswer) -> str:
 
 def _decode_answer(value: str | bytes | None) -> JevAnswer | None:
     """Parse a stored probability, with "+" after it when partial, or the no-answer marker; else it is a miss."""
-    if value is None:
+    raw = _text(value)
+    if raw is None:
         return None
-    raw = value.decode() if isinstance(value, bytes) else value
     if raw == _NO_ANSWER:
         return JevAnswer(None)
     partial = raw.endswith(_PARTIAL)
