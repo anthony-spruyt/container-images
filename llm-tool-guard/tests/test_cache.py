@@ -227,6 +227,15 @@ def test_bytes_values_are_read(metrics, valkey):
     assert asyncio.run(cache.get_many([hash_])) == {hash_: Verdict(True, 0.5)}
 
 
+def test_a_stored_value_that_is_not_utf8_is_a_miss(metrics, valkey):
+    cache = VerdictCache(valkey, namespace="n", ttl_seconds=60, metrics=metrics)
+    hash_ = digest("a")
+    valkey.data[f"llm-tool-guard:n:{hash_}"] = b"1:0.5\xff"
+
+    assert asyncio.run(cache.get_many([hash_])) == {}
+    assert sample(metrics, "llm_tool_guard_cache_misses_total") == 1
+
+
 def test_errors_count_and_mark_the_cache_down_until_it_answers(metrics):
     valkey = FakeValkey()
     cache = VerdictCache(valkey, namespace="n", ttl_seconds=60, metrics=metrics)
