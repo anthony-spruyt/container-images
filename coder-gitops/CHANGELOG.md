@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.33](https://github.com/anthony-spruyt/container-images/compare/coder-gitops-1.0.32...coder-gitops-1.0.33) (2026-11-17)
+
+
+### Dependencies
+
+* **deps:** update container image alpine to f59abe6 ([#2867](https://github.com/anthony-spruyt/container-images/issues/2867)) ([4f26a7a](https://github.com/anthony-spruyt/container-images/commit/4f26a7a424275178c9ec9faea841c8410d86d151))
+
 ## [1.0.32](https://github.com/anthony-spruyt/container-images/compare/coder-gitops-1.0.31...coder-gitops-1.0.32) (2026-11-05)
 
 
