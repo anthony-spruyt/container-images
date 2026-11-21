@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.139](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.138...claude-agent-spruyt-labs-1.0.139) (2026-11-21)
+
+
+### Dependencies
+
+* **deps:** update container image ghcr.io/anthony-spruyt/claude-agent-write to v1.0.120 ([#2903](https://github.com/anthony-spruyt/container-images/issues/2903)) ([1e1510c](https://github.com/anthony-spruyt/container-images/commit/1e1510c79be36e43b0c62c1717d830273547a706))
+* **deps:** update dependency helm/helm to v4.3.2 ([#2927](https://github.com/anthony-spruyt/container-images/issues/2927)) ([8e670f7](https://github.com/anthony-spruyt/container-images/commit/8e670f704afbda235c1b8d81e7458dc629384751))
+* **deps:** update dependency helmfile/helmfile to v1.8.4 ([#2921](https://github.com/anthony-spruyt/container-images/issues/2921)) ([eeba642](https://github.com/anthony-spruyt/container-images/commit/eeba642862cf7a8f0ec0becca71df8ede63ad81a))
+
 ## [1.0.138](https://github.com/anthony-spruyt/container-images/compare/claude-agent-spruyt-labs-1.0.137...claude-agent-spruyt-labs-1.0.138) (2026-11-17)
 
 
