@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.7](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.1.6...llm-tool-guard-model-1.1.7) (2026-11-21)
+
+
+### Bug Fixes
+
+* **deps:** update dependency transformers to v5.23.0 ([#2930](https://github.com/anthony-spruyt/container-images/issues/2930)) ([89a6300](https://github.com/anthony-spruyt/container-images/commit/89a630077f602610914a0ca53f5c0cae7747252c))
+
+
+### Dependencies
+
+* **deps:** update container image docker.io/astral/uv to v0.13.8 ([#2918](https://github.com/anthony-spruyt/container-images/issues/2918)) ([4c92641](https://github.com/anthony-spruyt/container-images/commit/4c926414875bfdf709b5a4c9a52c636c8aa24901))
+
 ## [1.1.6](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.1.5...llm-tool-guard-model-1.1.6) (2026-11-17)
 
 
