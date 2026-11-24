@@ -6,7 +6,7 @@ ARG GMMLIB_VERSION=22.10.2
 ARG IGC_VERSION=2.42.6
 ARG IGC_BUILD=23070
 
-FROM docker.io/astral/uv:0.13.8@sha256:5cc1805e2426484abca4ad46ea783bab281fdb225fd82d8ce6d66a81254bac85 AS uv
+FROM docker.io/astral/uv:0.13.9@sha256:d3b601f0c7b118bc1753febf7c41cc80981df678445e0254284eecf84db79a7d AS uv
 
 # The OpenCL driver, its compiler and its memory library, each checksummed. Bump them together: the driver package
 # depends on the one IGC release it pairs with (see its Depends), and the apt install in the final stage fails otherwise.
