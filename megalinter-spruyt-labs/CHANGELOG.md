@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.1.11](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v3.1.10...megalinter-spruyt-labs-v3.1.11) (2026-11-24)
+
+
+### Dependencies
+
+* **deps:** update dependency @biomejs/biome to v2.6.8 ([#2939](https://github.com/anthony-spruyt/container-images/issues/2939)) ([f273607](https://github.com/anthony-spruyt/container-images/commit/f273607fa8aee4092b9fddf922584ed9ef89901e))
+* **megalinter:** rebuild flavors for updated language definitions ([#2949](https://github.com/anthony-spruyt/container-images/issues/2949)) ([0558632](https://github.com/anthony-spruyt/container-images/commit/0558632ccac9a1fbd52decf3c4cae1733793799a))
+
 ## [3.1.10](https://github.com/anthony-spruyt/container-images/compare/megalinter-spruyt-labs-v3.1.9...megalinter-spruyt-labs-v3.1.10) (2026-11-13)
 
 

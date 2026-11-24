@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.8](https://github.com/anthony-spruyt/container-images/compare/megalinter-base-1.0.7...megalinter-base-1.0.8) (2026-11-24)
+
+
+### Dependencies
+
+* **megalinter:** rebuild flavors for updated language definitions ([#2949](https://github.com/anthony-spruyt/container-images/issues/2949)) ([0558632](https://github.com/anthony-spruyt/container-images/commit/0558632ccac9a1fbd52decf3c4cae1733793799a))
+
 ## [1.0.7](https://github.com/anthony-spruyt/container-images/compare/megalinter-base-1.0.6...megalinter-base-1.0.7) (2026-11-13)
 
 

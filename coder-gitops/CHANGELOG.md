@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.34](https://github.com/anthony-spruyt/container-images/compare/coder-gitops-1.0.33...coder-gitops-1.0.34) (2026-11-24)
+
+
+### Dependencies
+
+* **deps:** update dependency coder to v2.38.10 ([#2943](https://github.com/anthony-spruyt/container-images/issues/2943)) ([1b3cd2d](https://github.com/anthony-spruyt/container-images/commit/1b3cd2d7770522ec154e2117adba1f90e82d5dd8))
+
 ## [1.0.33](https://github.com/anthony-spruyt/container-images/compare/coder-gitops-1.0.32...coder-gitops-1.0.33) (2026-11-17)
 
 
