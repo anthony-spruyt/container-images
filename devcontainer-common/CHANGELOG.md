@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.5.7](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.5.6...devcontainer-common-2.5.7) (2026-11-24)
+
+
+### Dependencies
+
+* **deps:** update dependency cli/cli to v2.104.0 ([#2922](https://github.com/anthony-spruyt/container-images/issues/2922)) ([cace3f2](https://github.com/anthony-spruyt/container-images/commit/cace3f2ff3d9ce62ebf01d956ea878798aad06ab))
+* **deps:** update dependency pipx to v1.18.18 ([#2958](https://github.com/anthony-spruyt/container-images/issues/2958)) ([ab0a316](https://github.com/anthony-spruyt/container-images/commit/ab0a316d38055de37f247004b1e5918df7101894))
+* **deps:** update dependency pipx to v1.18.19 ([#2963](https://github.com/anthony-spruyt/container-images/issues/2963)) ([aef2e1c](https://github.com/anthony-spruyt/container-images/commit/aef2e1cd8c2215e05c412f3751b7814642cb817c))
+
 ## [2.5.6](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.5.5...devcontainer-common-2.5.6) (2026-11-17)
 
 
