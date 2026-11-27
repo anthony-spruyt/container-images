@@ -15,7 +15,7 @@ MODEL_IMAGE="llm-tool-guard-model-test:$SUFFIX"
 HUB="$(mktemp -d)"
 TOKEN="test-token-$SUFFIX"
 # renovate: datasource=docker depName=docker.io/valkey/valkey
-VALKEY_IMAGE="docker.io/valkey/valkey:9.1.4@sha256:3ab0eca823ebbf0fe352476ebac330ac9e5f14b592b9a954eab296d341e81b0e"
+VALKEY_IMAGE="docker.io/valkey/valkey:9.2.0@sha256:1c2b25b09f354c66fe994733acdf12fcfd4bdf6f3bd92b88a93a70378d884056"
 
 # Uncompressed image ceiling: fails loudly if torch or model weights land in the image.
 MAX_IMAGE_BYTES=$((1500 * 1000 * 1000))
