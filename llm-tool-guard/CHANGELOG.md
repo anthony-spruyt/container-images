@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.7.10](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.9...llm-tool-guard-1.7.10) (2026-11-28)
+
+
+### Bug Fixes
+
+* **deps:** update dependency fastapi to v0.165.0 ([#2980](https://github.com/anthony-spruyt/container-images/issues/2980)) ([cf91f7b](https://github.com/anthony-spruyt/container-images/commit/cf91f7b883e4ec9c28f2b49bd43ea959e8617d6e))
+* **deps:** update dependency numpy to v2.5.5 ([#2876](https://github.com/anthony-spruyt/container-images/issues/2876)) ([41d71b6](https://github.com/anthony-spruyt/container-images/commit/41d71b6e438337e100dc36ae9e4d3cf32addd46e))
+* **deps:** update dependency pydantic to v2.14.4 ([#2940](https://github.com/anthony-spruyt/container-images/issues/2940)) ([d1490d4](https://github.com/anthony-spruyt/container-images/commit/d1490d43e585a544f0952c2db1c8d105cca90459))
+
+
+### Dependencies
+
+* **deps:** update container image docker.io/valkey/valkey to v9.1.4 ([#2984](https://github.com/anthony-spruyt/container-images/issues/2984)) ([3b224cc](https://github.com/anthony-spruyt/container-images/commit/3b224cc5b07e30ee78a4fbc66f0d33596c2fbae3))
+* **deps:** update container image docker.io/valkey/valkey to v9.2.0 ([#2989](https://github.com/anthony-spruyt/container-images/issues/2989)) ([4f65304](https://github.com/anthony-spruyt/container-images/commit/4f6530478546d14afce9fb51ed0ed26684bf0b3e))
+
 ## [1.7.9](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-1.7.8...llm-tool-guard-1.7.9) (2026-11-24)
 
 
