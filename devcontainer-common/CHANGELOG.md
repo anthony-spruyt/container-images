@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.5.8](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.5.7...devcontainer-common-2.5.8) (2026-11-28)
+
+
+### Dependencies
+
+* **deps:** update container image mcr.microsoft.com/devcontainers/base to e15941f ([#2992](https://github.com/anthony-spruyt/container-images/issues/2992)) ([9f98a3c](https://github.com/anthony-spruyt/container-images/commit/9f98a3c755125c4ce35dbebe334b64ce9459b795))
+* **deps:** update dependency cli/cli to v2.105.0 ([#2973](https://github.com/anthony-spruyt/container-images/issues/2973)) ([a5c42be](https://github.com/anthony-spruyt/container-images/commit/a5c42be5329812218824fc3ef93339e12a89fb30))
+
 ## [2.5.7](https://github.com/anthony-spruyt/container-images/compare/devcontainer-common-2.5.6...devcontainer-common-2.5.7) (2026-11-24)
 
 

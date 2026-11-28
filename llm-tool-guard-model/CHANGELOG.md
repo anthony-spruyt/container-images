@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.8](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.1.7...llm-tool-guard-model-1.1.8) (2026-11-28)
+
+
+### Bug Fixes
+
+* **deps:** update dependency numpy to v2.5.5 ([#2876](https://github.com/anthony-spruyt/container-images/issues/2876)) ([41d71b6](https://github.com/anthony-spruyt/container-images/commit/41d71b6e438337e100dc36ae9e4d3cf32addd46e))
+
 ## [1.1.7](https://github.com/anthony-spruyt/container-images/compare/llm-tool-guard-model-1.1.6...llm-tool-guard-model-1.1.7) (2026-11-24)
 
 
